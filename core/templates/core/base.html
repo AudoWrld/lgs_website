@@ -6,6 +6,40 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}LGS Mineral Assay Laboratory{% endblock %}</title>
 <meta name="description" content="{% block meta_description %}Reliable mineral analytical and metallurgical testing services for mining, exploration and mineral-processing operations in Tanzania.{% endblock %}">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="{{ request.build_absolute_uri }}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="LGS Mineral Assay Laboratory">
+<meta property="og:title" content="{% block og_title %}LGS Mineral Assay Laboratory{% endblock %}">
+<meta property="og:description" content="{% block og_description %}Mineral assay, analytical and metallurgical testing services for mining and mineral-processing operations in Tanzania.{% endblock %}">
+<meta property="og:url" content="{{ request.build_absolute_uri }}">
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'core/img/lgs-logo.png' %}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{% block twitter_title %}LGS Mineral Assay Laboratory{% endblock %}">
+<meta name="twitter:description" content="{% block twitter_description %}Mineral assay, analytical and metallurgical testing services in Tanzania.{% endblock %}">
+<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'core/img/lgs-logo.png' %}">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Laboratory",
+  "name": "LGS Mineral Assay Laboratory",
+  "url": "{{ request.scheme }}://{{ request.get_host }}",
+  "logo": "{{ request.scheme }}://{{ request.get_host }}{% static 'core/img/lgs-logo.png' %}",
+  "description": "Mineral analytical and metallurgical testing laboratory serving mining, exploration and mineral-processing operations in Tanzania.",
+  "email": "lgsafricansales2025@gmail.com",
+  "telephone": "+255753192863",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Kahama Road, Sweya - Njiapanda ya Mahagi",
+    "addressLocality": "Nyang'hwale District",
+    "addressRegion": "Geita Region",
+    "addressCountry": "TZ"
+  },
+  "areaServed": "Tanzania",
+  "sameAs": ["https://wa.me/255753192863"]
+}
+</script>
 
 <link rel="icon" href="{% static 'favicons/favicon.svg' %}" type="image/svg+xml">
 <link rel="icon" href="{% static 'favicons/favicon.ico' %}" sizes="any">
