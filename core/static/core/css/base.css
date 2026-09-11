@@ -1,14 +1,14 @@
 :root {
-  --navy: #123E5B;
-  --navy-dark: #0D2E44;
-  --orange: #F39A2B;
-  --charcoal: #20272B;
-  --off-white: #F7F4EE;
-  --white: #FFFFFF;
-  --line: #DCD6C9;
+  --navy: #123e5b;
+  --navy-dark: #0d2e44;
+  --orange: #f39a2b;
+  --charcoal: #20272b;
+  --off-white: #f7f4ee;
+  --white: #ffffff;
+  --line: #dcd6c9;
 
-  --font-head: 'Space Grotesk', sans-serif;
-  --font-body: 'Inter', sans-serif;
+  --font-head: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
 
   --fs-body: 1rem;
   --fs-small: 0.875rem;
@@ -36,7 +36,10 @@ body {
   background: var(--off-white);
 }
 
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
   font-family: var(--font-head);
   color: var(--navy);
   line-height: 1.25;
@@ -44,9 +47,15 @@ h1, h2, h3, h4 {
   font-weight: 600;
 }
 
-h1 { font-size: var(--fs-h1); }
-h2 { font-size: var(--fs-h2); }
-h3 { font-size: var(--fs-h3); }
+h1 {
+  font-size: var(--fs-h1);
+}
+h2 {
+  font-size: var(--fs-h2);
+}
+h3 {
+  font-size: var(--fs-h3);
+}
 
 p {
   margin: 0 0 1em;
@@ -58,21 +67,23 @@ a {
   text-decoration: none;
 }
 
-img { max-width: 100%; display: block; }
+img {
+  max-width: 100%;
+  display: block;
+}
 
 .container {
   width: 100%;
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 1.5rem;
 }
-
-/* ---------- Header ---------- */
 
 .site-header {
   position: relative;
   background: var(--navy);
   border-bottom: 3px solid var(--orange);
+  z-index: 100;
 }
 
 .site-header .container {
@@ -150,7 +161,9 @@ img { max-width: 100%; display: block; }
 
 @media (hover: hover) and (pointer: fine) {
   .main-nav a {
-    transition: border-color 0.15s ease, color 0.15s ease;
+    transition:
+      border-color 0.15s ease,
+      color 0.15s ease;
   }
 
   .main-nav a:hover {
@@ -174,8 +187,6 @@ img { max-width: 100%; display: block; }
   font-weight: 600;
 }
 
-/* ---------- Grid motif ---------- */
-
 .grid-band {
   position: relative;
   background-image:
@@ -189,10 +200,12 @@ img { max-width: 100%; display: block; }
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(247,244,238,0) 0%, var(--off-white) 96%);
+  background: linear-gradient(
+    180deg,
+    rgba(247, 244, 238, 0) 0%,
+    var(--off-white) 96%
+  );
 }
-
-/* ---------- Buttons ---------- */
 
 .btn {
   display: inline-block;
@@ -225,8 +238,6 @@ img { max-width: 100%; display: block; }
   color: var(--white);
 }
 
-/* ---------- Sections ---------- */
-
 .section {
   padding: 3.5rem 0;
 }
@@ -241,8 +252,6 @@ img { max-width: 100%; display: block; }
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
-
-/* ---------- Cards ---------- */
 
 .card-grid {
   display: grid;
@@ -268,8 +277,6 @@ img { max-width: 100%; display: block; }
   color: var(--charcoal);
   margin-bottom: 0;
 }
-
-/* ---------- Footer ---------- */
 
 .site-footer {
   background: var(--navy-dark);
@@ -300,7 +307,7 @@ img { max-width: 100%; display: block; }
 }
 
 .footer-bottom {
-  border-top: 1px solid rgba(247,244,238,0.15);
+  border-top: 1px solid rgba(247, 244, 238, 0.15);
   margin-top: 2rem;
   padding-top: 1rem;
   display: flex;
@@ -308,10 +315,8 @@ img { max-width: 100%; display: block; }
   flex-wrap: wrap;
   gap: 0.5rem;
   font-size: 0.75rem;
-  color: rgba(247,244,238,0.6);
+  color: rgba(247, 244, 238, 0.6);
 }
-
-/* ---------- Responsive ---------- */
 
 @media (max-width: 760px) {
   .nav-toggle-label {
@@ -328,6 +333,7 @@ img { max-width: 100%; display: block; }
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.25s ease;
+    z-index: 100;
   }
 
   .main-nav ul {
@@ -337,7 +343,7 @@ img { max-width: 100%; display: block; }
   }
 
   .main-nav li {
-    border-bottom: 1px solid rgba(247,244,238,0.1);
+    border-bottom: 1px solid rgba(247, 244, 238, 0.1);
   }
 
   .main-nav a {
@@ -373,7 +379,7 @@ img { max-width: 100%; display: block; }
   .footer-brand {
     grid-column: 1 / -1;
     padding-bottom: 1.25rem;
-    border-bottom: 1px solid rgba(247,244,238,0.15);
+    border-bottom: 1px solid rgba(247, 244, 238, 0.15);
   }
 
   .footer-contact {
