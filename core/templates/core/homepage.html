@@ -1,4 +1,279 @@
 {% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}LGS Mineral Assay Laboratory | Mineral Analysis & Testing{% endblock %}
+{% block meta_description %}LGS Mineral Assay Laboratory provides mineral analytical and testing services for mining, exploration and mineral-processing industries in Tanzania.{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/homepage.css' %}">
+{% endblock %}
+
 {% block content %}
-...
+
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow-label">The Lab You Can Trust</div>
+    <h1>Precision in Mineral Analysis. Confidence in Every Result.</h1>
+    <p class="lead">LGS Mineral Assay Laboratory provides mineral analytical and testing services for the mining, mineral exploration and mineral processing industries. Our laboratory supports exploration programs, ore evaluation, metallurgical investigations and mineral-processing operations with analytical data intended to support informed technical and operational decisions.</p>
+    <div class="hero-actions">
+      <a href="{% url 'request_quote' %}" class="btn btn-primary">Request a Quote</a>
+      <a href="{% url 'services' %}" class="btn btn-outline">View Our Services</a>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="two-col">
+      <div>
+        <div class="eyebrow-label">About LGS</div>
+        <h2>A Mineral Analytical Laboratory Built on Trust</h2>
+        <p>LGS Mineral Assay Laboratory is a mineral analytical and testing laboratory under LGS African Group Company Limited. The laboratory provides analytical and technical services across mineral exploration, mining and mineral processing applications.</p>
+        <p>We handle a diverse range of geological and process materials, including rock, soil, drill core, RC chips, pulp, tailings, activated carbon and process solutions.</p>
+        <a href="{% url 'about' %}" class="btn btn-outline">More About Us</a>
+      </div>
+      <div>
+        <div class="eyebrow-label">Our Analytical Approach</div>
+        <h2>Structured, Traceable, Reliable</h2>
+        <p>Our analytical workflow integrates controlled sample preparation, wet-chemistry techniques and Atomic Absorption Spectrometry (AAS) for quantitative elemental determination.</p>
+        <p>From sample receipt through preparation, analysis, quality control and final reporting, samples are managed through structured laboratory procedures designed to maintain sample identity, analytical consistency and traceability.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lgshp-offer">
+  <div class="lgshp-offer-wrap">
+    <span class="lgshp-offer-eyebrow">What We Offer</span>
+    <h2 class="lgshp-offer-title">Our Services</h2>
+    <p class="lgshp-offer-intro">Gold, Silver, Copper and Sulphur analysis, alongside specialized metallurgical and technical testing services. Click any service to read more.</p>
+
+    <div class="lgshp-offer-groups" id="lgshp-services">
+      <div class="lgshp-offer-group">
+        <h3 class="lgshp-offer-group-title">Elemental Analysis</h3>
+        <div class="lgshp-offer-list">
+          <details class="lgshp-offer-item">
+            <summary class="lgshp-offer-summary">
+              <i class='bx bx-diamond lgshp-offer-icon'></i>
+              <span class="lgshp-offer-name">Gold (Au) Analysis</span>
+              <i class='bx bx-chevron-down lgshp-offer-chevron'></i>
+            </summary>
+            <p class="lgshp-offer-desc">Quantitative determination of gold in geological and mineral-processing samples using controlled chemical preparation, solvent extraction and Atomic Absorption Spectrometry (AAS). Our gold analytical services support exploration, grade evaluation and process-monitoring applications.</p>
+          </details>
+          <details class="lgshp-offer-item">
+            <summary class="lgshp-offer-summary">
+              <i class='bx bx-diamond lgshp-offer-icon'></i>
+              <span class="lgshp-offer-name">Silver (Ag) Analysis</span>
+              <i class='bx bx-chevron-down lgshp-offer-chevron'></i>
+            </summary>
+            <p class="lgshp-offer-desc">Quantitative determination of silver in geological and process samples, providing analytical data for mineral exploration, ore characterization and mineral-processing applications.</p>
+          </details>
+          <details class="lgshp-offer-item">
+            <summary class="lgshp-offer-summary">
+              <i class='bx bx-diamond lgshp-offer-icon'></i>
+              <span class="lgshp-offer-name">Copper (Cu) Analysis</span>
+              <i class='bx bx-chevron-down lgshp-offer-chevron'></i>
+            </summary>
+            <p class="lgshp-offer-desc">Determination of copper concentrations in rocks, soils, pulps, ores, tailings and other mineral-related materials using instrumental analytical techniques.</p>
+          </details>
+          <details class="lgshp-offer-item">
+            <summary class="lgshp-offer-summary">
+              <i class='bx bx-diamond lgshp-offer-icon'></i>
+              <span class="lgshp-offer-name">Sulphur Analysis</span>
+              <i class='bx bx-chevron-down lgshp-offer-chevron'></i>
+            </summary>
+            <p class="lgshp-offer-desc">Determination of sulphur content in mineral samples to support ore characterization, metallurgical assessment and mineral-processing evaluation.</p>
+          </details>
+        </div>
+      </div>
+
+      <div class="lgshp-offer-group">
+        <h3 class="lgshp-offer-group-title">Metallurgical & Process Testing</h3>
+        <div class="lgshp-offer-list">
+          <details class="lgshp-offer-item">
+            <summary class="lgshp-offer-summary">
+              <i class='bx bx-filter-alt lgshp-offer-icon'></i>
+              <span class="lgshp-offer-name">Carbon Activity Testing</span>
+              <i class='bx bx-chevron-down lgshp-offer-chevron'></i>
+            </summary>
+            <p class="lgshp-offer-desc">Evaluation of activated carbon adsorption performance for gold recovery applications. Carbon activity testing provides useful information for assessing carbon performance and supporting the management of adsorption circuits.</p>
+          </details>
+          <details class="lgshp-offer-item">
+            <summary class="lgshp-offer-summary">
+              <i class='bx bx-test-tube lgshp-offer-icon'></i>
+              <span class="lgshp-offer-name">Cyanide Leaching Tests</span>
+              <i class='bx bx-chevron-down lgshp-offer-chevron'></i>
+            </summary>
+            <p class="lgshp-offer-desc">Controlled laboratory-scale cyanide leaching tests for evaluating the gold extraction characteristics and potential metallurgical response of gold-bearing materials.</p>
+          </details>
+          <details class="lgshp-offer-item">
+            <summary class="lgshp-offer-summary">
+              <i class='bx bx-slider-alt lgshp-offer-icon'></i>
+              <span class="lgshp-offer-name">Cyanide Leaching Parameter Optimization</span>
+              <i class='bx bx-chevron-down lgshp-offer-chevron'></i>
+            </summary>
+            <p class="lgshp-offer-desc">Systematic evaluation of key process parameters influencing cyanide leaching performance. Testing can assist in evaluating operating conditions for improved gold extraction and process efficiency.</p>
+          </details>
+          <details class="lgshp-offer-item">
+            <summary class="lgshp-offer-summary">
+              <i class='bx bx-search-alt lgshp-offer-icon'></i>
+              <span class="lgshp-offer-name">Metallic Screening & Gold Evaluation</span>
+              <i class='bx bx-chevron-down lgshp-offer-chevron'></i>
+            </summary>
+            <p class="lgshp-offer-desc">Specialized evaluation of heterogeneous or coarse-gold-bearing samples where conventional sample preparation may be affected by uneven gold distribution or the nugget effect.</p>
+          </details>
+          <details class="lgshp-offer-item">
+            <summary class="lgshp-offer-summary">
+              <i class='bx bx-support lgshp-offer-icon'></i>
+              <span class="lgshp-offer-name">Technical Assistance & Consultancy</span>
+              <i class='bx bx-chevron-down lgshp-offer-chevron'></i>
+            </summary>
+            <p class="lgshp-offer-desc">Technical assistance in areas related to mineral analysis, sample preparation, analytical quality control and selected mineral-processing applications. We work with clients to understand their analytical requirements and provide appropriate laboratory testing solutions.</p>
+          </details>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="materials-strip">
+  <div class="container">
+    <div class="eyebrow-label">Materials We Handle</div>
+    <h2 style="color: var(--white);">Wide Range of Geological & Process Materials</h2>
+    <p style="color: rgba(247,244,238,0.8);">Supporting analytical requirements associated with exploration, ore evaluation and mineral-processing work.</p>
+    <div class="materials-track">
+      <span><i class='bx bx-diamond'></i>Rock</span>
+      <span><i class='bx bx-layer'></i>Soil</span>
+      <span><i class='bx bx-circle'></i>Drill Core</span>
+      <span><i class='bx bx-dots-horizontal-rounded'></i>RC Chips</span>
+      <span><i class='bx bx-water'></i>Pulp</span>
+      <span><i class='bx bx-trash'></i>Tailings</span>
+      <span><i class='bx bx-filter-alt'></i>Activated Carbon</span>
+      <span><i class='bx bx-test-tube'></i>Process Solutions</span>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="eyebrow-label">Our Process</div>
+    <h2>From Sample to Result</h2>
+    <p class="section-head">Every stage is managed through defined laboratory procedures to protect sample identity and support the reliability and traceability of reported analytical data.</p>
+
+    <div class="timeline">
+      <div class="timeline-steps">
+        <div class="timeline-step">
+          <div class="timeline-node">1</div>
+          <span class="label">Sample Reception</span>
+        </div>
+        <div class="timeline-step">
+          <div class="timeline-node">2</div>
+          <span class="label">Sample Preparation</span>
+        </div>
+        <div class="timeline-step">
+          <div class="timeline-node">3</div>
+          <span class="label">Weighing</span>
+        </div>
+        <div class="timeline-step">
+          <div class="timeline-node">4</div>
+          <span class="label">Chemical Preparation</span>
+        </div>
+        <div class="timeline-step">
+          <div class="timeline-node">5</div>
+          <span class="label">Instrumental Analysis</span>
+        </div>
+        <div class="timeline-step">
+          <div class="timeline-node">6</div>
+          <span class="label">QA/QC Verification</span>
+        </div>
+        <div class="timeline-step">
+          <div class="timeline-node">7</div>
+          <span class="label">Technical Review</span>
+        </div>
+        <div class="timeline-step">
+          <div class="timeline-node">8</div>
+          <span class="label">Certificate of Analysis</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lgshp-trust">
+  <div class="lgshp-trust-wrap">
+    <div class="lgshp-trust-col">
+      <span class="lgshp-trust-eyebrow">Quality Assurance</span>
+      <h2 class="lgshp-trust-title">Quality Control Integrated Throughout</h2>
+      <p>Analytical data are reviewed before final release to identify potential inconsistencies and confirm that applicable laboratory quality-control requirements have been satisfied.</p>
+      <ul class="lgshp-qa-checks">
+        <li><i class='bx bx-check'></i>Calibration standards</li>
+        <li><i class='bx bx-check'></i>Quality-control samples</li>
+        <li><i class='bx bx-check'></i>Duplicate analysis</li>
+        <li><i class='bx bx-check'></i>Instrument performance monitoring</li>
+        <li><i class='bx bx-check'></i>Analytical result verification</li>
+      </ul>
+    </div>
+    <div class="lgshp-trust-col">
+      <span class="lgshp-trust-eyebrow">Why Choose LGS</span>
+      <h2 class="lgshp-trust-title">Reliability You Can Depend On</h2>
+      <div class="lgshp-values">
+        <div class="lgshp-value-row">
+          <span class="lgshp-value-tag">Accuracy</span>
+          <span class="lgshp-value-desc">Commitment to analytical results that meet defined laboratory quality requirements.</span>
+        </div>
+        <div class="lgshp-value-row">
+          <span class="lgshp-value-tag">Integrity</span>
+          <span class="lgshp-value-desc">Professional, impartial and responsible analytical activities.</span>
+        </div>
+        <div class="lgshp-value-row">
+          <span class="lgshp-value-tag">Quality</span>
+          <span class="lgshp-value-desc">QA/QC integrated throughout the analytical workflow.</span>
+        </div>
+        <div class="lgshp-value-row">
+          <span class="lgshp-value-tag">Confidentiality</span>
+          <span class="lgshp-value-desc">Appropriate handling of client information, samples and results.</span>
+        </div>
+        <div class="lgshp-value-row">
+          <span class="lgshp-value-tag">Consistency</span>
+          <span class="lgshp-value-desc">Controlled laboratory procedures for dependable performance.</span>
+        </div>
+        <div class="lgshp-value-row">
+          <span class="lgshp-value-tag">Continuous Improvement</span>
+          <span class="lgshp-value-desc">Ongoing strengthening of technical capability, processes and quality-management practices.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lgshp-cta">
+  <div class="lgshp-cta-wrap">
+    <h2 class="lgshp-cta-title">Need Mineral Analysis or Metallurgical Testing?</h2>
+    <p class="lgshp-cta-text">Contact LGS Mineral Assay Laboratory for analytical services, quotations, sample submission guidance, technical assistance or general enquiries.</p>
+    <div class="lgshp-cta-actions">
+      <a href="{% url 'request_quote' %}" class="lgshp-cta-btn lgshp-cta-btn-primary">Request a Quote</a>
+      <a href="{% url 'contact' %}" class="lgshp-cta-btn lgshp-cta-btn-outline">Contact Us</a>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var group = document.getElementById('lgshp-services');
+  if (!group) return;
+  var items = group.querySelectorAll('details.lgshp-offer-item');
+  items.forEach(function (item) {
+    item.addEventListener('toggle', function () {
+      if (item.open) {
+        items.forEach(function (other) {
+          if (other !== item) other.open = false;
+        });
+      }
+    });
+  });
+});
+</script>
 {% endblock %}
