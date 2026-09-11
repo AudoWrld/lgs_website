@@ -1,4 +1,6 @@
+from django.http import HttpResponse
 from django.shortcuts import render
+from django.urls import reverse
 
 
 def homepage(request):
@@ -23,3 +25,19 @@ def contact(request):
 
 def request_quote(request):
     return render(request, "core/request_quote.html")
+
+
+def robots_txt(request):
+    sitemap_url = request.build_absolute_uri(reverse("sitemap"))
+    content = f"User-agent: *\nAllow: /\nSitemap: {sitemap_url}\n"
+    return HttpResponse(content, content_type="text/plain")
+
+
+def sitemap_xml(request):
+    page_names = ["homepage", "services", "about", "pricing", "contact", "request_quote"]
+    urls = "\n".join(
+        f"  <url><loc>{request.build_absolute_uri(reverse(page_name))}</loc></url>"
+        for page_name in page_names
+    )
+    content = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{urls}\n</urlset>\n'
+    return HttpResponse(content, content_type="application/xml")
