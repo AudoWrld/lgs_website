@@ -1,0 +1,94 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}LGS Mineral Assay Laboratory{% endblock %}</title>
+<meta name="description" content="{% block meta_description %}Reliable mineral analytical and metallurgical testing services for mining, exploration and mineral-processing operations in Tanzania.{% endblock %}">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+<link rel="stylesheet" href="{% static 'core/css/base.css' %}">
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a href="{% url 'homepage' %}" class="brand">
+      <img src="{% static 'core/img/lgs-logo.png' %}" alt="LGS Mineral Assay Laboratory">
+      <span class="brand-text">
+        LGS Mineral Assay Laboratory
+        <span class="brand-motto">The Lab You Can Trust</span>
+      </span>
+    </a>
+
+    <input type="checkbox" id="nav-toggle" class="nav-toggle-checkbox">
+    <label for="nav-toggle" class="nav-toggle-label" aria-label="Toggle menu">
+      <i class='bx bx-menu'></i>
+      <i class='bx bx-x'></i>
+    </label>
+
+    <nav class="main-nav">
+      <ul>
+        <li><a href="{% url 'homepage' %}" class="{% if request.resolver_match.url_name == 'homepage' %}active{% endif %}">Home</a></li>
+        <li><a href="{% url 'services' %}" class="{% if request.resolver_match.url_name == 'services' %}active{% endif %}">Services</a></li>
+        <li><a href="{% url 'about' %}" class="{% if request.resolver_match.url_name == 'about' %}active{% endif %}">About Us</a></li>
+        <li><a href="{% url 'pricing' %}" class="{% if request.resolver_match.url_name == 'pricing' %}active{% endif %}">Pricing</a></li>
+        <li><a href="{% url 'contact' %}" class="{% if request.resolver_match.url_name == 'contact' %}active{% endif %}">Contact Us</a></li>
+        <li><a href="{% url 'request_quote' %}" class="nav-cta {% if request.resolver_match.url_name == 'request_quote' %}active{% endif %}">Request a Quote</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <h4>LGS Mineral Assay Laboratory</h4>
+        <p>Precision in Mineral Analysis.<br>Confidence in Every Result.</p>
+      </div>
+
+      <div>
+        <h4>Laboratory</h4>
+        <p>Kahama Road, Sweya &ndash; Njiapanda ya Mahagi,<br>
+        Nyang'hwale District, Geita Region, Tanzania</p>
+      </div>
+
+      <div>
+        <h4>Head Office</h4>
+        <p>Mwanza, Tanzania<br>
+        P.O. Box 1214, Mwanza, Tanzania</p>
+      </div>
+
+      <div class="footer-contact">
+        <h4>Contact</h4>
+        <p>
+          <a href="mailto:lgsafricansales2025@gmail.com">lgsafricansales2025@gmail.com</a><br>
+          <a href="https://wa.me/255753192863">WhatsApp +255 753 192 863</a>
+        </p>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>&copy; <span id="footer-year"></span> LGS African Group Company Limited</span>
+      <span>The Lab You Can Trust</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('footer-year').textContent = new Date().getFullYear();
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>
