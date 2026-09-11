@@ -1,6 +1,6 @@
 {
-  "name": "MyWebSite",
-  "short_name": "MySite",
+  "name": "LGS Mineral Assay Laboratory",
+  "short_name": "LGS Laboratory",
   "icons": [
     {
       "src": "web-app-manifest-192x192.png",

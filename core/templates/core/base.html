@@ -7,12 +7,12 @@
 <title>{% block title %}LGS Mineral Assay Laboratory{% endblock %}</title>
 <meta name="description" content="{% block meta_description %}Reliable mineral analytical and metallurgical testing services for mining, exploration and mineral-processing operations in Tanzania.{% endblock %}">
 <meta name="robots" content="index, follow">
-<link rel="canonical" href="{{ request.build_absolute_uri }}">
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="LGS Mineral Assay Laboratory">
 <meta property="og:title" content="{% block og_title %}LGS Mineral Assay Laboratory{% endblock %}">
 <meta property="og:description" content="{% block og_description %}Mineral assay, analytical and metallurgical testing services for mining and mineral-processing operations in Tanzania.{% endblock %}">
-<meta property="og:url" content="{{ request.build_absolute_uri }}">
+<meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
 <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'core/img/lgs-logo.png' %}">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="{% block twitter_title %}LGS Mineral Assay Laboratory{% endblock %}">
