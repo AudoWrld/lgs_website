@@ -6,6 +6,7 @@
   --off-white: #f7f4ee;
   --white: #ffffff;
   --line: #dcd6c9;
+  --whatsapp: #25d366;
 
   --font-head: "Space Grotesk", sans-serif;
   --font-body: "Inter", sans-serif;
@@ -316,6 +317,43 @@ img {
   gap: 0.5rem;
   font-size: 0.75rem;
   color: rgba(247, 244, 238, 0.6);
+}
+
+.whatsapp-float {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--whatsapp);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  z-index: 200;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .whatsapp-float:hover {
+    transform: scale(1.06);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@media (max-width: 640px) {
+  .whatsapp-float {
+    width: 50px;
+    height: 50px;
+    font-size: 1.55rem;
+    right: 1rem;
+    bottom: 1rem;
+  }
 }
 
 @media (max-width: 760px) {
