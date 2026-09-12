@@ -1,0 +1,267 @@
+.lgsct-header {
+  background: var(--off-white);
+  padding: 3rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.lgsct-header-inner {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 3rem;
+  align-items: center;
+}
+
+@media (max-width: 760px) {
+  .lgsct-header-inner {
+    grid-template-columns: 1fr;
+    gap: 1.75rem;
+  }
+}
+
+.lgsct-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.4em;
+}
+
+.lgsct-header p {
+  color: var(--charcoal);
+  font-size: 1.0625rem;
+  max-width: 56ch;
+  margin-bottom: 0;
+}
+
+.lgsct-header-media {
+  position: relative;
+}
+
+.lgsct-header-media img {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
+
+.lgsct-header-media::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  width: 60px;
+  height: 60px;
+  border-top: 3px solid var(--orange);
+  border-left: 3px solid var(--orange);
+  z-index: 1;
+}
+
+.lgsct-header-media::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  right: -10px;
+  width: 60px;
+  height: 60px;
+  border-bottom: 3px solid var(--orange);
+  border-right: 3px solid var(--orange);
+  z-index: 1;
+}
+
+@media (max-width: 760px) {
+  .lgsct-header-media img {
+    height: 200px;
+  }
+}
+
+.lgsct-main {
+  background: var(--white);
+  padding: 3.5rem 0;
+}
+
+.lgsct-grid {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 3rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .lgsct-grid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+}
+
+.lgsct-info-list {
+  border-top: 1px solid var(--line);
+}
+
+.lgsct-info-row {
+  display: flex;
+  gap: 1rem;
+  padding: 1.4rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.lgsct-info-icon {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: var(--orange);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.lgsct-info-row h3 {
+  font-size: 0.95rem;
+  margin-bottom: 0.3em;
+}
+
+.lgsct-info-row p {
+  font-size: 0.9375rem;
+  margin-bottom: 0;
+}
+
+.lgsct-info-row a {
+  display: block;
+  font-size: 0.9375rem;
+  color: var(--navy);
+  margin-bottom: 0.15rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lgsct-info-row a:hover {
+    color: var(--orange);
+  }
+}
+
+.lgsct-info-note {
+  margin-top: 1.5rem;
+  background: var(--off-white);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--orange);
+  padding: 1rem 1.25rem;
+  font-size: 0.875rem;
+  color: var(--charcoal);
+}
+
+.lgsct-form-wrap h2 {
+  margin-bottom: 0.4em;
+}
+
+.lgsct-form-wrap > p {
+  font-size: 0.9375rem;
+  margin-bottom: 1.75rem;
+}
+
+.lgsct-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.1rem 1.25rem;
+}
+
+.lgsct-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.lgsct-field-full {
+  grid-column: 1 / -1;
+}
+
+.lgsct-field label {
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.lgsct-field input,
+.lgsct-field select,
+.lgsct-field textarea {
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  color: var(--charcoal);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0.65rem 0.85rem;
+}
+
+.lgsct-field input:focus,
+.lgsct-field select:focus,
+.lgsct-field textarea:focus {
+  outline: none;
+  border-color: var(--navy);
+}
+
+.lgsct-field textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.lgsct-form-submit {
+  grid-column: 1 / -1;
+  margin-top: 0.4rem;
+}
+
+@media (max-width: 560px) {
+  .lgsct-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lgsct-map {
+  background: var(--off-white);
+  padding: 3.5rem 0;
+}
+
+.lgsct-map-frame {
+  border: 1px solid var(--line);
+  overflow: hidden;
+  margin-top: 1.5rem;
+}
+
+.lgsct-map-frame iframe {
+  width: 100%;
+  height: 380px;
+  display: block;
+  border: 0;
+}
+
+.lgsct-cta {
+  background: var(--navy-dark);
+  text-align: center;
+  padding: 3rem 0;
+  border-bottom: 1px solid rgba(247, 244, 238, 0.18);
+}
+
+.lgsct-cta h2 {
+  color: var(--white);
+}
+
+.lgsct-cta p {
+  color: rgba(247, 244, 238, 0.85);
+  max-width: 62ch;
+  margin: 0 auto 1.5rem;
+}
+
+.lgsct-cta-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.lgsct-cta-actions .btn-outline {
+  border-color: var(--off-white);
+  color: var(--off-white);
+}
+
+.lgsct-cta-actions .btn-outline:hover {
+  background: var(--off-white);
+  color: var(--navy-dark);
+}
