@@ -1,4 +1,142 @@
 {% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}About LGS Mineral Assay Laboratory{% endblock %}
+{% block meta_description %}Learn about LGS Mineral Assay Laboratory — our approach, vision, mission, core values and commitment to reliable mineral analytical services in Tanzania.{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/about.css' %}">
+{% endblock %}
+
 {% block content %}
-...
+
+<section class="lgsab-header">
+  <div class="container">
+    <div class="lgsab-header-inner">
+      <div>
+        <div class="eyebrow-label">About LGS</div>
+        <h1>A Mineral Analytical Laboratory Built on Trust</h1>
+        <p>LGS Mineral Assay Laboratory is a mineral analytical and testing laboratory providing analytical and technical services to the mining, mineral exploration and mineral processing industries.</p>
+      </div>
+      <div class="lgsab-header-media">
+        <img src="{% static 'core/img/about-lab.jpg' %}" alt="LGS Mineral Assay Laboratory">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="lgsab-two-col">
+      <div>
+        <div class="eyebrow-label">Who We Are</div>
+        <h2>Supporting Every Stage of the Mineral Value Chain</h2>
+        <p>LGS Mineral Assay Laboratory is a mineral analytical and testing laboratory providing analytical and technical services to the mining, mineral exploration and mineral processing industries. The laboratory supports exploration programs, ore evaluation, metallurgical investigations and mineral-processing operations.</p>
+      </div>
+      <div>
+        <div class="eyebrow-label">Our Laboratory Approach</div>
+        <h2>Controlled, Consistent, Traceable</h2>
+        <p>The laboratory uses controlled sample preparation, wet-chemistry techniques and Atomic Absorption Spectrometry (AAS) for quantitative elemental determination. Sample management extends from receipt through preparation, analysis, quality control and final reporting.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lgsab-vm">
+  <div class="container">
+    <div class="lgsab-vm-grid">
+      <div class="lgsab-vm-panel">
+        <span class="lgsab-vm-label">Our Vision</span>
+        <p>To become a trusted and recognized mineral analytical laboratory in Tanzania and across Africa, delivering reliable analytical data that supports responsible mineral exploration, mining and mineral-processing development.</p>
+      </div>
+      <div class="lgsab-vm-panel">
+        <span class="lgsab-vm-label">Our Mission</span>
+        <p>To provide accurate, reliable and timely mineral analytical and metallurgical testing services through controlled laboratory procedures, appropriate analytical technology, effective quality assurance and competent technical personnel, enabling our clients to make informed technical and operational decisions.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lgsab-motto">
+  <div class="container">
+    <span class="lgsab-motto-eyebrow">Our Motto</span>
+    <div class="lgsab-motto-text">The Lab You Can Trust</div>
+    <p>Our motto represents our commitment to reliability, integrity, consistency and confidence in analytical results.</p>
+  </div>
+</section>
+
+<section class="lgsab-values">
+  <div class="container">
+    <div class="eyebrow-label">Our Core Values</div>
+    <h2>What Guides Our Work</h2>
+    <p class="section-head">Every result LGS reports is shaped by the same set of principles, applied consistently across every sample and every client.</p>
+
+    <div class="lgsab-values-list">
+      <div class="lgsab-value-row">
+        <div class="lgsab-value-icon"><i class='bx bx-target-lock'></i></div>
+        <div class="lgsab-value-name">Accuracy</div>
+        <div class="lgsab-value-desc">We are committed to producing analytical results that meet defined laboratory quality requirements.</div>
+      </div>
+      <div class="lgsab-value-row">
+        <div class="lgsab-value-icon"><i class='bx bx-shield-quarter'></i></div>
+        <div class="lgsab-value-name">Integrity</div>
+        <div class="lgsab-value-desc">We conduct our analytical activities professionally, impartially and responsibly.</div>
+      </div>
+      <div class="lgsab-value-row">
+        <div class="lgsab-value-icon"><i class='bx bx-check-shield'></i></div>
+        <div class="lgsab-value-name">Quality</div>
+        <div class="lgsab-value-desc">Quality assurance and quality control are integrated throughout our analytical workflow.</div>
+      </div>
+      <div class="lgsab-value-row">
+        <div class="lgsab-value-icon"><i class='bx bx-lock-alt'></i></div>
+        <div class="lgsab-value-name">Confidentiality</div>
+        <div class="lgsab-value-desc">Client information, samples and analytical results are handled with appropriate confidentiality.</div>
+      </div>
+      <div class="lgsab-value-row">
+        <div class="lgsab-value-icon"><i class='bx bx-repeat'></i></div>
+        <div class="lgsab-value-name">Consistency</div>
+        <div class="lgsab-value-desc">We apply controlled laboratory procedures to achieve dependable analytical performance.</div>
+      </div>
+      <div class="lgsab-value-row">
+        <div class="lgsab-value-icon"><i class='bx bx-trending-up'></i></div>
+        <div class="lgsab-value-name">Continuous Improvement</div>
+        <div class="lgsab-value-desc">We continually seek to strengthen our technical capability, laboratory processes and quality-management practices.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lgsab-tech">
+  <div class="container">
+    <div class="lgsab-tech-inner">
+      <div>
+        <div class="eyebrow-label">Technical Assistance</div>
+        <h2>Beyond Routine Laboratory Analysis</h2>
+        <p>LGS provides technical assistance related to mineral analysis, sample preparation, analytical quality control and selected mineral-processing applications. We work with clients to understand their analytical requirements and provide appropriate laboratory testing solutions.</p>
+        <a href="{% url 'contact' %}" class="btn btn-outline">Talk to Our Team</a>
+      </div>
+      <div class="lgsab-tech-panel">
+        <h3>What We Can Help With</h3>
+        <ul>
+          <li><i class='bx bx-check'></i>Mineral analysis guidance</li>
+          <li><i class='bx bx-check'></i>Sample preparation requirements</li>
+          <li><i class='bx bx-check'></i>Analytical quality control</li>
+          <li><i class='bx bx-check'></i>Selected mineral-processing applications</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lgsab-cta">
+  <div class="container">
+    <h2>Want to Know More About How We Work?</h2>
+    <p>Get in touch with LGS Mineral Assay Laboratory for analytical services, technical assistance, quotations or general enquiries.</p>
+    <div class="lgsab-cta-actions">
+      <a href="{% url 'request_quote' %}" class="btn btn-primary">Request a Quote</a>
+      <a href="{% url 'contact' %}" class="btn btn-outline">Contact Us</a>
+    </div>
+  </div>
+</section>
+
 {% endblock %}
