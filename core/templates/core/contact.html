@@ -1,4 +1,159 @@
 {% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Contact LGS Mineral Assay Laboratory{% endblock %}
+{% block meta_description %}Get in touch with LGS Mineral Assay Laboratory for sample submission, analytical services, quotations, technical assistance or general enquiries.{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/contact.css' %}">
+{% endblock %}
+
 {% block content %}
-...
+
+<section class="lgsct-header">
+  <div class="container">
+    <div class="lgsct-header-inner">
+      <div>
+        <div class="eyebrow-label">Get In Touch</div>
+        <h1>Contact LGS Mineral Assay Laboratory</h1>
+        <p>For sample submission, analytical services, quotations, technical assistance or general enquiries, contact the laboratory team.</p>
+      </div>
+      <div class="lgsct-header-media">
+        <img src="{% static 'core/img/contact-mail.jpg' %}" alt="Contact LGS Mineral Assay Laboratory">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lgsct-main">
+  <div class="container">
+    <div class="lgsct-grid">
+
+      <div>
+        <div class="eyebrow-label">Reach Us</div>
+        <h2>Contact Details</h2>
+
+        <div class="lgsct-info-list">
+          <div class="lgsct-info-row">
+            <div class="lgsct-info-icon"><i class='bx bx-map'></i></div>
+            <div>
+              <h3>Laboratory Location</h3>
+              <p>Kahama Road, Sweya &ndash; Njiapanda ya Mahagi,<br>Nyang'hwale District, Geita Region, Tanzania</p>
+            </div>
+          </div>
+
+          <div class="lgsct-info-row">
+            <div class="lgsct-info-icon"><i class='bx bx-building'></i></div>
+            <div>
+              <h3>Head Office</h3>
+              <p>Mwanza, Tanzania</p>
+            </div>
+          </div>
+
+          <div class="lgsct-info-row">
+            <div class="lgsct-info-icon"><i class='bx bx-envelope'></i></div>
+            <div>
+              <h3>Postal Address</h3>
+              <p>P.O. Box 1214, Mwanza, Tanzania</p>
+            </div>
+          </div>
+
+          <div class="lgsct-info-row">
+            <div class="lgsct-info-icon"><i class='bx bx-at'></i></div>
+            <div>
+              <h3>Email</h3>
+              <a href="mailto:lgsafricansales2025@gmail.com" target="_blank">lgsafricansales2025@gmail.com</a>
+            </div>
+          </div>
+
+          <div class="lgsct-info-row">
+            <div class="lgsct-info-icon"><i class='bx bxl-whatsapp'></i></div>
+            <div>
+              <h3>Telephone / WhatsApp</h3>
+              <a href="https://wa.me/255753192863" target="_blank">+255 753 192 863</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="lgsct-form-wrap">
+        <div class="eyebrow-label">Send an Enquiry</div>
+        <h2>Get in Touch</h2>
+        <p>Clients may contact LGS regarding Gold, Silver, Copper, Sulphur Analysis, Carbon Activity Testing, Cyanide Leaching Tests, sample submission and technical assistance. Our team can provide guidance on appropriate sample requirements and analytical services.</p>
+
+        <form class="lgsct-form" method="post" action="">
+          {% csrf_token %}
+          <div class="lgsct-field">
+            <label for="ct-name">Full Name</label>
+            <input type="text" id="ct-name" name="name" required>
+          </div>
+          <div class="lgsct-field">
+            <label for="ct-company">Company / Organization</label>
+            <input type="text" id="ct-company" name="company">
+          </div>
+          <div class="lgsct-field">
+            <label for="ct-email">Email</label>
+            <input type="email" id="ct-email" name="email" required>
+          </div>
+          <div class="lgsct-field">
+            <label for="ct-phone">Phone / WhatsApp</label>
+            <input type="tel" id="ct-phone" name="phone">
+          </div>
+          <div class="lgsct-field lgsct-field-full">
+            <label for="ct-service">Service of Interest</label>
+            <select id="ct-service" name="service">
+              <option value="">Select a service</option>
+              <option value="gold">Gold (Au) Analysis</option>
+              <option value="silver">Silver (Ag) Analysis</option>
+              <option value="copper">Copper (Cu) Analysis</option>
+              <option value="sulphur">Sulphur Analysis</option>
+              <option value="carbon">Carbon Activity Testing</option>
+              <option value="cyanide">Cyanide Leaching Tests</option>
+              <option value="optimization">Cyanide Leaching Parameter Optimization</option>
+              <option value="screening">Metallic Screening & Gold Evaluation</option>
+              <option value="consultancy">Technical Assistance & Consultancy</option>
+              <option value="other">Other / Not Sure</option>
+            </select>
+          </div>
+          <div class="lgsct-field lgsct-field-full">
+            <label for="ct-message">Message</label>
+            <textarea id="ct-message" name="message" required></textarea>
+          </div>
+          <div class="lgsct-form-submit">
+            <button type="submit" class="btn btn-primary">Send Enquiry</button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section class="lgsct-map">
+  <div class="container">
+    <div class="eyebrow-label">Find Us</div>
+    <h2>Laboratory Location</h2>
+    <p class="section-head">Kahama Road, Sweya &ndash; Njiapanda ya Mahagi, Nyang'hwale District, Geita Region, Tanzania.</p>
+    <div class="lgsct-map-frame">
+      <iframe
+        src="https://www.google.com/maps?q=Geita%20Region%2C%20Tanzania&output=embed"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade">
+      </iframe>
+    </div>
+  </div>
+</section>
+
+<section class="lgsct-cta">
+  <div class="container">
+    <h2>Prefer to Talk Directly?</h2>
+    <p>Reach out by email or WhatsApp and our team will respond with guidance on sample submission and the appropriate analytical service.</p>
+    <div class="lgsct-cta-actions">
+      <a href="mailto:lgsafricansales2025@gmail.com" class="btn btn-primary">Email Us</a>
+      <a href="https://wa.me/255753192863" class="btn btn-outline" target="_blank">WhatsApp Us</a>
+    </div>
+  </div>
+</section>
+
 {% endblock %}
