@@ -123,7 +123,6 @@
 
 .lgspr-process-step {
   border-top: 2px solid var(--navy);
-  padding-top: 0.9rem;
   background: var(--white);
   padding: 0.9rem 1rem 1.1rem;
   border-left: 1px solid var(--line);
@@ -172,16 +171,20 @@
   background: var(--off-white);
   border: 1px solid var(--line);
   padding: 1.75rem;
+  width: 100%;
+  max-width: 100%;
 }
 
 .lgspr-field {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  min-width: 0;
 }
 
 .lgspr-field-full {
   grid-column: 1 / -1;
+  min-width: 0;
 }
 
 .lgspr-field label {
@@ -201,6 +204,8 @@
   border: 1px solid var(--line);
   border-radius: 3px;
   padding: 0.65rem 0.85rem;
+  width: 100%;
+  max-width: 100%;
 }
 
 .lgspr-field input:focus,
@@ -223,6 +228,7 @@
 @media (max-width: 560px) {
   .lgspr-form {
     grid-template-columns: 1fr;
+    padding: 1.25rem;
   }
 }
 
