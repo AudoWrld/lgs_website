@@ -1,4 +1,191 @@
 {% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Request a Quote | LGS Mineral Assay Laboratory{% endblock %}
+{% block meta_description %}Request a quotation for mineral analysis and metallurgical testing services from LGS Mineral Assay Laboratory in Tanzania.{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/pricing.css' %}">
+{% endblock %}
+
 {% block content %}
-...
+
+<section class="lgspr-header">
+  <div class="container">
+    <div class="eyebrow-label">Pricing</div>
+    <h1>Request a Quote</h1>
+    <p>LGS provides mineral analytical and metallurgical testing services on a quotation basis. Share your sample and service requirements and our team will review your request and provide guidance on the appropriate service and quotation process.</p>
+  </div>
+</section>
+
+<section class="lgspr-notice">
+  <div class="container">
+    <div class="lgspr-notice-panel">
+      <i class='bx bx-info-circle'></i>
+      <div>
+        <h3>Why Quote-Based Pricing?</h3>
+        <p>Sample type, quantity, preparation requirements and the specific analytical service requested can all affect turnaround and testing requirements. Rather than publish fixed prices that may not reflect your actual needs, LGS reviews each request individually to provide accurate, relevant pricing and technical guidance.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lgspr-services">
+  <div class="container">
+    <div class="eyebrow-label">Available for Quotation</div>
+    <h2>Services You Can Request a Quote For</h2>
+    <p class="section-head">All of the following services can be quoted based on your sample type, quantity and technical requirements.</p>
+
+    <div class="lgspr-services-grid">
+      <div class="lgspr-services-list">
+        <div class="lgspr-services-item">
+          <i class='bx bx-diamond'></i>
+          <span>Gold (Au) Analysis</span>
+        </div>
+        <div class="lgspr-services-item">
+          <i class='bx bx-diamond'></i>
+          <span>Silver (Ag) Analysis</span>
+        </div>
+        <div class="lgspr-services-item">
+          <i class='bx bx-diamond'></i>
+          <span>Copper (Cu) Analysis</span>
+        </div>
+        <div class="lgspr-services-item">
+          <i class='bx bx-diamond'></i>
+          <span>Sulphur Analysis</span>
+        </div>
+        <div class="lgspr-services-item">
+          <i class='bx bx-flask'></i>
+          <span>Carbon Activity Testing</span>
+        </div>
+      </div>
+      <div class="lgspr-services-list">
+        <div class="lgspr-services-item">
+          <i class='bx bx-test-tube'></i>
+          <span>Cyanide Leaching Tests</span>
+        </div>
+        <div class="lgspr-services-item">
+          <i class='bx bx-slider-alt'></i>
+          <span>Cyanide Leaching Parameter Optimization</span>
+        </div>
+        <div class="lgspr-services-item">
+          <i class='bx bx-search-alt'></i>
+          <span>Metallic Screening & Gold Evaluation</span>
+        </div>
+        <div class="lgspr-services-item">
+          <i class='bx bx-support'></i>
+          <span>Technical Assistance & Consultancy</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lgspr-process">
+  <div class="container">
+    <div class="eyebrow-label">How It Works</div>
+    <h2>From Request to Quotation</h2>
+    <p class="section-head">Submit your requirements below and our laboratory team will review your request and get back to you.</p>
+
+    <div class="lgspr-process-steps">
+      <div class="lgspr-process-step">
+        <span class="lgspr-process-num">01</span>
+        <h3>Submit Your Requirements</h3>
+        <p>Complete the quote request form with your sample and service details.</p>
+      </div>
+      <div class="lgspr-process-step">
+        <span class="lgspr-process-num">02</span>
+        <h3>Team Review</h3>
+        <p>Our laboratory team reviews your request and sample requirements.</p>
+      </div>
+      <div class="lgspr-process-step">
+        <span class="lgspr-process-num">03</span>
+        <h3>Guidance & Quotation</h3>
+        <p>We respond with technical guidance and an appropriate quotation.</p>
+      </div>
+      <div class="lgspr-process-step">
+        <span class="lgspr-process-num">04</span>
+        <h3>Sample Submission</h3>
+        <p>Once confirmed, proceed with sample submission for analysis.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lgspr-form-section">
+  <div class="container">
+    <div class="lgspr-form-wrap">
+      <div class="eyebrow-label">Quote Request Form</div>
+      <h2>Send Your Analytical Requirements</h2>
+      <p>The laboratory team will review your request and provide guidance on the appropriate service and quotation process.</p>
+
+      <form class="lgspr-form" method="post" action="">
+        {% csrf_token %}
+        <div class="lgspr-field">
+          <label for="pr-name">Name</label>
+          <input type="text" id="pr-name" name="name" required>
+        </div>
+        <div class="lgspr-field">
+          <label for="pr-company">Company / Organization</label>
+          <input type="text" id="pr-company" name="company">
+        </div>
+        <div class="lgspr-field">
+          <label for="pr-email">Email</label>
+          <input type="email" id="pr-email" name="email" required>
+        </div>
+        <div class="lgspr-field">
+          <label for="pr-phone">Phone / WhatsApp</label>
+          <input type="tel" id="pr-phone" name="phone">
+        </div>
+        <div class="lgspr-field">
+          <label for="pr-service">Service Required</label>
+          <select id="pr-service" name="service">
+            <option value="">Select a service</option>
+            <option value="gold">Gold (Au) Analysis</option>
+            <option value="silver">Silver (Ag) Analysis</option>
+            <option value="copper">Copper (Cu) Analysis</option>
+            <option value="sulphur">Sulphur Analysis</option>
+            <option value="carbon">Carbon Activity Testing</option>
+            <option value="cyanide">Cyanide Leaching Tests</option>
+            <option value="optimization">Cyanide Leaching Parameter Optimization</option>
+            <option value="screening">Metallic Screening & Gold Evaluation</option>
+            <option value="consultancy">Technical Assistance & Consultancy</option>
+            <option value="other">Other / Not Sure</option>
+          </select>
+        </div>
+        <div class="lgspr-field">
+          <label for="pr-sample-type">Sample Type</label>
+          <input type="text" id="pr-sample-type" name="sample_type" placeholder="e.g. Rock, Soil, Drill Core, Pulp">
+        </div>
+        <div class="lgspr-field lgspr-field-full">
+          <label for="pr-quantity">Approximate Sample Quantity</label>
+          <input type="text" id="pr-quantity" name="quantity" placeholder="e.g. Number of samples or weight">
+        </div>
+        <div class="lgspr-field lgspr-field-full">
+          <label for="pr-requirements">Technical Requirements</label>
+          <textarea id="pr-requirements" name="technical_requirements" placeholder="Any specific analytical or turnaround requirements"></textarea>
+        </div>
+        <div class="lgspr-field lgspr-field-full">
+          <label for="pr-message">Message</label>
+          <textarea id="pr-message" name="message" required></textarea>
+        </div>
+        <div class="lgspr-form-submit">
+          <button type="submit" class="btn btn-primary">Request a Quote</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section class="lgspr-cta">
+  <div class="container">
+    <h2>Have a Question Before You Request a Quote?</h2>
+    <p>Our team can provide guidance on sample requirements and the appropriate analytical service before you submit your request.</p>
+    <div class="lgspr-cta-actions">
+      <a href="{% url 'contact' %}" class="btn btn-primary">Contact Us</a>
+      <a href="{% url 'services' %}" class="btn btn-outline">View Our Services</a>
+    </div>
+  </div>
+</section>
+
 {% endblock %}

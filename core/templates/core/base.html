@@ -80,7 +80,7 @@
         <li><a href="{% url 'about' %}" class="{% if request.resolver_match.url_name == 'about' %}active{% endif %}">About Us</a></li>
         <li><a href="{% url 'pricing' %}" class="{% if request.resolver_match.url_name == 'pricing' %}active{% endif %}">Pricing</a></li>
         <li><a href="{% url 'contact' %}" class="{% if request.resolver_match.url_name == 'contact' %}active{% endif %}">Contact Us</a></li>
-        <li><a href="{% url 'request_quote' %}" class="nav-cta {% if request.resolver_match.url_name == 'request_quote' %}active{% endif %}">Request a Quote</a></li>
+        <li><a href="{% url 'pricing' %}" class="nav-cta">Request a Quote</a></li>
       </ul>
     </nav>
   </div>
@@ -125,6 +125,10 @@
     </div>
   </div>
 </footer>
+
+<a href="https://wa.me/255753192863" target="_blank" rel="noopener" class="whatsapp-float" aria-label="Chat with us on WhatsApp">
+  <i class='bx bxl-whatsapp'></i>
+</a>
 
 <script>
   document.getElementById('footer-year').textContent = new Date().getFullYear();
