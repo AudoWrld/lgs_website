@@ -1,5 +1,5 @@
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.urls import reverse
 
 
@@ -24,7 +24,7 @@ def contact(request):
 
 
 def request_quote(request):
-    return render(request, "core/request_quote.html")
+    return redirect("pricing", permanent=True)
 
 
 def robots_txt(request):
@@ -34,7 +34,7 @@ def robots_txt(request):
 
 
 def sitemap_xml(request):
-    page_names = ["homepage", "services", "about", "pricing", "contact", "request_quote"]
+    page_names = ["homepage", "services", "about", "pricing", "contact"]
     urls = "\n".join(
         f"  <url><loc>{request.build_absolute_uri(reverse(page_name))}</loc></url>"
         for page_name in page_names
