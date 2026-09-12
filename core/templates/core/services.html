@@ -1,4 +1,153 @@
 {% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Mineral Assay & Metallurgical Testing Services | LGS{% endblock %}
+{% block meta_description %}Gold, Silver, Copper and Sulphur analysis, carbon activity testing, cyanide leaching tests and technical consultancy from LGS Mineral Assay Laboratory in Tanzania.{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/services.css' %}">
+{% endblock %}
+
 {% block content %}
-...
+
+<section class="lgssv-header">
+  <div class="container">
+    <div class="eyebrow-label">What We Offer</div>
+    <h1>Mineral Assay & Metallurgical Testing Services</h1>
+    <p>LGS provides Gold, Silver, Copper and Sulphur analysis, alongside carbon activity testing, cyanide leaching tests, metallic screening and technical consultancy for exploration, mining and mineral-processing clients.</p>
+  </div>
+</section>
+
+<section class="lgssv-services">
+  <div class="container">
+
+    <div class="lgssv-group">
+      <div class="lgssv-group-head">
+        <span class="lgssv-group-index">01</span>
+        <h2>Elemental Analysis</h2>
+      </div>
+      <p class="lgssv-group-sub">Quantitative determination of key elements in geological and process samples using controlled chemical preparation and Atomic Absorption Spectrometry (AAS).</p>
+
+      <div class="lgssv-list">
+        <div class="lgssv-item">
+          <span class="lgssv-item-num">01</span>
+          <div>
+            <h3>Gold (Au) Analysis</h3>
+            <p>Quantitative determination of gold in geological and mineral-processing samples using controlled chemical preparation, solvent extraction and Atomic Absorption Spectrometry (AAS). The service supports exploration, grade evaluation and process-monitoring applications.</p>
+          </div>
+        </div>
+        <div class="lgssv-item">
+          <span class="lgssv-item-num">02</span>
+          <div>
+            <h3>Silver (Ag) Analysis</h3>
+            <p>Quantitative determination of silver in geological and process samples, providing analytical data for mineral exploration, ore characterization and mineral-processing applications.</p>
+          </div>
+        </div>
+        <div class="lgssv-item">
+          <span class="lgssv-item-num">03</span>
+          <div>
+            <h3>Copper (Cu) Analysis</h3>
+            <p>Determination of copper concentrations in rocks, soils, pulps, ores, tailings and other mineral-related materials using instrumental analytical techniques.</p>
+          </div>
+        </div>
+        <div class="lgssv-item">
+          <span class="lgssv-item-num">04</span>
+          <div>
+            <h3>Sulphur Analysis</h3>
+            <p>Determination of sulphur content in mineral samples to support ore characterization, metallurgical assessment and mineral-processing evaluation.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lgssv-group">
+      <div class="lgssv-group-head">
+        <span class="lgssv-group-index">02</span>
+        <h2>Metallurgical & Process Testing</h2>
+      </div>
+      <p class="lgssv-group-sub">Specialized testing and technical support for carbon performance, cyanide leaching and heterogeneous gold-bearing samples.</p>
+
+      <div class="lgssv-list">
+        <div class="lgssv-item">
+          <span class="lgssv-item-num">05</span>
+          <div>
+            <h3>Carbon Activity Testing</h3>
+            <p>Evaluation of activated carbon adsorption performance for gold recovery applications. Carbon activity testing provides useful information for assessing carbon performance and supporting the management of adsorption circuits.</p>
+          </div>
+        </div>
+        <div class="lgssv-item">
+          <span class="lgssv-item-num">06</span>
+          <div>
+            <h3>Cyanide Leaching Tests</h3>
+            <p>Controlled laboratory-scale cyanide leaching tests for evaluating the gold extraction characteristics and potential metallurgical response of gold-bearing materials.</p>
+          </div>
+        </div>
+        <div class="lgssv-item">
+          <span class="lgssv-item-num">07</span>
+          <div>
+            <h3>Cyanide Leaching Parameter Optimization</h3>
+            <p>Systematic evaluation of key process parameters influencing cyanide leaching performance. Testing can assist in evaluating operating conditions for improved gold extraction and process efficiency.</p>
+          </div>
+        </div>
+        <div class="lgssv-item">
+          <span class="lgssv-item-num">08</span>
+          <div>
+            <h3>Metallic Screening & Gold Evaluation</h3>
+            <p>Specialized evaluation of heterogeneous or coarse-gold-bearing samples where conventional sample preparation may be affected by uneven gold distribution or the nugget effect.</p>
+          </div>
+        </div>
+        <div class="lgssv-item">
+          <span class="lgssv-item-num">09</span>
+          <div>
+            <h3>Technical Assistance & Consultancy</h3>
+            <p>Technical assistance in areas related to mineral analysis, sample preparation, analytical quality control and selected mineral-processing applications. LGS works with clients to understand their analytical requirements and provide appropriate laboratory testing solutions.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="lgssv-materials">
+  <div class="container">
+    <div class="eyebrow-label">Materials We Handle</div>
+    <h2>Wide Range of Geological & Process Materials</h2>
+    <p>Our laboratory handles the following materials to support analytical requirements associated with exploration, ore evaluation and mineral-processing work.</p>
+    <div class="lgssv-materials-track">
+      <span><i class='bx bx-diamond'></i>Rock</span>
+      <span><i class='bx bx-layer'></i>Soil</span>
+      <span><i class='bx bx-circle'></i>Drill Core</span>
+      <span><i class='bx bx-dots-horizontal-rounded'></i>RC Chips</span>
+      <span><i class='bx bx-water'></i>Pulp</span>
+      <span><i class='bx bx-trash'></i>Tailings</span>
+      <span><i class='bx bx-filter-alt'></i>Activated Carbon</span>
+      <span><i class='bx bx-test-tube'></i>Process Solutions</span>
+    </div>
+  </div>
+</section>
+
+<section class="lgssv-note">
+  <div class="container">
+    <div class="lgssv-note-panel">
+      <i class='bx bx-info-circle'></i>
+      <div>
+        <h3>Not Sure Which Service You Need?</h3>
+        <p>Our team can review your sample type and analytical goals and recommend the appropriate service before you submit a sample. Reach out with your requirements for guidance and a quotation.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lgssv-cta">
+  <div class="container">
+    <h2>Ready to Submit a Sample or Request a Quote?</h2>
+    <p>Contact LGS Mineral Assay Laboratory for analytical services, sample submission guidance, technical assistance or a formal quotation.</p>
+    <div class="lgssv-cta-actions">
+      <a href="{% url 'request_quote' %}" class="btn btn-primary">Request a Quote</a>
+      <a href="{% url 'contact' %}" class="btn btn-outline">Contact Us</a>
+    </div>
+  </div>
+</section>
+
 {% endblock %}
