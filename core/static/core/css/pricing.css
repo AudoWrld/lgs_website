@@ -294,6 +294,14 @@
   color: var(--charcoal);
 }
 
+.lgspr-error {
+  color: #c0392b;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-top: 0.6rem;
+  margin-bottom: 0;
+}
+
 .lgspr-methods-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -357,6 +365,11 @@
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--navy);
+}
+
+.lgspr-required {
+  color: #c0392b;
+  margin-left: 0.15rem;
 }
 
 .lgspr-field input,
@@ -446,15 +459,111 @@
   color: var(--navy-dark);
 }
 
-.lgspr-error {
-  color: #c0392b;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  margin-top: 0.6rem;
-  margin-bottom: 0;
+.lgspr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 46, 68, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  padding: 1.5rem;
 }
 
-.lgspr-required {
-  color: #c0392b;
-  margin-left: 0.15rem;
+.lgspr-modal {
+  background: var(--white);
+  max-width: 420px;
+  width: 100%;
+  padding: 2.25rem 2rem;
+  text-align: center;
+  border-top: 4px solid var(--orange);
+  animation: lgspr-modal-in 0.2s ease;
+}
+
+.lgspr-modal {
+  position: relative;
+}
+
+.lgspr-modal-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--charcoal);
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.lgspr-modal-close:hover {
+  background: var(--off-white);
+  color: var(--navy);
+}
+
+.lgspr-modal-close-btn-wrap {
+  margin-top: 0.5rem;
+}
+
+@keyframes lgspr-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lgspr-modal-icon {
+  font-size: 2.75rem;
+  color: var(--orange);
+  margin-bottom: 0.75rem;
+}
+
+.lgspr-modal h2 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5em;
+}
+
+.lgspr-modal p {
+  font-size: 0.9375rem;
+  color: var(--charcoal);
+  margin: 0 auto 1em;
+}
+
+.lgspr-modal-ref {
+  background: var(--off-white);
+  border: 1px solid var(--line);
+  padding: 0.9rem 1rem;
+  margin: 1.25rem 0;
+}
+
+.lgspr-modal-ref span {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--charcoal);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.3rem;
+}
+
+.lgspr-modal-ref strong {
+  font-family: var(--font-head);
+  font-size: 1.35rem;
+  color: var(--navy);
+  letter-spacing: 0.02em;
+}
+
+.lgspr-modal-note {
+  font-size: 0.8125rem;
+  color: var(--charcoal);
+  opacity: 0.75;
+  margin-bottom: 0 !important;
 }
