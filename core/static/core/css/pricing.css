@@ -28,7 +28,6 @@
 .lgspr-notice-panel {
   background: var(--off-white);
   border: 1px solid var(--line);
-  border-left: 3px solid var(--orange);
   padding: 1.75rem;
   display: flex;
   gap: 1.1rem;
