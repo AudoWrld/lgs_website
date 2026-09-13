@@ -40,4 +40,4 @@ htmlcov/
 
 # Django migrations
 # Usually DO NOT ignore migrations
-# migrations/
+migrations/
