@@ -1,6 +1,8 @@
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
+from django.shortcuts import render, redirect
+from .models import QuoteRequest
 
 
 def homepage(request):
@@ -16,7 +18,44 @@ def about(request):
 
 
 def pricing(request):
-    return render(request, "core/pricing.html")
+    submitted = False
+    reference_number = None
+
+    if request.method == "POST":
+        full_name = request.POST.get("name", "").strip()
+        company = request.POST.get("company", "").strip()
+        email = request.POST.get("email", "").strip()
+        phone = request.POST.get("phone", "").strip()
+        services = request.POST.getlist("services")
+        methods = request.POST.getlist("methods")
+        sample_type = request.POST.get("sample_type", "").strip()
+        sample_quantity = request.POST.get("quantity", "").strip()
+        sample_unit = request.POST.get("unit", "").strip()
+        technical_requirements = request.POST.get("technical_requirements", "").strip()
+        message = request.POST.get("message", "").strip()
+
+        if full_name and email and phone and message and services and methods:
+            quote_request = QuoteRequest.objects.create(
+                full_name=full_name,
+                company=company,
+                email=email,
+                phone=phone,
+                services=services,
+                methods=methods,
+                sample_type=sample_type,
+                sample_quantity=sample_quantity,
+                sample_unit=sample_unit,
+                technical_requirements=technical_requirements,
+                message=message,
+            )
+            submitted = True
+            reference_number = quote_request.reference_number
+
+    context = {
+        "submitted": submitted,
+        "reference_number": reference_number,
+    }
+    return render(request, "core/pricing.html", context)
 
 
 def contact(request):
