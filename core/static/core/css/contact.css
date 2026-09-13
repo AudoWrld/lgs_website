@@ -179,6 +179,11 @@
   color: var(--navy);
 }
 
+.lgsct-required {
+  color: #c0392b;
+  margin-left: 0.15rem;
+}
+
 .lgsct-field input,
 .lgsct-field select,
 .lgsct-field textarea {
