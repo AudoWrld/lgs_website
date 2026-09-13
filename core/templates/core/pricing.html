@@ -10,6 +10,25 @@
 
 {% block content %}
 
+{% if submitted %}
+<div class="lgspr-modal-overlay" id="lgspr-success-modal">
+  <div class="lgspr-modal">
+    <button type="button" class="lgspr-modal-close" id="lgspr-modal-close" aria-label="Close">
+      <i class='bx bx-x'></i>
+    </button>
+    <div class="lgspr-modal-icon"><i class='bx bx-check-circle'></i></div>
+    <h2>Quote Request Received</h2>
+    <p>Your request has been received successfully. Our team will review it and get back to you.</p>
+    <div class="lgspr-modal-ref">
+      <span>Reference Number</span>
+      <strong>{{ reference_number }}</strong>
+    </div>
+    <p class="lgspr-modal-note">You'll also receive a confirmation email shortly. Please keep this reference number for tracking your request.</p>
+    <button type="button" class="btn btn-primary" id="lgspr-modal-close-btn">Close</button>
+  </div>
+</div>
+{% endif %}
+
 <section class="lgspr-header">
   <div class="container">
     <div class="eyebrow-label">Pricing</div>
@@ -62,8 +81,8 @@
         <div class="lgspr-services-cat">
           <h3>Certified Reference Materials (CRM)</h3>
           <div class="lgspr-services-list">
-            <div class="lgspr-services-item"><i class='bx bx-certification'></i><span>Rock Pulp Certified Reference Materials</span></div>
-            <div class="lgspr-services-item"><i class='bx bx-certification'></i><span>Gold-Loaded Carbon Certified Reference Materials</span></div>
+            <div class="lgspr-services-item"><i class='bx bx-badge-check'></i><span>Rock Pulp Certified Reference Materials</span></div>
+            <div class="lgspr-services-item"><i class='bx bx-badge-check'></i><span>Gold-Loaded Carbon Certified Reference Materials</span></div>
           </div>
         </div>
 
@@ -205,6 +224,7 @@
             <label class="lgspr-check-item"><input type="checkbox" name="methods" value="induction_furnace"><span>Induction Furnace</span></label>
             <label class="lgspr-check-item"><input type="checkbox" name="methods" value="xrf"><span>X-Ray Fluorescence (XRF)</span></label>
           </div>
+          <p class="lgspr-error" id="lgspr-methods-error" style="display:none;">Please select at least one method of analysis.</p>
 
           <div class="lgspr-unit-row">
             <div class="lgspr-field">
@@ -292,10 +312,17 @@ document.addEventListener('DOMContentLoaded', function () {
   var backBtn = document.getElementById('lgspr-back-btn');
   var countLabel = document.getElementById('lgspr-services-count');
   var errorLabel = document.getElementById('lgspr-services-error');
+  var methodsErrorLabel = document.getElementById('lgspr-methods-error');
   var serviceChecks = document.querySelectorAll('input[name="services"]');
+  var methodChecks = document.querySelectorAll('input[name="methods"]');
+  var quoteForm = document.getElementById('lgspr-quote-form');
 
   function getCheckedCount() {
     return document.querySelectorAll('input[name="services"]:checked').length;
+  }
+
+  function getCheckedMethodsCount() {
+    return document.querySelectorAll('input[name="methods"]:checked').length;
   }
 
   function updateCount() {
@@ -306,8 +333,17 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  function updateMethodsError() {
+    if (getCheckedMethodsCount() > 0) {
+      methodsErrorLabel.style.display = 'none';
+    }
+  }
+
   serviceChecks.forEach(function (cb) {
     cb.addEventListener('change', updateCount);
+  });
+  methodChecks.forEach(function (cb) {
+    cb.addEventListener('change', updateMethodsError);
   });
   updateCount();
 
@@ -331,6 +367,35 @@ document.addEventListener('DOMContentLoaded', function () {
     progress1.classList.add('is-active');
     window.scrollTo({ top: step1.offsetTop - 100, behavior: 'smooth' });
   });
+
+  quoteForm.addEventListener('submit', function (e) {
+    if (getCheckedMethodsCount() === 0) {
+      e.preventDefault();
+      methodsErrorLabel.style.display = 'block';
+      methodsErrorLabel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
 });
 </script>
+{% if submitted %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var modalOverlay = document.getElementById('lgspr-success-modal');
+  var closeX = document.getElementById('lgspr-modal-close');
+  var closeBtn = document.getElementById('lgspr-modal-close-btn');
+
+  function closeModal() {
+    modalOverlay.style.display = 'none';
+  }
+
+  closeX.addEventListener('click', closeModal);
+  closeBtn.addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', function (e) {
+    if (e.target === modalOverlay) {
+      closeModal();
+    }
+  });
+});
+</script>
+{% endif %}
 {% endblock %}
