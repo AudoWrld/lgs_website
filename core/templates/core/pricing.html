@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}Request a Quote | LGS Mineral Assay Laboratory{% endblock %}
-{% block meta_description %}Request a quotation for mineral analysis and metallurgical testing services from LGS Mineral Assay Laboratory in Tanzania.{% endblock %}
+{% block meta_description %}Request a quotation for mineral analysis, metallurgical testing, laboratory supplies and CRM services from LGS Mineral Assay Laboratory in Tanzania.{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'core/css/pricing.css' %}">
@@ -14,7 +14,7 @@
   <div class="container">
     <div class="eyebrow-label">Pricing</div>
     <h1>Request a Quote</h1>
-    <p>LGS provides mineral analytical and metallurgical testing services on a quotation basis. Share your sample and service requirements and our team will review your request and provide guidance on the appropriate service and quotation process.</p>
+    <p>LGS provides mineral analytical, metallurgical testing, laboratory supply and CRM services on a quotation basis. Select the services and methods you need below and our team will review your request and provide guidance and a quotation.</p>
   </div>
 </section>
 
@@ -24,7 +24,7 @@
       <i class='bx bx-info-circle'></i>
       <div>
         <h3>Why Quote-Based Pricing?</h3>
-        <p>Sample type, quantity, preparation requirements and the specific analytical service requested can all affect turnaround and testing requirements. Rather than publish fixed prices that may not reflect your actual needs, LGS reviews each request individually to provide accurate, relevant pricing and technical guidance.</p>
+        <p>Sample type, quantity, preparation requirements and the specific services requested can all affect turnaround and testing requirements. Rather than publish fixed prices that may not reflect your actual needs, LGS reviews each request individually to provide accurate, relevant pricing and technical guidance.</p>
       </div>
     </div>
   </div>
@@ -34,47 +34,54 @@
   <div class="container">
     <div class="eyebrow-label">Available for Quotation</div>
     <h2>Services You Can Request a Quote For</h2>
-    <p class="section-head">All of the following services can be quoted based on your sample type, quantity and technical requirements.</p>
+    <p class="section-head">All of the following can be quoted based on your sample type, quantity and technical requirements.</p>
 
-    <div class="lgspr-services-grid">
-      <div class="lgspr-services-list">
-        <div class="lgspr-services-item">
-          <i class='bx bx-diamond'></i>
-          <span>Gold (Au) Analysis</span>
+    <div class="lgspr-services-cats">
+      <div>
+        <div class="lgspr-services-cat">
+          <h3>Mineral Analysis</h3>
+          <div class="lgspr-services-list">
+            <div class="lgspr-services-item"><i class='bx bx-diamond'></i><span>Gold & Copper Analysis</span></div>
+            <div class="lgspr-services-item"><i class='bx bx-diamond'></i><span>Gold, Copper & Silver Analysis</span></div>
+            <div class="lgspr-services-item"><i class='bx bx-diamond'></i><span>Gold, Copper & Sulphur Analysis</span></div>
+            <div class="lgspr-services-item"><i class='bx bx-diamond'></i><span>Multi-Element Analysis</span></div>
+          </div>
         </div>
-        <div class="lgspr-services-item">
-          <i class='bx bx-diamond'></i>
-          <span>Silver (Ag) Analysis</span>
-        </div>
-        <div class="lgspr-services-item">
-          <i class='bx bx-diamond'></i>
-          <span>Copper (Cu) Analysis</span>
-        </div>
-        <div class="lgspr-services-item">
-          <i class='bx bx-diamond'></i>
-          <span>Sulphur Analysis</span>
-        </div>
-        <div class="lgspr-services-item">
-          <i class='bx bx-flask'></i>
-          <span>Carbon Activity Testing</span>
+
+        <div class="lgspr-services-cat">
+          <h3>Metallurgical Testing</h3>
+          <div class="lgspr-services-list">
+            <div class="lgspr-services-item"><i class='bx bx-test-tube'></i><span>Conventional Cyanide Leaching Test</span></div>
+            <div class="lgspr-services-item"><i class='bx bx-slider-alt'></i><span>Cyanide Leaching Parameter Optimization</span></div>
+            <div class="lgspr-services-item"><i class='bx bx-search-alt'></i><span>Metallic Screening & Gold Evaluation</span></div>
+          </div>
         </div>
       </div>
-      <div class="lgspr-services-list">
-        <div class="lgspr-services-item">
-          <i class='bx bx-test-tube'></i>
-          <span>Cyanide Leaching Tests</span>
+
+      <div>
+        <div class="lgspr-services-cat">
+          <h3>Certified Reference Materials (CRM)</h3>
+          <div class="lgspr-services-list">
+            <div class="lgspr-services-item"><i class='bx bx-certification'></i><span>Rock Pulp Certified Reference Materials</span></div>
+            <div class="lgspr-services-item"><i class='bx bx-certification'></i><span>Gold-Loaded Carbon Certified Reference Materials</span></div>
+          </div>
         </div>
-        <div class="lgspr-services-item">
-          <i class='bx bx-slider-alt'></i>
-          <span>Cyanide Leaching Parameter Optimization</span>
+
+        <div class="lgspr-services-cat">
+          <h3>Laboratory Supplies & Equipment</h3>
+          <div class="lgspr-services-list">
+            <div class="lgspr-services-item"><i class='bx bx-package'></i><span>Laboratory Glassware & Consumables</span></div>
+            <div class="lgspr-services-item"><i class='bx bx-cog'></i><span>Laboratory Equipment & Instruments</span></div>
+            <div class="lgspr-services-item"><i class='bx bx-wrench'></i><span>Laboratory Tools & Accessories</span></div>
+            <div class="lgspr-services-item"><i class='bx bx-radio-circle-marked'></i><span>Spectrophotometers & Analytical Instruments</span></div>
+          </div>
         </div>
-        <div class="lgspr-services-item">
-          <i class='bx bx-search-alt'></i>
-          <span>Metallic Screening & Gold Evaluation</span>
-        </div>
-        <div class="lgspr-services-item">
-          <i class='bx bx-support'></i>
-          <span>Technical Assistance & Consultancy</span>
+
+        <div class="lgspr-services-cat">
+          <h3>Technical Services</h3>
+          <div class="lgspr-services-list">
+            <div class="lgspr-services-item"><i class='bx bx-support'></i><span>Technical Assistance & Consultancy</span></div>
+          </div>
         </div>
       </div>
     </div>
@@ -90,8 +97,8 @@
     <div class="lgspr-process-steps">
       <div class="lgspr-process-step">
         <span class="lgspr-process-num">01</span>
-        <h3>Submit Your Requirements</h3>
-        <p>Complete the quote request form with your sample and service details.</p>
+        <h3>Select Your Services</h3>
+        <p>Choose one or more services and analysis methods you require.</p>
       </div>
       <div class="lgspr-process-step">
         <span class="lgspr-process-num">02</span>
@@ -117,61 +124,145 @@
     <div class="lgspr-form-wrap">
       <div class="eyebrow-label">Quote Request Form</div>
       <h2>Send Your Analytical Requirements</h2>
-      <p>The laboratory team will review your request and provide guidance on the appropriate service and quotation process.</p>
+      <p>Select the services and methods you need, then complete your details. Our team will review your request and provide guidance on the appropriate quotation process.</p>
 
-      <form class="lgspr-form" method="post" action="">
+      <div class="lgspr-progress">
+        <div class="lgspr-progress-step is-active" id="lgspr-progress-1">
+          <span class="lgspr-progress-dot">1</span>
+          <span>Select Services</span>
+        </div>
+        <div class="lgspr-progress-line"></div>
+        <div class="lgspr-progress-step" id="lgspr-progress-2">
+          <span class="lgspr-progress-dot">2</span>
+          <span>Method & Details</span>
+        </div>
+      </div>
+
+      <form class="lgspr-form" method="post" action="" id="lgspr-quote-form">
         {% csrf_token %}
-        <div class="lgspr-field">
-          <label for="pr-name">Name</label>
-          <input type="text" id="pr-name" name="name" required>
+
+        <div class="lgspr-step is-visible" id="lgspr-step-1">
+          <h3 class="lgspr-step-title">Step 1 &mdash; Select Services</h3>
+          <p class="lgspr-step-sub">Choose all services you would like a quotation for. You can select more than one.</p>
+
+          <div class="lgspr-check-cats">
+            <div>
+              <div class="lgspr-check-cat">
+                <h4>Mineral Analysis</h4>
+                <label class="lgspr-check-item"><input type="checkbox" name="services" value="gold_copper"><span>Gold & Copper Analysis</span></label>
+                <label class="lgspr-check-item"><input type="checkbox" name="services" value="gold_copper_silver"><span>Gold, Copper & Silver Analysis</span></label>
+                <label class="lgspr-check-item"><input type="checkbox" name="services" value="gold_copper_sulphur"><span>Gold, Copper & Sulphur Analysis</span></label>
+                <label class="lgspr-check-item"><input type="checkbox" name="services" value="multi_element"><span>Multi-Element Analysis</span></label>
+              </div>
+
+              <div class="lgspr-check-cat">
+                <h4>Metallurgical Testing</h4>
+                <label class="lgspr-check-item"><input type="checkbox" name="services" value="conventional_cyanide"><span>Conventional Cyanide Leaching Test</span></label>
+                <label class="lgspr-check-item"><input type="checkbox" name="services" value="cyanide_optimization"><span>Cyanide Leaching Parameter Optimization</span></label>
+                <label class="lgspr-check-item"><input type="checkbox" name="services" value="metallic_screening"><span>Metallic Screening & Gold Evaluation</span></label>
+              </div>
+            </div>
+
+            <div>
+              <div class="lgspr-check-cat">
+                <h4>Certified Reference Materials (CRM)</h4>
+                <label class="lgspr-check-item"><input type="checkbox" name="services" value="crm_rock_pulp"><span>Rock Pulp Certified Reference Materials</span></label>
+                <label class="lgspr-check-item"><input type="checkbox" name="services" value="crm_gold_carbon"><span>Gold-Loaded Carbon Certified Reference Materials</span></label>
+              </div>
+
+              <div class="lgspr-check-cat">
+                <h4>Laboratory Supplies & Equipment</h4>
+                <label class="lgspr-check-item"><input type="checkbox" name="services" value="lab_glassware"><span>Laboratory Glassware & Consumables</span></label>
+                <label class="lgspr-check-item"><input type="checkbox" name="services" value="lab_equipment"><span>Laboratory Equipment & Instruments</span></label>
+                <label class="lgspr-check-item"><input type="checkbox" name="services" value="lab_tools"><span>Laboratory Tools & Accessories</span></label>
+                <label class="lgspr-check-item"><input type="checkbox" name="services" value="spectrophotometers"><span>Spectrophotometers & Analytical Instruments</span></label>
+              </div>
+
+              <div class="lgspr-check-cat">
+                <h4>Technical Services</h4>
+                <label class="lgspr-check-item"><input type="checkbox" name="services" value="technical_consultancy"><span>Technical Assistance & Consultancy</span></label>
+              </div>
+            </div>
+          </div>
+
+          <div class="lgspr-wizard-nav">
+            <span class="lgspr-selected-count" id="lgspr-services-count">0 services selected</span>
+            <div class="lgspr-wizard-nav-right">
+              <button type="button" class="btn btn-primary" id="lgspr-next-btn">Next: Method & Details</button>
+            </div>
+          </div>
+          <p class="lgspr-error" id="lgspr-services-error" style="display:none;">Please select at least one service before continuing.</p>
         </div>
-        <div class="lgspr-field">
-          <label for="pr-company">Company / Organization</label>
-          <input type="text" id="pr-company" name="company">
+
+        <div class="lgspr-step" id="lgspr-step-2">
+          <h3 class="lgspr-step-title">Step 2 &mdash; Method of Analysis & Details</h3>
+          <p class="lgspr-step-sub">Select the method(s) of analysis you require, then complete your contact and sample details.</p>
+
+          <div class="lgspr-methods-grid">
+            <label class="lgspr-check-item"><input type="checkbox" name="methods" value="aqua_regia_aas"><span>Aqua Regia + AAS</span></label>
+            <label class="lgspr-check-item"><input type="checkbox" name="methods" value="cyanide_leaching_aas"><span>Cyanide Leaching + AAS</span></label>
+            <label class="lgspr-check-item"><input type="checkbox" name="methods" value="metallic_screening_aas"><span>Metallic Screening + AAS</span></label>
+            <label class="lgspr-check-item"><input type="checkbox" name="methods" value="induction_furnace"><span>Induction Furnace</span></label>
+            <label class="lgspr-check-item"><input type="checkbox" name="methods" value="xrf"><span>X-Ray Fluorescence (XRF)</span></label>
+          </div>
+
+          <div class="lgspr-unit-row">
+            <div class="lgspr-field">
+              <label for="pr-quantity">Approximate Sample Quantity<span class="lgspr-required">*</span></label>
+              <input type="text" id="pr-quantity" name="quantity" placeholder="e.g. 25" required>
+            </div>
+            <div class="lgspr-field">
+              <label for="pr-unit">Unit<span class="lgspr-required">*</span></label>
+              <select id="pr-unit" name="unit" required>
+                <option value="">Select unit</option>
+                <option value="samples">Number of Samples</option>
+                <option value="g">Grams (g)</option>
+                <option value="kg">Kilograms (kg)</option>
+                <option value="tonnes">Tonnes</option>
+                <option value="bags">Bags</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="lgspr-field-group-title">Contact Details</div>
+          <div class="lgspr-fields">
+            <div class="lgspr-field">
+              <label for="pr-name">Name<span class="lgspr-required">*</span></label>
+              <input type="text" id="pr-name" name="name" required>
+            </div>
+            <div class="lgspr-field">
+              <label for="pr-company">Company / Organization</label>
+              <input type="text" id="pr-company" name="company">
+            </div>
+            <div class="lgspr-field">
+              <label for="pr-email">Email<span class="lgspr-required">*</span></label>
+              <input type="email" id="pr-email" name="email" required>
+            </div>
+            <div class="lgspr-field">
+              <label for="pr-phone">Phone / WhatsApp<span class="lgspr-required">*</span></label>
+              <input type="tel" id="pr-phone" name="phone" required>
+            </div>
+            <div class="lgspr-field lgspr-field-full">
+              <label for="pr-sample-type">Sample Type</label>
+              <input type="text" id="pr-sample-type" name="sample_type" placeholder="e.g. Rock, Soil, Drill Core, Pulp">
+            </div>
+            <div class="lgspr-field lgspr-field-full">
+              <label for="pr-requirements">Technical Requirements</label>
+              <textarea id="pr-requirements" name="technical_requirements" placeholder="Any specific analytical or turnaround requirements"></textarea>
+            </div>
+            <div class="lgspr-field lgspr-field-full">
+              <label for="pr-message">Message<span class="lgspr-required">*</span></label>
+              <textarea id="pr-message" name="message" required></textarea>
+            </div>
+
+            <div class="lgspr-wizard-nav">
+              <button type="button" class="btn btn-outline" id="lgspr-back-btn">Back</button>
+              <button type="submit" class="btn btn-primary">Request a Quote</button>
+            </div>
+          </div>
         </div>
-        <div class="lgspr-field">
-          <label for="pr-email">Email</label>
-          <input type="email" id="pr-email" name="email" required>
-        </div>
-        <div class="lgspr-field">
-          <label for="pr-phone">Phone / WhatsApp</label>
-          <input type="tel" id="pr-phone" name="phone">
-        </div>
-        <div class="lgspr-field">
-          <label for="pr-service">Service Required</label>
-          <select id="pr-service" name="service">
-            <option value="">Select a service</option>
-            <option value="gold">Gold (Au) Analysis</option>
-            <option value="silver">Silver (Ag) Analysis</option>
-            <option value="copper">Copper (Cu) Analysis</option>
-            <option value="sulphur">Sulphur Analysis</option>
-            <option value="carbon">Carbon Activity Testing</option>
-            <option value="cyanide">Cyanide Leaching Tests</option>
-            <option value="optimization">Cyanide Leaching Parameter Optimization</option>
-            <option value="screening">Metallic Screening & Gold Evaluation</option>
-            <option value="consultancy">Technical Assistance & Consultancy</option>
-            <option value="other">Other / Not Sure</option>
-          </select>
-        </div>
-        <div class="lgspr-field">
-          <label for="pr-sample-type">Sample Type</label>
-          <input type="text" id="pr-sample-type" name="sample_type" placeholder="e.g. Rock, Soil, Drill Core, Pulp">
-        </div>
-        <div class="lgspr-field lgspr-field-full">
-          <label for="pr-quantity">Approximate Sample Quantity</label>
-          <input type="text" id="pr-quantity" name="quantity" placeholder="e.g. Number of samples or weight">
-        </div>
-        <div class="lgspr-field lgspr-field-full">
-          <label for="pr-requirements">Technical Requirements</label>
-          <textarea id="pr-requirements" name="technical_requirements" placeholder="Any specific analytical or turnaround requirements"></textarea>
-        </div>
-        <div class="lgspr-field lgspr-field-full">
-          <label for="pr-message">Message</label>
-          <textarea id="pr-message" name="message" required></textarea>
-        </div>
-        <div class="lgspr-form-submit">
-          <button type="submit" class="btn btn-primary">Request a Quote</button>
-        </div>
+
       </form>
     </div>
   </div>
@@ -180,7 +271,7 @@
 <section class="lgspr-cta">
   <div class="container">
     <h2>Have a Question Before You Request a Quote?</h2>
-    <p>Our team can provide guidance on sample requirements and the appropriate analytical service before you submit your request.</p>
+    <p>Our team can provide guidance on sample requirements and the appropriate service before you submit your request.</p>
     <div class="lgspr-cta-actions">
       <a href="{% url 'contact' %}" class="btn btn-primary">Contact Us</a>
       <a href="{% url 'services' %}" class="btn btn-outline">View Our Services</a>
@@ -188,4 +279,58 @@
   </div>
 </section>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var step1 = document.getElementById('lgspr-step-1');
+  var step2 = document.getElementById('lgspr-step-2');
+  var progress1 = document.getElementById('lgspr-progress-1');
+  var progress2 = document.getElementById('lgspr-progress-2');
+  var nextBtn = document.getElementById('lgspr-next-btn');
+  var backBtn = document.getElementById('lgspr-back-btn');
+  var countLabel = document.getElementById('lgspr-services-count');
+  var errorLabel = document.getElementById('lgspr-services-error');
+  var serviceChecks = document.querySelectorAll('input[name="services"]');
+
+  function getCheckedCount() {
+    return document.querySelectorAll('input[name="services"]:checked').length;
+  }
+
+  function updateCount() {
+    var checked = getCheckedCount();
+    countLabel.textContent = checked + (checked === 1 ? ' service selected' : ' services selected');
+    if (checked > 0) {
+      errorLabel.style.display = 'none';
+    }
+  }
+
+  serviceChecks.forEach(function (cb) {
+    cb.addEventListener('change', updateCount);
+  });
+  updateCount();
+
+  nextBtn.addEventListener('click', function () {
+    if (getCheckedCount() === 0) {
+      errorLabel.style.display = 'block';
+      errorLabel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    step1.classList.remove('is-visible');
+    step2.classList.add('is-visible');
+    progress1.classList.remove('is-active');
+    progress2.classList.add('is-active');
+    window.scrollTo({ top: step2.offsetTop - 100, behavior: 'smooth' });
+  });
+
+  backBtn.addEventListener('click', function () {
+    step2.classList.remove('is-visible');
+    step1.classList.add('is-visible');
+    progress2.classList.remove('is-active');
+    progress1.classList.add('is-active');
+    window.scrollTo({ top: step1.offsetTop - 100, behavior: 'smooth' });
+  });
+});
+</script>
 {% endblock %}

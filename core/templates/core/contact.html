@@ -85,7 +85,7 @@
         <form class="lgsct-form" method="post" action="">
           {% csrf_token %}
           <div class="lgsct-field">
-            <label for="ct-name">Full Name</label>
+            <label for="ct-name">Full Name<span class="lgsct-required">*</span></label>
             <input type="text" id="ct-name" name="name" required>
           </div>
           <div class="lgsct-field">
@@ -93,7 +93,7 @@
             <input type="text" id="ct-company" name="company">
           </div>
           <div class="lgsct-field">
-            <label for="ct-email">Email</label>
+            <label for="ct-email">Email<span class="lgsct-required">*</span></label>
             <input type="email" id="ct-email" name="email" required>
           </div>
           <div class="lgsct-field">
@@ -117,7 +117,7 @@
             </select>
           </div>
           <div class="lgsct-field lgsct-field-full">
-            <label for="ct-message">Message</label>
+            <label for="ct-message">Message<span class="lgsct-required">*</span></label>
             <textarea id="ct-message" name="message" required></textarea>
           </div>
           <div class="lgsct-form-submit">
