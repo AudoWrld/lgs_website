@@ -1,8 +1,7 @@
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
-from django.shortcuts import render, redirect
-from .models import QuoteRequest
+from .models import QuoteRequest, ContactMessage
 
 
 def homepage(request):
@@ -59,7 +58,34 @@ def pricing(request):
 
 
 def contact(request):
-    return render(request, "core/contact.html")
+    submitted = False
+    reference_number = None
+
+    if request.method == "POST":
+        full_name = request.POST.get("name", "").strip()
+        company = request.POST.get("company", "").strip()
+        email = request.POST.get("email", "").strip()
+        phone = request.POST.get("phone", "").strip()
+        subject = request.POST.get("subject", "").strip()
+        message = request.POST.get("message", "").strip()
+
+        if full_name and email and subject and message:
+            contact_message = ContactMessage.objects.create(
+                full_name=full_name,
+                company=company,
+                email=email,
+                phone=phone,
+                subject=subject,
+                message=message,
+            )
+            submitted = True
+            reference_number = contact_message.reference_number
+
+    context = {
+        "submitted": submitted,
+        "reference_number": reference_number,
+    }
+    return render(request, "core/contact.html", context)
 
 
 def request_quote(request):
