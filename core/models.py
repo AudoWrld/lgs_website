@@ -1,15 +1,30 @@
 import datetime
 
 from django.db import models, transaction
-from django.core.validators import MinValueValidator
 
 
 class ReferenceCounter(models.Model):
-    year = models.PositiveIntegerField(unique=True)
+    prefix = models.CharField(max_length=10)
+    year = models.PositiveIntegerField()
     last_number = models.PositiveIntegerField(default=0)
 
+    class Meta:
+        unique_together = ("prefix", "year")
+
     def __str__(self):
-        return f"{self.year} -> {self.last_number}"
+        return f"{self.prefix}-{self.year} -> {self.last_number}"
+
+
+def generate_reference_number(prefix):
+    year = datetime.date.today().year
+    with transaction.atomic():
+        counter, _ = ReferenceCounter.objects.select_for_update().get_or_create(
+            prefix=prefix, year=year, defaults={"last_number": 0}
+        )
+        counter.last_number += 1
+        counter.save()
+        sequence = counter.last_number
+    return f"LGS-{prefix}-{year}-{sequence:04d}"
 
 
 class QuoteRequest(models.Model):
@@ -46,8 +61,9 @@ class QuoteRequest(models.Model):
         ("bags", "Bags"),
         ("other", "Other"),
     ]
+
     reference_number = models.CharField(
-        max_length=20, unique=True, editable=False, db_index=True
+        max_length=25, unique=True, editable=False, db_index=True
     )
     full_name = models.CharField(max_length=150)
     company = models.CharField(max_length=150, blank=True)
@@ -87,20 +103,8 @@ class QuoteRequest(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.reference_number:
-            self.reference_number = self._generate_reference_number()
+            self.reference_number = generate_reference_number("Q")
         super().save(*args, **kwargs)
-
-    @staticmethod
-    def _generate_reference_number():
-        year = datetime.date.today().year
-        with transaction.atomic():
-            counter, _ = ReferenceCounter.objects.select_for_update().get_or_create(
-                year=year, defaults={"last_number": 0}
-            )
-            counter.last_number += 1
-            counter.save()
-            sequence = counter.last_number
-        return f"LGS-{year}-{sequence:04d}"
 
     SERVICE_LABELS = {
         "gold_copper": "Gold & Copper Analysis",
@@ -132,3 +136,44 @@ class QuoteRequest(models.Model):
 
     def get_methods_display(self):
         return [self.METHOD_LABELS.get(m, m) for m in self.methods]
+
+
+class ContactMessage(models.Model):
+
+    SERVICE_OF_INTEREST_CHOICES = [
+        ("gold", "Gold (Au) Analysis"),
+        ("silver", "Silver (Ag) Analysis"),
+        ("copper", "Copper (Cu) Analysis"),
+        ("sulphur", "Sulphur Analysis"),
+        ("carbon", "Carbon Activity Testing"),
+        ("cyanide", "Cyanide Leaching Tests"),
+        ("optimization", "Cyanide Leaching Parameter Optimization"),
+        ("screening", "Metallic Screening & Gold Evaluation"),
+        ("consultancy", "Technical Assistance & Consultancy"),
+        ("other", "Other / Not Sure"),
+    ]
+
+    reference_number = models.CharField(
+        max_length=25, unique=True, editable=False, db_index=True
+    )
+    full_name = models.CharField(max_length=150)
+    company = models.CharField(max_length=150, blank=True)
+    email = models.EmailField()
+    phone = models.CharField(max_length=30, blank=True)
+    subject = models.CharField(max_length=200)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Contact Message"
+        verbose_name_plural = "Contact Messages"
+
+    def __str__(self):
+        return f"{self.reference_number} - {self.full_name}"
+
+    def save(self, *args, **kwargs):
+        if not self.reference_number:
+            self.reference_number = generate_reference_number("CON")
+        super().save(*args, **kwargs)
