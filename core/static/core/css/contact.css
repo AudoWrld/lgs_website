@@ -270,3 +270,105 @@
   background: var(--off-white);
   color: var(--navy-dark);
 }
+
+.lgsct-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 46, 68, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  padding: 1.5rem;
+}
+
+.lgsct-modal {
+  position: relative;
+  background: var(--white);
+  max-width: 420px;
+  width: 100%;
+  padding: 2.25rem 2rem;
+  text-align: center;
+  border-top: 4px solid var(--orange);
+  animation: lgsct-modal-in 0.2s ease;
+}
+
+@keyframes lgsct-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lgsct-modal-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--charcoal);
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.lgsct-modal-close:hover {
+  background: var(--off-white);
+  color: var(--navy);
+}
+
+.lgsct-modal-icon {
+  font-size: 2.75rem;
+  color: var(--orange);
+  margin-bottom: 0.75rem;
+}
+
+.lgsct-modal h2 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5em;
+}
+
+.lgsct-modal p {
+  font-size: 0.9375rem;
+  color: var(--charcoal);
+  margin: 0 auto 1em;
+}
+
+.lgsct-modal-ref {
+  background: var(--off-white);
+  border: 1px solid var(--line);
+  padding: 0.9rem 1rem;
+  margin: 1.25rem 0;
+}
+
+.lgsct-modal-ref span {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--charcoal);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.3rem;
+}
+
+.lgsct-modal-ref strong {
+  font-family: var(--font-head);
+  font-size: 1.35rem;
+  color: var(--navy);
+  letter-spacing: 0.02em;
+}
+
+.lgsct-modal-note {
+  font-size: 0.8125rem;
+  color: var(--charcoal);
+  opacity: 0.75;
+  margin-bottom: 0 !important;
+}
