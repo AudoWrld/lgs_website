@@ -10,6 +10,25 @@
 
 {% block content %}
 
+{% if submitted %}
+<div class="lgsct-modal-overlay" id="lgsct-success-modal">
+  <div class="lgsct-modal">
+    <button type="button" class="lgsct-modal-close" id="lgsct-modal-close" aria-label="Close">
+      <i class='bx bx-x'></i>
+    </button>
+    <div class="lgsct-modal-icon"><i class='bx bx-check-circle'></i></div>
+    <h2>Message Received</h2>
+    <p>Thank you for contacting LGS Mineral Assay Laboratory. Your message has been received successfully.</p>
+    <div class="lgsct-modal-ref">
+      <span>Reference Number</span>
+      <strong>{{ reference_number }}</strong>
+    </div>
+    <p class="lgsct-modal-note">You'll also receive a confirmation email shortly. Our team will review your inquiry and respond as soon as possible.</p>
+    <button type="button" class="btn btn-primary" id="lgsct-modal-close-btn">Close</button>
+  </div>
+</div>
+{% endif %}
+
 <section class="lgsct-header">
   <div class="container">
     <div class="lgsct-header-inner">
@@ -93,28 +112,16 @@
             <input type="text" id="ct-company" name="company">
           </div>
           <div class="lgsct-field">
-            <label for="ct-email">Email<span class="lgsct-required">*</span></label>
+            <label for="ct-email">Email Address<span class="lgsct-required">*</span></label>
             <input type="email" id="ct-email" name="email" required>
           </div>
           <div class="lgsct-field">
-            <label for="ct-phone">Phone / WhatsApp<span class="lgsct-required">*</span></label>
-            <input type="tel" id="ct-phone" name="phone" required>
+            <label for="ct-phone">Phone / WhatsApp</label>
+            <input type="tel" id="ct-phone" name="phone">
           </div>
           <div class="lgsct-field lgsct-field-full">
-            <label for="ct-service">Service of Interest</label>
-            <select id="ct-service" name="service">
-              <option value="">Select a service</option>
-              <option value="gold">Gold (Au) Analysis</option>
-              <option value="silver">Silver (Ag) Analysis</option>
-              <option value="copper">Copper (Cu) Analysis</option>
-              <option value="sulphur">Sulphur Analysis</option>
-              <option value="carbon">Carbon Activity Testing</option>
-              <option value="cyanide">Cyanide Leaching Tests</option>
-              <option value="optimization">Cyanide Leaching Parameter Optimization</option>
-              <option value="screening">Metallic Screening & Gold Evaluation</option>
-              <option value="consultancy">Technical Assistance & Consultancy</option>
-              <option value="other">Other / Not Sure</option>
-            </select>
+            <label for="ct-subject">Subject<span class="lgsct-required">*</span></label>
+            <input type="text" id="ct-subject" name="subject" placeholder="e.g. Enquiry about Gold Analysis" required>
           </div>
           <div class="lgsct-field lgsct-field-full">
             <label for="ct-message">Message<span class="lgsct-required">*</span></label>
@@ -156,4 +163,28 @@
   </div>
 </section>
 
+{% endblock %}
+
+{% block extra_js %}
+{% if submitted %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var modalOverlay = document.getElementById('lgsct-success-modal');
+  var closeX = document.getElementById('lgsct-modal-close');
+  var closeBtn = document.getElementById('lgsct-modal-close-btn');
+
+  function closeModal() {
+    modalOverlay.style.display = 'none';
+  }
+
+  closeX.addEventListener('click', closeModal);
+  closeBtn.addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', function (e) {
+    if (e.target === modalOverlay) {
+      closeModal();
+    }
+  });
+});
+</script>
+{% endif %}
 {% endblock %}
