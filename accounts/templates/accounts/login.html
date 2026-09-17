@@ -67,6 +67,12 @@
 {% block extra_js %}
 <script>
   document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.auth-alert, .auth-field-error').forEach(function (error) {
+      window.setTimeout(function () {
+        error.remove();
+      }, 5000);
+    });
+
     var toggleBtn = document.getElementById('auth-toggle-password');
     var passwordInput = document.getElementById('{{ form.password.id_for_label }}');
 
