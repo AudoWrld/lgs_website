@@ -74,15 +74,26 @@
     </label>
 
     <nav class="main-nav">
-      <ul>
+      <ul class="nav-links">
         <li><a href="{% url 'homepage' %}" class="{% if request.resolver_match.url_name == 'homepage' %}active{% endif %}">Home</a></li>
         <li><a href="{% url 'services' %}" class="{% if request.resolver_match.url_name == 'services' %}active{% endif %}">Services</a></li>
         <li><a href="{% url 'about' %}" class="{% if request.resolver_match.url_name == 'about' %}active{% endif %}">About Us</a></li>
-        <li><a href="{% url 'pricing' %}" class="{% if request.resolver_match.url_name == 'pricing' %}active{% endif %}">Pricing</a></li>
         <li><a href="{% url 'contact' %}" class="{% if request.resolver_match.url_name == 'contact' %}active{% endif %}">Contact Us</a></li>
         <li><a href="{% url 'pricing' %}" class="nav-cta">Request a Quote</a></li>
       </ul>
     </nav>
+
+    <div class="nav-login-wrap">
+      {% if user.is_authenticated %}
+        <a href="{% url 'accounts:post_login_redirect' %}" class="nav-login">
+          <i class='bx bx-user-circle'></i> My Account
+        </a>
+      {% else %}
+        <a href="{% url 'accounts:login' %}" class="nav-login">
+          <i class='bx bx-log-in'></i> Login
+        </a>
+      {% endif %}
+    </div>
   </div>
 </header>
 
