@@ -1,0 +1,89 @@
+{% extends "accounts/base_auth.html" %}
+{% load static %}
+
+{% block title %}Login — LGS Mineral Assay Laboratory{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'accounts/css/login.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+  <div class="auth-card">
+    <div class="auth-header">
+      <a href="{% url 'homepage' %}">
+        <img src="{% static 'core/img/lgs-logo.png' %}" alt="LGS Mineral Assay Laboratory" class="auth-logo">
+      </a>
+      <h1>Welcome Back</h1>
+      <p>Log in to access your LGS account.</p>
+    </div>
+
+    {% if form.non_field_errors %}
+    <div class="auth-alert">
+      {% for error in form.non_field_errors %}
+        <p>{{ error }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" class="auth-form" novalidate>
+      {% csrf_token %}
+
+      <div class="auth-field">
+        <label for="{{ form.username.id_for_label }}">Email Address</label>
+        <div class="auth-input-wrap">
+          <i class='bx bx-envelope'></i>
+          {{ form.username }}
+        </div>
+        {% if form.username.errors %}
+          <span class="auth-field-error">{{ form.username.errors.0 }}</span>
+        {% endif %}
+      </div>
+
+      <div class="auth-field">
+        <label for="{{ form.password.id_for_label }}">Password</label>
+        <div class="auth-input-wrap">
+          <i class='bx bx-lock-alt'></i>
+          {{ form.password }}
+          <button type="button" class="auth-toggle-password" id="auth-toggle-password" aria-label="Show password">
+            <i class='bx bx-hide'></i>
+          </button>
+        </div>
+        {% if form.password.errors %}
+          <span class="auth-field-error">{{ form.password.errors.0 }}</span>
+        {% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-primary auth-submit">Log In</button>
+    </form>
+
+    <p class="auth-footnote">
+      Trouble logging in? <a href="{% url 'contact' %}">Contact LGS Reception</a> for assistance.
+    </p>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var toggleBtn = document.getElementById('auth-toggle-password');
+    var passwordInput = document.getElementById('{{ form.password.id_for_label }}');
+
+    if (!toggleBtn || !passwordInput) {
+      return;
+    }
+
+    toggleBtn.addEventListener('click', function () {
+      var isHidden = passwordInput.getAttribute('type') === 'password';
+      passwordInput.setAttribute('type', isHidden ? 'text' : 'password');
+
+      var icon = toggleBtn.querySelector('i');
+      if (icon) {
+        icon.className = isHidden ? 'bx bx-show' : 'bx bx-hide';
+      }
+      toggleBtn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+    });
+  });
+</script>
+{% endblock %}

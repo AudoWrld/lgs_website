@@ -1,0 +1,32 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}LGS Mineral Assay Laboratory{% endblock %}</title>
+<meta name="robots" content="noindex, nofollow">
+
+<link rel="icon" href="{% static 'favicons/favicon.svg' %}" type="image/svg+xml">
+<link rel="icon" href="{% static 'favicons/favicon.ico' %}" sizes="any">
+<link rel="icon" href="{% static 'favicons/favicon-96x96.png' %}" type="image/png" sizes="96x96">
+<link rel="apple-touch-icon" href="{% static 'favicons/apple-touch-icon.png' %}">
+<link rel="manifest" href="{% static 'favicons/site.webmanifest' %}">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+<link rel="stylesheet" href="{% static 'accounts/css/base_auth.css' %}">
+{% block extra_css %}{% endblock %}
+</head>
+<body class="auth-body">
+
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>
