@@ -1,0 +1,116 @@
+:root {
+  --navy: #123e5b;
+  --navy-dark: #0d2e44;
+  --orange: #f39a2b;
+  --charcoal: #20272b;
+  --off-white: #f7f4ee;
+  --white: #ffffff;
+  --line: #dcd6c9;
+  --whatsapp: #25d366;
+
+  --font-head: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+
+  --fs-body: 1rem;
+  --fs-small: 0.875rem;
+  --fs-nav: 0.875rem;
+  --fs-h1: 1.875rem;
+  --fs-h2: 1.5rem;
+  --fs-h3: 1.125rem;
+  --fs-eyebrow: 0.8125rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.6;
+  color: var(--charcoal);
+  background: var(--off-white);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-head);
+  color: var(--navy);
+  line-height: 1.25;
+  margin: 0 0 0.6em;
+  font-weight: 600;
+}
+
+h1 {
+  font-size: var(--fs-h1);
+}
+h2 {
+  font-size: var(--fs-h2);
+}
+h3 {
+  font-size: var(--fs-h3);
+}
+
+p {
+  margin: 0 0 1em;
+}
+
+a {
+  color: var(--navy);
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+.btn {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  padding: 0.6rem 1.2rem;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--orange);
+  color: var(--navy-dark);
+}
+
+.btn-primary:hover {
+  background: #ffab4d;
+}
+
+.btn-outline {
+  background: transparent;
+  border-color: var(--navy);
+  color: var(--navy);
+}
+
+.btn-outline:hover {
+  background: var(--navy);
+  color: var(--white);
+}
+
+.auth-body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-body main {
+  flex: 1;
+  display: flex;
+}
