@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import models
 from django.utils import timezone
+from django.utils.text import slugify
 
 
 class UserManager(BaseUserManager):
@@ -159,6 +160,7 @@ class Client(models.Model):
 
     client_type = models.CharField(max_length=20, choices=CLIENT_TYPE_CHOICES)
     client_name = models.CharField(max_length=200, db_index=True)
+    slug = models.SlugField(max_length=220, unique=True, null=True, blank=True)
     contact_person = models.CharField(max_length=150, db_index=True)
     email = models.EmailField(db_index=True)
     whatsapp_number = models.CharField(max_length=30, db_index=True)
@@ -184,6 +186,17 @@ class Client(models.Model):
 
     def __str__(self):
         return f"{self.client_name} - {self.contact_person}"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.client_name) or "client"
+            candidate = base_slug
+            suffix = 2
+            while type(self).objects.filter(slug=candidate).exclude(pk=self.pk).exists():
+                candidate = f"{base_slug}-{suffix}"
+                suffix += 1
+            self.slug = candidate
+        super().save(*args, **kwargs)
 
     @classmethod
     def find_possible_duplicates(
