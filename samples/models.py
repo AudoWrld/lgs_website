@@ -120,6 +120,28 @@ class Sample(models.Model):
     def replicate_count(self):
         return self.REPLICATE_RULES.get(self.sample_type, 0)
 
+    def has_required_service(self):
+        return self.sample_services.exists()
+
+    def validate_registration_complete(self):
+        errors = []
+        if not self.client_sample_id:
+            errors.append("Sample ID is required.")
+        if not self.sample_type:
+            errors.append("Sample Type is required.")
+        if self.sample_type == self.OTHER and not self.other_sample_type:
+            errors.append("Specify the sample type when 'Other' is selected.")
+        if not self.has_required_service():
+            errors.append("At least one requested Service is required.")
+        for sample_service in self.sample_services.select_related("service"):
+            if not sample_service.service.method_of_analysis:
+                errors.append(
+                    f"No Method of Analysis assigned for service "
+                    f"'{sample_service.service.name}'."
+                )
+        if errors:
+            raise ValidationError(errors)
+
 
 class SampleService(models.Model):
     sample = models.ForeignKey(
@@ -149,7 +171,5 @@ class SampleService(models.Model):
         return self.service.unit_price
 
     def clean(self):
-        if self.service.pricing_type == Service.QUOTATION and self.quoted_price is None:
-            pass
         if self.service.pricing_type == Service.FIXED and self.quoted_price is not None:
             raise ValidationError("Fixed-price services cannot carry a quoted price.")
