@@ -1,4 +1,5 @@
 {% load static %}
+{% load reception_extras %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -44,43 +45,37 @@
       <span class="app-nav-label">Workflow</span>
       <ul>
         <li>
-          <a href="{% url 'reception:reception_dashboard' %}" class="{% if request.resolver_match.url_name == 'reception_dashboard' %}active{% endif %}">
+          <a href="{% url 'reception:reception_dashboard' %}" class="{% nav_active 'reception_dashboard' %}">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect></svg>
             Dashboard
           </a>
         </li>
         <li>
-          <a href="{% url 'reception:client_search' %}" class="{% if request.resolver_match.url_name == 'client_search' %}active{% endif %}">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            Search Client
-          </a>
-        </li>
-        <li>
-          <a href="{% url 'reception:client_register' %}" class="{% if request.resolver_match.url_name == 'client_register' %}active{% endif %}">
+          <a href="{% url 'reception:client_search' %}" class="{% nav_active 'client_search' 'client_register' 'client_edit' %}">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="16" y1="11" x2="22" y2="11"></line></svg>
             New Client Submission
           </a>
         </li>
         <li>
-          <a href="{% url 'reception:sample_registration' %}" class="{% if request.resolver_match.url_name == 'sample_registration' %}active{% endif %}">
+          <a href="{% url 'reception:sample_registration' %}" class="{% nav_active 'sample_registration' %}">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6.5L4.5 17a3 3 0 0 0 2.6 4.5h9.8a3 3 0 0 0 2.6-4.5L15 8.5V2"></path><line x1="8" y1="2" x2="16" y2="2"></line><line x1="8.5" y1="13" x2="15.5" y2="13"></line></svg>
             Sample Registration
           </a>
         </li>
         <li>
-          <a href="{% url 'reception:coa_reporting_preference' %}" class="{% if request.resolver_match.url_name == 'coa_reporting_preference' %}active{% endif %}">
+          <a href="{% url 'reception:coa_reporting_preference' %}" class="{% nav_active 'coa_reporting_preference' %}">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
             COA Reporting Preference
           </a>
         </li>
         <li>
-          <a href="{% url 'reception:generate_worksheet' %}" class="{% if request.resolver_match.url_name == 'generate_worksheet' %}active{% endif %}">
+          <a href="{% url 'reception:generate_worksheet' %}" class="{% nav_active 'generate_worksheet' %}">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
             Generate Lab Worksheet
           </a>
         </li>
         <li>
-          <a href="{% url 'reception:client_submission_form' %}" class="{% if request.resolver_match.url_name == 'client_submission_form' %}active{% endif %}">
+          <a href="{% url 'reception:client_submission_form' %}" class="{% nav_active 'client_submission_form' %}">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
             Client Submission Form
           </a>
@@ -90,7 +85,7 @@
       <span class="app-nav-label">Payments</span>
       <ul>
         <li>
-          <a href="{% url 'reception:payment_details' %}" class="{% if request.resolver_match.url_name == 'payment_details' %}active{% endif %}">
+          <a href="{% url 'reception:payment_details' %}" class="{% nav_active 'payment_details' %}">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4z"></path></svg>
             Payment Details
           </a>
@@ -100,7 +95,7 @@
       <span class="app-nav-label">Expenses</span>
       <ul>
         <li>
-          <a href="{% url 'reception:add_expense' %}" class="{% if request.resolver_match.url_name == 'add_expense' %}active{% endif %}">
+          <a href="{% url 'reception:add_expense' %}" class="{% nav_active 'add_expense' %}">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
             Add Expense
           </a>

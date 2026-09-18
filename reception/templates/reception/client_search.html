@@ -1,7 +1,66 @@
 {% extends "reception/base_reception.html" %}
+{% load static %}
 
+{% block title %}Search Client — LGS Reception{% endblock %}
 {% block page_title %}Search Client{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'reception/css/client_search.css' %}">
+{% endblock %}
+
 {% block content %}
-<p>Search registered clients by name, email, or WhatsApp number.</p>
+<div class="rc-panel">
+  <form method="get" class="rc-search-form">
+    {{ form.query.label_tag }}
+    <div class="rc-search-bar">
+      <i class='bx bx-search-alt'></i>
+      {{ form.query }}
+      <button type="submit" class="btn btn-primary">Search</button>
+    </div>
+    {% if form.query.errors %}
+      <span class="rc-field-error">{{ form.query.errors.0 }}</span>
+    {% endif %}
+  </form>
+
+  {% if searched %}
+    {% if results %}
+      <div class="rc-results">
+        <span class="rc-results-count">{{ results|length }} client{{ results|length|pluralize }} found</span>
+
+        {% for client in results %}
+        <div class="rc-client-card">
+          <div class="rc-client-info">
+            <span class="rc-client-type">{{ client.get_client_type_display }}</span>
+            <h3>{{ client.client_name }}</h3>
+            <dl>
+              <div><dt>Contact Person</dt><dd>{{ client.contact_person }}</dd></div>
+              <div><dt>Email</dt><dd>{{ client.email }}</dd></div>
+              <div><dt>WhatsApp</dt><dd>{{ client.whatsapp_number }}</dd></div>
+            </dl>
+          </div>
+          <div class="rc-client-actions">
+            <a href="{% url 'reception:client_new_submission' client.slug %}" class="btn btn-primary">
+              <i class='bx bx-plus'></i> Add Submission
+            </a>
+            <a href="{% url 'reception:client_submissions' client.slug %}" class="btn btn-outline">
+              <i class='bx bx-list-ul'></i> View Submissions
+            </a>
+            <a href="{% url 'reception:client_edit' client.slug %}" class="btn btn-outline">
+              <i class='bx bx-edit'></i> Edit Client Information
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="rc-empty-state">
+        <i class='bx bx-user-x'></i>
+        <p>No matching client found.</p>
+        <a href="{% url 'reception:client_register' %}" class="btn btn-primary">
+          <i class='bx bx-user-plus'></i> Register New Client
+        </a>
+      </div>
+    {% endif %}
+  {% endif %}
+</div>
 {% endblock %}

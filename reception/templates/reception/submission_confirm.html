@@ -1,0 +1,49 @@
+{% extends "reception/base_reception.html" %}
+
+{% block title %}Confirm Submission {{ submission.reference }} — LGS Reception{% endblock %}
+{% block page_title %}Confirm Submission · {{ submission.reference }}{% endblock %}
+
+{% block content %}
+<div class="rc-panel">
+  <div class="rc-ref-header">
+    <div>
+      <span class="rc-ref-label">Submission Reference</span>
+      <h2 class="rc-ref-value">{{ submission.reference }}</h2>
+    </div>
+    <div class="rc-ref-client">
+      <span class="rc-ref-label">Client</span>
+      <span class="rc-ref-client-name">{{ submission.client.client_name }}</span>
+    </div>
+    <div>
+      <span class="rc-ref-label">Receiving Date / Time</span>
+      <span class="rc-ref-client-name">{{ submission.receiving_date }} {{ submission.receiving_time|time:"H:i" }}</span>
+    </div>
+  </div>
+
+  <h2>Review Samples</h2>
+  <table class="rc-sample-table">
+    <thead>
+      <tr><th>S/N</th><th>Sample ID</th><th>Type</th><th>Service(s)</th><th>Method of Analysis</th></tr>
+    </thead>
+    <tbody>
+      {% for sample in samples %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ sample.client_sample_id }}</td>
+        <td>{{ sample.get_sample_type_display }}</td>
+        <td>{% for ss in sample.sample_services.all %}<span class="rc-service-tag">{{ ss.service.name }}</span>{% endfor %}</td>
+        <td>{% for ss in sample.sample_services.all %}<span class="rc-method-tag">{{ ss.service.method_of_analysis }}</span>{% endfor %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="rc-form-actions">
+    <a href="{% url 'reception:sample_registration_detail' submission.pk %}" class="btn btn-outline">Go Back and Edit</a>
+    <form method="post" action="{% url 'reception:submission_confirm_submit' submission.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary"><i class='bx bx-check'></i> Confirm &amp; Submit</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
