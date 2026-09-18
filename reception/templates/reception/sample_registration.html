@@ -16,13 +16,13 @@
       {% for submission in submissions %}
       <div class="rc-client-card">
         <div class="rc-client-info">
-          <span class="rc-client-type">Submission Reference</span>
+          <span class="rc-client-type">Submission Reference{% if submission.is_submitted %} · Submitted{% endif %}</span>
           <h3>{{ submission.reference }}</h3>
-          <p>{{ submission.client.client_name }} · {{ submission.created_at|date:"d M Y H:i" }} · {{ submission.total_samples }} sample{{ submission.total_samples|pluralize }}</p>
+          <p>{{ submission.client.client_name }} · {{ submission.created_at|date:"d M Y H:i" }} · {{ submission.total_samples }} sample{{ submission.total_samples|pluralize }}{% if submission.is_submitted and submission.submitted_at %} · Submitted {{ submission.submitted_at|date:"d M Y H:i" }}{% endif %}</p>
         </div>
         <div class="rc-client-actions">
-          <a href="{% url 'reception:sample_registration_detail' submission.pk %}" class="btn btn-primary">
-            <i class='bx bx-right-arrow-alt'></i> Add Samples
+          <a href="{% url 'reception:sample_registration_detail' submission.pk %}" class="btn {% if submission.is_submitted %}btn-outline{% else %}btn-primary{% endif %}">
+            <i class='bx {% if submission.is_submitted %}bx-detail{% else %}bx-right-arrow-alt{% endif %}'></i> {% if submission.is_submitted %}View Details{% else %}Add Samples{% endif %}
           </a>
         </div>
       </div>

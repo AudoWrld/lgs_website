@@ -10,7 +10,7 @@
 
 {% block content %}
 <div class="rc-ref-header">
-  <div><span class="rc-ref-label">Submission Reference</span><h2 class="rc-ref-value">{{ submission.reference }}</h2></div>
+  <div><span class="rc-ref-label">Submission Reference{% if submission.is_submitted %} · Submitted{% endif %}</span><h2 class="rc-ref-value">{{ submission.reference }}</h2></div>
   <div class="rc-ref-client"><span class="rc-ref-label">Client</span><span class="rc-ref-client-name">{{ submission.client.client_name }}</span></div>
   <div class="rc-ref-count"><span class="rc-ref-label">Total Samples</span><span class="rc-ref-count-value">{{ samples|length }}</span></div>
 </div>
@@ -39,7 +39,7 @@
   {% endif %}
 
   <div class="rc-sample-list-card">
-    <h3>Registered Samples</h3>
+    <h3>Registered Samples{% if submission.is_submitted %} · View Only{% endif %}</h3>
     {% if samples %}
     <table class="rc-sample-table"><thead><tr><th>S/N</th><th>Sample ID</th><th>Type</th><th>Service(s)</th><th>Method of Analysis</th><th>Actions</th></tr></thead><tbody>
       {% for sample in samples %}<tr><td>{{ forloop.counter }}</td><td>{{ sample.client_sample_id }}</td><td>{{ sample.get_sample_type_display }}</td><td>{% for ss in sample.sample_services.all %}<span class="rc-service-tag">{{ ss.service.name }}</span>{% endfor %}</td><td>{% for ss in sample.sample_services.all %}<span class="rc-method-tag">{{ ss.service.method_of_analysis }}</span>{% endfor %}</td><td class="rc-row-actions">{% if not submission.is_submitted %}<a href="{% url 'reception:sample_edit' sample.pk %}" class="rc-edit-link" aria-label="Edit {{ sample.client_sample_id }}" title="Edit sample"><i class='bx bx-edit'></i><span>Edit</span></a><a href="{% url 'reception:sample_remove' submission.pk sample.pk %}" onclick="return confirm('Remove sample {{ sample.client_sample_id }}?');" class="rc-remove-link" aria-label="Remove {{ sample.client_sample_id }}" title="Remove sample"><i class='bx bx-trash'></i><span>Remove</span></a>{% else %}<span class="rc-locked-label">Submitted</span>{% endif %}</td></tr>{% endfor %}
