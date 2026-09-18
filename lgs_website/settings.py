@@ -17,6 +17,12 @@ INSTALLED_APPS = [
     "core",
     "accounts",
     "reception",
+    "coa",
+    "samples",
+    "worksheet",
+    "expences",
+    "submissions",
+    "payments",
 ]
 
 MIDDLEWARE = [
