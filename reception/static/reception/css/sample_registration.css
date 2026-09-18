@@ -1,0 +1,214 @@
+.rc-ref-header {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  background: var(--navy);
+  color: var(--white);
+  border-radius: 4px;
+  border-top: 4px solid var(--orange);
+  padding: 1.25rem 1.75rem;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+}
+
+.rc-ref-label {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(247, 244, 238, 0.6);
+  margin-bottom: 0.25rem;
+}
+
+.rc-ref-value {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: 1.375rem;
+  color: var(--orange);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.rc-ref-client-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--white);
+}
+
+.rc-ref-count-value {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--white);
+  font-family: var(--font-head);
+}
+
+.rc-sample-layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 1.75rem;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .rc-sample-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rc-sample-form-card,
+.rc-sample-list-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1.5rem;
+}
+
+.rc-sample-form-card h3,
+.rc-sample-list-card h3 {
+  font-size: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.rc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.rc-field label {
+  display: block;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 0.4rem;
+}
+
+.rc-field input[type="text"],
+.rc-field select {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  color: var(--charcoal);
+  background: var(--off-white);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0.6rem 0.8rem;
+}
+
+.rc-field input:focus,
+.rc-field select:focus {
+  outline: none;
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px rgba(18, 62, 91, 0.12);
+  background: var(--white);
+}
+
+.rc-checkbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0.75rem;
+  background: var(--off-white);
+}
+
+.rc-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  color: var(--charcoal);
+}
+
+.rc-field-error {
+  display: block;
+  color: #a4342a;
+  font-size: 0.8rem;
+  margin-top: 0.4rem;
+}
+
+.rc-submit {
+  margin-top: 0.25rem;
+}
+
+#rc-other-type-field {
+  display: none;
+}
+
+.rc-sample-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+}
+
+.rc-sample-table th {
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #8a97a1;
+  padding: 0.6rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.rc-sample-table td {
+  padding: 0.7rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.rc-service-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  background: rgba(18, 62, 91, 0.08);
+  color: var(--navy);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  margin: 0.1rem 0.25rem 0.1rem 0;
+}
+
+.rc-row-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rc-row-actions a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-left: 0.6rem;
+  text-decoration: none;
+}
+
+.rc-edit-link {
+  color: var(--navy);
+}
+
+.rc-remove-link {
+  color: #a4342a;
+  font-size: 1.1rem;
+}
+
+.rc-locked-label {
+  color: #8a97a1;
+  font-size: 0.75rem;
+
+.rc-empty-state {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: #8a97a1;
+}
+
+.rc-empty-state i {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}

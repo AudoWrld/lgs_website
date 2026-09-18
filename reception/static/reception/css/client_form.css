@@ -1,0 +1,167 @@
+.rc-panel {
+  max-width: 640px;
+}
+
+.rc-form-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--orange);
+  border-radius: 4px;
+  padding: 2rem;
+}
+
+.rc-form-card h2 {
+  font-size: 1.125rem;
+  margin-bottom: 0.4em;
+}
+
+.rc-form-note {
+  font-size: var(--fs-small);
+  color: #6b7680;
+  margin-bottom: 1.5rem;
+}
+
+.rc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.rc-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 560px) {
+  .rc-field-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rc-field label {
+  display: block;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 0.4rem;
+}
+
+.rc-field input,
+.rc-field select {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  color: var(--charcoal);
+  background: var(--off-white);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0.65rem 0.85rem;
+}
+
+.rc-field input:focus,
+.rc-field select:focus {
+  outline: none;
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px rgba(18, 62, 91, 0.12);
+  background: var(--white);
+}
+
+.rc-field-error {
+  display: block;
+  color: #a4342a;
+  font-size: 0.8rem;
+  margin-top: 0.4rem;
+}
+
+.rc-submit {
+  align-self: flex-start;
+  margin-top: 0.5rem;
+}
+
+.rc-form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.rc-duplicate-alert {
+  background: #fff8ec;
+  border: 1px solid #f3d9a8;
+  border-radius: 4px;
+  padding: 1.5rem;
+}
+
+.rc-duplicate-alert-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+}
+
+.rc-duplicate-alert-head i {
+  font-size: 1.4rem;
+  color: #b8791a;
+}
+
+.rc-duplicate-alert-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #8a5a12;
+}
+
+.rc-duplicate-alert > p {
+  font-size: var(--fs-small);
+  color: var(--charcoal);
+  margin-bottom: 1.25rem;
+}
+
+.rc-duplicate-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.rc-duplicate-card h4 {
+  margin: 0.3rem 0 0.5rem;
+  font-size: 1rem;
+  color: var(--navy);
+  font-family: var(--font-head);
+}
+
+.rc-duplicate-card dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: 0.3rem 1.5rem;
+}
+
+.rc-duplicate-card dt {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #8a97a1;
+}
+
+.rc-duplicate-card dd {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--charcoal);
+}
+
+.rc-duplicate-confirm {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed #f3d9a8;
+}
+
+.rc-duplicate-confirm p {
+  display: none;
+}
