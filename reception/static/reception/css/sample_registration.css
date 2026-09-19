@@ -75,6 +75,27 @@
   color: var(--navy);
 }
 
+.rc-page-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.rc-page-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 40px;
+  padding: 0 1rem;
+}
+
+.rc-page-action i {
+  font-size: 1.1rem;
+}
+
 .rc-badge {
   display: inline-flex;
   align-items: center;
@@ -581,6 +602,16 @@
 
   .rc-action span {
     display: none;
+  }
+
+  .rc-page-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .rc-page-action {
+    justify-content: center;
+    width: 100%;
   }
 
   .rc-submit-bar {

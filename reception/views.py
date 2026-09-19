@@ -15,6 +15,7 @@ from accounts.decorators import reception_required
 from accounts.forms import ClientForm, ClientSearchForm
 from accounts.models import Client, ClientEditLog
 from accounts.utils import generate_temp_password, normalize_tz_phone
+from payments.views import payment_detail, payment_list
 from samples.forms import SampleForm
 from samples.models import Sample
 from submissions.models import Submission
@@ -435,7 +436,7 @@ def submission_confirm_submit(request, submission_id):
         return redirect("reception:sample_registration_detail", slug=submission.slug)
 
     messages.success(request, f"Submission {submission.reference} was submitted.")
-    return redirect("reception:sample_registration")
+    return redirect("reception:sample_registration_detail", slug=submission.slug)
 
 
 @reception_required
@@ -465,11 +466,6 @@ def generate_worksheet(request):
 @reception_required
 def client_submission_form(request):
     return render(request, "reception/client_submission_form.html")
-
-
-@reception_required
-def payment_details(request):
-    return render(request, "reception/payment_details.html")
 
 
 @reception_required
