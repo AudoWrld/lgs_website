@@ -8,11 +8,23 @@ urlpatterns = [
     path("dashboard/", views.reception_dashboard, name="reception_dashboard"),
     path("clients/search/", views.client_search, name="client_search"),
     path("clients/register/", views.client_register, name="client_register"),
-    path("clients/<slug:slug>/submissions/", views.client_submissions, name="client_submissions"),
-    path("clients/<slug:slug>/submissions/new/", views.client_new_submission, name="client_new_submission"),
-    path("clients/<slug:slug>/submissions/<int:submission_id>/use/", views.submission_use, name="submission_use"),
+    path(
+        "clients/<slug:slug>/submissions/",
+        views.client_submissions,
+        name="client_submissions",
+    ),
+    path(
+        "clients/<slug:slug>/submissions/new/",
+        views.client_new_submission,
+        name="client_new_submission",
+    ),
+    path(
+        "clients/<slug:slug>/submissions/<int:submission_id>/use/",
+        views.submission_use,
+        name="submission_use",
+    ),
     path("clients/<slug:slug>/edit/", views.client_edit, name="client_edit"),
-    path("samples/register/", views.sample_registration, name="sample_registration"),
+    path("samples/register/", views.submission_list, name="sample_registration"),
     path(
         "samples/<int:submission_id>/",
         views.sample_registration_detail,
