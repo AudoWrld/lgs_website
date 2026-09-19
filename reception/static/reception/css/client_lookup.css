@@ -1,0 +1,248 @@
+.sc-page {
+  width: 100%;
+  padding: 0 0 1.5rem;
+}
+
+.sc-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.sc-card-head {
+  padding: 1.1rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.sc-card-head--row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.sc-card-head h3 {
+  margin: 0 0 0.2rem;
+  font-size: 1rem;
+}
+
+.sc-card-head p {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: #7b858c;
+}
+
+.sc-search-form {
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.sc-search-field label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #5a656c;
+  margin-bottom: 0.45rem;
+}
+
+.sc-search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.sc-search-bar i {
+  position: absolute;
+  left: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.15rem;
+  color: #8a949b;
+  pointer-events: none;
+}
+
+.sc-search-bar input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 0.9rem 0 2.6rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--white);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  color: var(--charcoal);
+}
+
+.sc-search-bar input::placeholder {
+  color: #98a1a7;
+}
+
+.sc-search-bar input:focus {
+  outline: none;
+  border-color: var(--navy);
+}
+
+.sc-field-error {
+  display: block;
+  color: #a4342a;
+  font-size: 0.8rem;
+  margin-top: 0.4rem;
+}
+
+.sc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 44px;
+  padding: 0 1.25rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sc-card-head .sc-btn {
+  height: 40px;
+}
+
+.sc-btn i {
+  position: static;
+  transform: none;
+  font-size: 1.15rem;
+  color: inherit;
+}
+
+.sc-table-wrap {
+  overflow-x: auto;
+}
+
+.sc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+}
+
+.sc-table th {
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7b858c;
+  background: var(--off-white);
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.sc-table th.sc-col-actions {
+  text-align: right;
+}
+
+.sc-table td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+  color: var(--charcoal);
+}
+
+.sc-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.sc-table tbody tr:hover {
+  background: #fbfaf6;
+}
+
+.sc-cell-name {
+  display: block;
+  font-family: var(--font-head);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 0.3rem;
+}
+
+.sc-cell-wrap {
+  overflow-wrap: anywhere;
+}
+
+.sc-cell-nowrap {
+  white-space: nowrap;
+}
+
+.sc-type {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #a5620a;
+  background: rgba(243, 154, 43, 0.14);
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+}
+
+.sc-cell-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.sc-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 34px;
+  padding: 0 0.85rem;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  margin-left: 0.35rem;
+}
+
+.sc-action i {
+  font-size: 1.1rem;
+}
+
+.sc-empty {
+  text-align: center;
+  padding: 3.5rem 1.5rem;
+}
+
+.sc-empty i {
+  display: block;
+  font-size: 2.5rem;
+  color: #b7c1c9;
+  margin-bottom: 0.75rem;
+}
+
+.sc-empty p {
+  color: #5a656c;
+  margin: 0 0 1.25rem;
+}
+
+.sc-empty .sc-btn i {
+  display: inline;
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .sc-search-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sc-search-bar i {
+    top: 22px;
+  }
+
+  .sc-search-bar .sc-btn {
+    width: 100%;
+  }
+}
