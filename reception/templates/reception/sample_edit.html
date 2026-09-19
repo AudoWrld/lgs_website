@@ -1,0 +1,127 @@
+{% extends "reception/base_reception.html" %}
+{% load static %}
+
+{% block title %}Edit Sample {{ sample.client_sample_id }} — LGS Reception{% endblock %}
+{% block page_title %}Edit Sample · {{ submission.reference }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'reception/css/sample_registration.css' %}">
+<style>
+ .rc-summary--edit {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.rc-edit-card {
+  max-width: 640px;
+}
+
+@media (max-width: 760px) {
+  .rc-summary--edit {
+    grid-template-columns: 1fr;
+  }
+
+  .rc-summary--edit .rc-summary-item {
+    border-left: none;
+  }
+
+  .rc-summary--edit .rc-summary-item + .rc-summary-item {
+    border-top: 1px solid var(--line);
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rc-page">
+
+  <section class="rc-summary rc-summary--edit">
+    <div class="rc-summary-item">
+      <span class="rc-summary-label">Editing Sample</span>
+      <span class="rc-summary-ref-value">{{ sample.client_sample_id }}</span>
+    </div>
+
+    <div class="rc-summary-item">
+      <span class="rc-summary-label">Submission Reference</span>
+      <span class="rc-summary-value">{{ submission.reference }}</span>
+      <span class="rc-badge {% if submission.is_submitted %}rc-badge--submitted{% else %}rc-badge--progress{% endif %}">
+        {% if submission.is_submitted %}Submitted{% else %}In Progress{% endif %}
+      </span>
+    </div>
+
+    <div class="rc-summary-item">
+      <span class="rc-summary-label">Client</span>
+      <span class="rc-summary-value">{{ submission.client.client_name }}</span>
+      {% if submission.client.contact_person %}
+        <span class="rc-summary-note">{{ submission.client.contact_person }}</span>
+      {% endif %}
+    </div>
+  </section>
+
+  <div class="rc-card rc-edit-card">
+    <div class="rc-card-head">
+      <h3>Update Sample Details</h3>
+      <p>Change the sample ID, type or requested services.</p>
+    </div>
+
+    <form method="post" class="rc-form" novalidate>
+      {% csrf_token %}
+
+      <div class="rc-field">
+        <label for="{{ form.client_sample_id.id_for_label }}">Sample ID</label>
+        {{ form.client_sample_id }}
+        {% if form.client_sample_id.errors %}<span class="rc-field-error">{{ form.client_sample_id.errors.0 }}</span>{% endif %}
+      </div>
+
+      <div class="rc-field">
+        <label for="{{ form.sample_type.id_for_label }}">Sample Type</label>
+        {{ form.sample_type }}
+        {% if form.sample_type.errors %}<span class="rc-field-error">{{ form.sample_type.errors.0 }}</span>{% endif %}
+      </div>
+
+      <div class="rc-field" id="rc-other-type-field">
+        <label for="{{ form.other_sample_type.id_for_label }}">Specify Sample Type</label>
+        {{ form.other_sample_type }}
+        {% if form.other_sample_type.errors %}<span class="rc-field-error">{{ form.other_sample_type.errors.0 }}</span>{% endif %}
+      </div>
+
+      <div class="rc-field">
+        <label>Requested Service(s)</label>
+        <div class="rc-checkbox-list" id="rc-service-checkboxes">
+          {% for checkbox in form.services %}
+            <label class="rc-checkbox-item">{{ checkbox.tag }}<span>{{ checkbox.choice_label }}</span></label>
+          {% endfor %}
+        </div>
+        {% if form.services.errors %}<span class="rc-field-error">{{ form.services.errors.0 }}</span>{% endif %}
+      </div>
+
+      <div class="rc-form-actions">
+        <button type="submit" class="btn btn-primary rc-submit">
+          <i class='bx bx-save'></i> Save Sample Changes
+        </button>
+        <a href="{% url 'reception:sample_registration_detail' submission.slug %}" class="btn btn-outline rc-submit">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var sampleTypeField = document.getElementById('{{ form.sample_type.id_for_label }}');
+    var otherFieldWrap = document.getElementById('rc-other-type-field');
+
+    function toggleOtherField() {
+      if (!sampleTypeField || !otherFieldWrap) return;
+      otherFieldWrap.style.display = sampleTypeField.value === 'OTHER' ? 'block' : 'none';
+    }
+
+    if (sampleTypeField) {
+      toggleOtherField();
+      sampleTypeField.addEventListener('change', toggleOtherField);
+    }
+  });
+</script>
+{% endblock %}
