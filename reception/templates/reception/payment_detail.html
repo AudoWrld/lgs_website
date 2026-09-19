@@ -1,0 +1,65 @@
+{% extends "reception/base_reception.html" %}
+{% load static %}
+
+{% block title %}{{ submission.reference }} Payment — LGS Reception{% endblock %}
+{% block page_title %}Payment · {{ submission.reference }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'reception/css/payment_details.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="rc-panel">
+  <a href="{% url 'reception:payment_details' %}" class="btn btn-outline pd-back-link">
+    <i class='bx bx-left-arrow-alt'></i> Back to Payments
+  </a>
+
+  <div class="pd-position-card">
+    <div class="pd-position-head">
+      <div>
+        <span class="pd-position-label">Submission Reference</span>
+        <h2>{{ submission.reference }}</h2>
+      </div>
+      <div class="pd-position-client">
+        <span class="pd-position-label">Client</span>
+        <span>{{ submission.client.client_name }}</span>
+      </div>
+      <div class="pd-status-badge pd-status-{{ payment.payment_status|lower }}">{{ payment.get_payment_status_display }}</div>
+    </div>
+
+    <div class="pd-figures">
+      <div class="pd-figure"><span class="pd-figure-label">Gross Amount</span><span class="pd-figure-value">TZS {{ payment.gross_amount|floatformat:2 }}</span></div>
+      <div class="pd-figure"><span class="pd-figure-label">Discount</span><span class="pd-figure-value">TZS {{ payment.discount|floatformat:2 }}</span></div>
+      <div class="pd-figure"><span class="pd-figure-label">Net Amount Payable</span><span class="pd-figure-value">TZS {{ payment.net_amount_payable|floatformat:2 }}</span></div>
+      <div class="pd-figure"><span class="pd-figure-label">Total Amount Paid</span><span class="pd-figure-value">TZS {{ payment.total_amount_paid|floatformat:2 }}</span></div>
+      <div class="pd-figure pd-figure-outstanding"><span class="pd-figure-label">Outstanding Balance</span><span class="pd-figure-value">TZS {{ payment.outstanding_balance|floatformat:2 }}</span></div>
+    </div>
+
+    <div class="pd-current-meta">
+      <span>Current Method: <strong>{{ payment.get_payment_method_display|default:"Not recorded" }}</strong></span>
+      <span>Reference: <strong>{{ payment.transaction_reference|default:"Not recorded" }}</strong></span>
+      <span>Remarks: <strong>{{ payment.remarks|default:"None" }}</strong></span>
+    </div>
+  </div>
+
+  <div class="pd-update-card">
+    <h3>Update Payment</h3>
+    <form method="post" class="rc-form" novalidate>
+      {% csrf_token %}
+      {% if update_form.non_field_errors %}<div class="rc-form-alert">{% for error in update_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+      <div class="rc-field-row">
+        <div class="rc-field"><label for="{{ update_form.additional_amount_paid.id_for_label }}">Additional Amount Paid</label>{{ update_form.additional_amount_paid }}{% if update_form.additional_amount_paid.errors %}<span class="rc-field-error">{{ update_form.additional_amount_paid.errors.0 }}</span>{% endif %}</div>
+        <div class="rc-field"><label for="{{ update_form.discount.id_for_label }}">Discount</label>{{ update_form.discount }}{% if update_form.discount.errors %}<span class="rc-field-error">{{ update_form.discount.errors.0 }}</span>{% endif %}</div>
+      </div>
+      <div class="rc-field-row">
+        <div class="rc-field"><label for="{{ update_form.payment_method.id_for_label }}">Payment Method</label>{{ update_form.payment_method }}{% if update_form.payment_method.errors %}<span class="rc-field-error">{{ update_form.payment_method.errors.0 }}</span>{% endif %}</div>
+        <div class="rc-field"><label for="{{ update_form.transaction_reference.id_for_label }}">Transaction Reference</label>{{ update_form.transaction_reference }}{% if update_form.transaction_reference.errors %}<span class="rc-field-error">{{ update_form.transaction_reference.errors.0 }}</span>{% endif %}</div>
+      </div>
+      <div class="rc-field"><label for="{{ update_form.payment_status.id_for_label }}">Payment Status</label>{{ update_form.payment_status }}{% if update_form.payment_status.errors %}<span class="rc-field-error">{{ update_form.payment_status.errors.0 }}</span>{% endif %}</div>
+      <div class="rc-field"><label for="{{ update_form.remarks.id_for_label }}">Payment Remarks</label>{{ update_form.remarks }}</div>
+      <button type="submit" class="btn btn-primary rc-submit"><i class='bx bx-save'></i> Save Update</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

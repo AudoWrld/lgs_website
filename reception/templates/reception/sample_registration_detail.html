@@ -56,6 +56,18 @@
     </div>
   </section>
 
+  <div class="rc-page-actions" aria-label="Submission actions">
+    <a href="{% url 'reception:payment_detail' submission.reference %}" class="btn btn-primary rc-page-action">
+      <i class='bx bx-wallet'></i> Add Payment
+    </a>
+    <a href="{% url 'reception:generate_worksheet' %}?submission={{ submission.slug|urlencode }}" class="btn btn-outline rc-page-action" target="_blank" rel="noopener">
+      <i class='bx bx-printer'></i> Print Worksheet
+    </a>
+    <a href="{% url 'reception:client_submission_form' %}?submission={{ submission.slug|urlencode }}" class="btn btn-outline rc-page-action" target="_blank" rel="noopener">
+      <i class='bx bx-file'></i> Client Submission Form
+    </a>
+  </div>
+
   <div class="rc-sample-layout">
 
     {% if form %}

@@ -1,0 +1,80 @@
+{% extends "reception/base_reception.html" %}
+{% load static %}
+
+{% block title %}Payments — LGS Reception{% endblock %}
+{% block page_title %}Payments{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'reception/css/payment_list.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="pl-page">
+  <section class="pl-toolbar rc-panel">
+    <form method="get" class="pl-search-form">
+      <label for="payment-search">Find a submission</label>
+      <div class="rc-search-bar">
+        <i class='bx bx-search-alt'></i>
+        <input id="payment-search" type="search" name="q" value="{{ query }}" placeholder="Reference or client name">
+        {% if status != "ALL" %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+        <button type="submit" class="btn btn-primary"><i class='bx bx-search'></i> Search</button>
+      </div>
+    </form>
+
+    <nav class="pl-filters" aria-label="Payment status filters">
+      <a href="?{% if query %}q={{ query|urlencode }}{% endif %}" class="pl-filter {% if status == 'all' %}is-active{% endif %}">All</a>
+      {% for value, label in status_choices %}
+        <a href="?status={{ value }}{% if query %}&q={{ query|urlencode }}{% endif %}" class="pl-filter {% if status == value %}is-active{% endif %}">{{ label }}</a>
+      {% endfor %}
+    </nav>
+  </section>
+
+  {% if submissions %}
+    <div class="pl-results-head">
+      <h2>Payment Positions</h2>
+      <span class="rc-results-count">{{ submissions|length }} submission{{ submissions|length|pluralize }}</span>
+    </div>
+
+    <div class="pl-list">
+      {% for submission in submissions %}
+        <article class="rc-client-card pl-card">
+          <div class="pl-card-main">
+            <div class="pl-card-heading">
+              <a href="{% url 'reception:payment_detail' submission.reference %}" class="pl-reference">{{ submission.reference }}</a>
+              {% if submission.payment %}
+                <span class="pd-status-badge pd-status-{{ submission.payment.payment_status|lower }}">{{ submission.payment.get_payment_status_display }}</span>
+              {% else %}
+                <span class="pd-status-badge pd-status-not-started">Not Started</span>
+              {% endif %}
+            </div>
+            <div class="pl-card-meta">
+              <span><i class='bx bx-user'></i> {{ submission.client.client_name }}</span>
+              <span><i class='bx bx-calendar'></i> {{ submission.receiving_date|date:"d M Y" }}</span>
+              <span><i class='bx bx-test-tube'></i> {{ submission.sample_count }} sample{{ submission.sample_count|pluralize }}</span>
+            </div>
+          </div>
+          <div class="pl-card-position">
+            <span class="pl-position-label">Outstanding</span>
+            {% if submission.payment %}
+              <strong>TZS {{ submission.payment.outstanding_balance|floatformat:2 }}</strong>
+            {% else %}
+              <strong class="pl-muted">—</strong>
+            {% endif %}
+          </div>
+          <div class="rc-client-actions">
+            <a href="{% url 'reception:payment_detail' submission.reference %}" class="btn btn-outline">
+              View Payment <i class='bx bx-right-arrow-alt'></i>
+            </a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="rc-empty-state">
+      <i class='bx bx-wallet'></i>
+      <p>No submissions match these payment filters.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
