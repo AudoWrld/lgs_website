@@ -361,39 +361,6 @@ def sample_registration_detail(request, slug):
 
 
 @reception_required
-def sample_edit(request, submission_slug, sample_slug):
-    submission = get_object_or_404(Submission.objects.select_related("client"), slug=submission_slug)
-    sample = get_object_or_404(
-        Sample.objects.select_related("submission"),
-        submission=submission,
-        slug=sample_slug,
-    )
-    if submission.is_submitted:
-        messages.warning(request, "Submitted samples cannot be edited.")
-        return redirect("reception:sample_registration_detail", slug=submission.slug)
-
-    samples = submission.samples.all().order_by("id")
-    if request.method == "POST":
-        form = SampleForm(request.POST, instance=sample, submission=submission)
-        if form.is_valid():
-            form.save()
-            messages.success(request, f"Sample {sample.client_sample_id} updated.")
-            return redirect("reception:sample_registration_detail", slug=submission.slug)
-    else:
-        form = SampleForm(instance=sample, submission=submission)
-
-    return render(
-        request,
-        "reception/sample_edit.html",
-        {
-            "submission": submission,
-            "form": form,
-            "sample": sample,
-        },
-    )
-
-
-@reception_required
 def submission_submit_review(request, submission_id):
     submission = get_object_or_404(
         Submission.objects.select_related("client"), pk=submission_id

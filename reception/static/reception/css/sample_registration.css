@@ -502,6 +502,70 @@
   }
 }
 
+.rc-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(13, 46, 68, 0.55);
+}
+
+.rc-modal[hidden] {
+  display: none;
+}
+
+.rc-modal-dialog {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  max-height: 92vh;
+  overflow-y: auto;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.rc-modal-close {
+  position: absolute;
+  top: 0.9rem;
+  right: 1rem;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #6b7680;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.rc-modal-close:hover {
+  color: var(--navy);
+}
+
+.rc-modal-body .rc-edit-card {
+  max-width: none;
+  border: none;
+  border-radius: 0;
+}
+
+.rc-modal-body .rc-card-head {
+  padding-right: 3.5rem;
+}
+
+.rc-modal-loading {
+  margin: 0;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  font-size: var(--fs-small);
+  color: #7b858c;
+}
+
 @media (max-width: 560px) {
   .rc-summary {
     grid-template-columns: 1fr;

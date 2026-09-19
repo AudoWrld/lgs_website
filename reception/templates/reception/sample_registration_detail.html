@@ -160,7 +160,7 @@
               </td>
               <td class="rc-row-actions">
                 {% if not submission.is_submitted %}
-                  <a href="{% url 'reception:sample_edit' submission.slug sample.slug %}" class="rc-action rc-edit-link" aria-label="Edit {{ sample.client_sample_id }}" title="Edit sample">
+                  <a href="{% url 'reception:sample_edit' submission.slug sample.slug %}" class="rc-action rc-edit-link rc-edit-trigger" aria-label="Edit {{ sample.client_sample_id }}" title="Edit sample">
                     <i class='bx bx-edit'></i><span>Edit</span>
                   </a>
                   <a href="{% url 'reception:sample_remove' submission.slug sample.slug %}" onclick="return confirm('Remove sample {{ sample.client_sample_id }}?');" class="rc-action rc-remove-link" aria-label="Remove {{ sample.client_sample_id }}" title="Remove sample">
@@ -195,6 +195,15 @@
 
   </div>
 </div>
+
+<div class="rc-modal" id="rc-modal" hidden>
+  <div class="rc-modal-dialog" role="dialog" aria-modal="true" aria-label="Edit sample">
+    <button type="button" class="rc-modal-close" id="rc-modal-close" aria-label="Close">
+      <i class='bx bx-x'></i>
+    </button>
+    <div class="rc-modal-body" id="rc-modal-body"></div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -211,6 +220,113 @@
       toggleOtherField();
       sampleTypeField.addEventListener('change', toggleOtherField);
     }
+  });
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var modal = document.getElementById('rc-modal');
+    var body = document.getElementById('rc-modal-body');
+    var closeBtn = document.getElementById('rc-modal-close');
+    var currentUrl = '';
+
+    function openModal() {
+      modal.hidden = false;
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      modal.hidden = true;
+      body.innerHTML = '';
+      document.body.style.overflow = '';
+    }
+
+    function prepare() {
+      body.querySelectorAll('[id]').forEach(function (el) {
+        el.id = 'edit-' + el.id;
+      });
+      body.querySelectorAll('label[for]').forEach(function (el) {
+        el.setAttribute('for', 'edit-' + el.getAttribute('for'));
+      });
+      var typeField = body.querySelector('[name="sample_type"]');
+      var otherWrap = body.querySelector('[id="edit-rc-other-type-field"]');
+      function toggle() {
+        if (!typeField || !otherWrap) return;
+        otherWrap.style.display = typeField.value === 'OTHER' ? 'block' : 'none';
+      }
+      if (typeField) {
+        toggle();
+        typeField.addEventListener('change', toggle);
+      }
+    }
+
+    function render(html) {
+      var doc = new DOMParser().parseFromString(html, 'text/html');
+      var card = doc.querySelector('.rc-edit-card');
+      if (!card) {
+        window.location.reload();
+        return;
+      }
+      body.innerHTML = card.outerHTML;
+      prepare();
+    }
+
+    document.querySelectorAll('.rc-edit-trigger').forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        currentUrl = link.getAttribute('href');
+        body.innerHTML = '<p class="rc-modal-loading">Loading…</p>';
+        openModal();
+        fetch(currentUrl, { credentials: 'same-origin' })
+          .then(function (r) { return r.text(); })
+          .then(render)
+          .catch(function () {
+            body.innerHTML = '<p class="rc-modal-loading">Could not load the form. Close and try again.</p>';
+          });
+      });
+    });
+
+    body.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var form = e.target;
+      var button = form.querySelector('button[type="submit"]');
+      if (button) button.disabled = true;
+      fetch(currentUrl, {
+        method: 'POST',
+        body: new FormData(form),
+        credentials: 'same-origin',
+        redirect: 'manual'
+      })
+        .then(function (r) {
+          if (r.type === 'opaqueredirect') {
+            window.location.reload();
+            return null;
+          }
+          return r.text();
+        })
+        .then(function (html) {
+          if (html !== null) render(html);
+        })
+        .catch(function () {
+          if (button) button.disabled = false;
+        });
+    });
+
+    body.addEventListener('click', function (e) {
+      if (e.target.closest('.rc-form-actions a')) {
+        e.preventDefault();
+        closeModal();
+      }
+    });
+
+    closeBtn.addEventListener('click', closeModal);
+
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeModal();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !modal.hidden) closeModal();
+    });
   });
 </script>
 {% endif %}

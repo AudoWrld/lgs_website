@@ -115,19 +115,20 @@ class Sample(models.Model):
         return f"{self.submission.reference} — {self.client_sample_id}"
 
     @classmethod
-    def generate_slug(cls, submission_slug, client_sample_id):
-        base = slugify(f"{submission_slug}-{client_sample_id}") or "sample"
-        candidate = base
+    def generate_slug(cls, submission_slug, submission_pk):
+        base = slugify(submission_slug) or "submission"
+        candidate_count = cls.objects.filter(submission_id=submission_pk).count() + 1
+        candidate = f"{base}-{candidate_count:02d}"
         suffix = 2
         while cls.objects.filter(slug=candidate).exists():
-            candidate = f"{base}-{suffix}"
+            candidate = f"{base}-{candidate_count:02d}-{suffix}"
             suffix += 1
         return candidate
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            submission_slug = self.submission.slug if self.submission_id else "sample"
-            self.slug = self.generate_slug(submission_slug, self.client_sample_id)
+            submission_slug = self.submission.slug if self.submission_id else "submission"
+            self.slug = self.generate_slug(submission_slug, self.submission_id)
         super().save(*args, **kwargs)
 
     def clean(self):
