@@ -1,0 +1,254 @@
+{% extends "reception/base_reception.html" %}
+{% load static %}
+
+{% block title %}Submission References — LGS Reception{% endblock %}
+{% block page_title %}Submission References{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'reception/css/submission_list.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="rc-page">
+
+  <section class="rc-top">
+    <div class="rc-stats">
+      <div class="rc-stat">
+        <span class="rc-stat-label">Total Submissions</span>
+        <span class="rc-stat-value">{{ stats.total|default:0 }}</span>
+      </div>
+      <div class="rc-stat">
+        <span class="rc-stat-label">Received Today</span>
+        <span class="rc-stat-value">{{ stats.today|default:0 }}</span>
+      </div>
+      <div class="rc-stat">
+        <span class="rc-stat-label">Awaiting Submission</span>
+        <span class="rc-stat-value">{{ stats.pending|default:0 }}</span>
+      </div>
+      <div class="rc-stat">
+        <span class="rc-stat-label">Submitted</span>
+        <span class="rc-stat-value">{{ stats.submitted|default:0 }}</span>
+      </div>
+      <div class="rc-stat">
+        <span class="rc-stat-label">Samples Registered</span>
+        <span class="rc-stat-value">{{ stats.total_samples|default:0 }}</span>
+      </div>
+      <div class="rc-stat">
+        <span class="rc-stat-label">This Week</span>
+        <span class="rc-stat-value">{{ stats.week_total|default:0 }}</span>
+      </div>
+    </div>
+
+    <div class="rc-panel">
+      <div class="rc-panel-head">
+        <h3>Submissions, Last 7 Days</h3>
+      </div>
+      <div class="rc-chart-wrap">
+        <canvas id="rc-weekly-chart"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <form method="get" class="rc-toolbar">
+    <input type="hidden" name="status" value="{{ status }}">
+
+    <div class="rc-search">
+      <i class='bx bx-search'></i>
+      <input type="text" name="q" value="{{ query }}" placeholder="Search reference, client, contact or sample ID">
+    </div>
+
+    <div class="rc-field">
+      <label for="rc-date-from">From</label>
+      <input type="date" id="rc-date-from" name="date_from" value="{{ date_from }}">
+    </div>
+
+    <div class="rc-field">
+      <label for="rc-date-to">To</label>
+      <input type="date" id="rc-date-to" name="date_to" value="{{ date_to }}">
+    </div>
+
+    <div class="rc-field">
+      <label for="rc-sort">Sort</label>
+      <select id="rc-sort" name="sort">
+        <option value="newest" {% if sort == "newest" %}selected{% endif %}>Newest first</option>
+        <option value="oldest" {% if sort == "oldest" %}selected{% endif %}>Oldest first</option>
+        <option value="samples" {% if sort == "samples" %}selected{% endif %}>Most samples</option>
+        <option value="reference" {% if sort == "reference" %}selected{% endif %}>Reference</option>
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary rc-apply">Apply</button>
+    {% if has_filters %}
+      <a href="{{ request.path }}" class="btn btn-outline rc-reset">Reset</a>
+    {% endif %}
+  </form>
+
+  <div class="rc-filter-group" role="group" aria-label="Filter by status">
+    <a href="?{{ qs_status }}" class="rc-filter-btn {% if status == 'all' %}is-active{% endif %}">All</a>
+    <a href="?status=pending&{{ qs_status }}" class="rc-filter-btn {% if status == 'pending' %}is-active{% endif %}">Pending</a>
+    <a href="?status=submitted&{{ qs_status }}" class="rc-filter-btn {% if status == 'submitted' %}is-active{% endif %}">Submitted</a>
+  </div>
+
+  {% if page_obj.object_list %}
+    <div class="rc-list-card">
+      <div class="rc-list-head">
+        <span>Reference</span>
+        <span>Samples</span>
+        <span>Tests</span>
+        <span>Received</span>
+        <span>Status</span>
+        <span></span>
+      </div>
+
+      {% for submission in page_obj %}
+      <div class="rc-sub-card">
+        <div class="rc-sub-main">
+          <span class="rc-sub-ref">{{ submission.reference }}</span>
+          <span class="rc-sub-client">{{ submission.client.client_name }}</span>
+          {% if submission.client.contact_person %}
+            <span class="rc-sub-contact">{{ submission.client.contact_person }}</span>
+          {% endif %}
+        </div>
+
+        <div class="rc-sub-samples">
+          <strong>{{ submission.sample_count }}</strong> sample{{ submission.sample_count|pluralize }}
+          {% if submission.type_summary %}
+            <span class="rc-sub-types">{{ submission.type_summary|join:", " }}</span>
+          {% endif %}
+        </div>
+
+        <div class="rc-sub-tests">
+          {% if submission.test_count %}
+            <span><strong>{{ submission.test_count }}</strong> test{{ submission.test_count|pluralize }}</span>
+          {% else %}
+            <span class="rc-sub-note">No tests yet</span>
+          {% endif %}
+        </div>
+
+        <div class="rc-sub-dates">
+          <span>{{ submission.created_at|date:"d M Y, H:i" }}</span>
+          {% if submission.registered_by %}
+            <span class="rc-sub-note">By {{ submission.registered_by.get_full_name|default:submission.registered_by.email }}</span>
+          {% endif %}
+          {% if submission.is_submitted and submission.submitted_at %}
+            <span class="rc-sub-note">Submitted {{ submission.submitted_at|date:"d M Y, H:i" }}</span>
+          {% endif %}
+        </div>
+
+        <div class="rc-sub-state">
+          <span class="rc-badge {% if submission.is_submitted %}rc-badge--submitted{% else %}rc-badge--progress{% endif %}">
+            {% if submission.is_submitted %}Submitted{% else %}In Progress{% endif %}
+          </span>
+        </div>
+
+        <a href="{% url 'reception:sample_registration_detail' submission.pk %}"
+           class="btn {% if submission.is_submitted %}btn-outline{% else %}btn-primary{% endif %} rc-sub-action">
+          {% if submission.is_submitted %}View Details{% else %}Add Samples{% endif %}
+          <i class='bx {% if submission.is_submitted %}bx-detail{% else %}bx-right-arrow-alt{% endif %}'></i>
+        </a>
+      </div>
+      {% endfor %}
+
+      <div class="rc-pager">
+        <span class="rc-pager-info">
+          Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+        </span>
+
+        {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="rc-pager-nav" aria-label="Pagination">
+          {% if page_obj.has_previous %}
+            <a class="rc-page-link" href="?page={{ page_obj.previous_page_number }}&{{ qs_page }}">
+              <i class='bx bx-chevron-left'></i>
+            </a>
+          {% else %}
+            <span class="rc-page-link is-disabled"><i class='bx bx-chevron-left'></i></span>
+          {% endif %}
+
+          {% for number in page_range %}
+            {% if number == ellipsis %}
+              <span class="rc-page-gap">…</span>
+            {% elif number == page_obj.number %}
+              <span class="rc-page-link is-current">{{ number }}</span>
+            {% else %}
+              <a class="rc-page-link" href="?page={{ number }}&{{ qs_page }}">{{ number }}</a>
+            {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+            <a class="rc-page-link" href="?page={{ page_obj.next_page_number }}&{{ qs_page }}">
+              <i class='bx bx-chevron-right'></i>
+            </a>
+          {% else %}
+            <span class="rc-page-link is-disabled"><i class='bx bx-chevron-right'></i></span>
+          {% endif %}
+        </nav>
+        {% endif %}
+      </div>
+    </div>
+  {% elif has_filters %}
+    <div class="rc-empty">
+      <i class='bx bx-search-alt'></i>
+      <p>No submissions match your filters.</p>
+      <a href="{{ request.path }}" class="btn btn-outline">Reset Filters</a>
+    </div>
+  {% else %}
+    <div class="rc-empty">
+      <i class='bx bx-file'></i>
+      <p>No submission references have been created yet.</p>
+      <a href="{% url 'reception:client_search' %}" class="btn btn-primary">Search Client</a>
+    </div>
+  {% endif %}
+
+</div>
+
+{{ stats.week_labels|json_script:"rc-week-labels" }}
+{{ stats.week_counts|json_script:"rc-week-counts" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    function readJson(id) {
+      var el = document.getElementById(id);
+      if (!el) return [];
+      try {
+        var value = JSON.parse(el.textContent);
+        if (typeof value === 'string') value = JSON.parse(value);
+        return Array.isArray(value) ? value : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    var canvas = document.getElementById('rc-weekly-chart');
+    if (canvas && typeof Chart !== 'undefined') {
+      try {
+        new Chart(canvas, {
+          type: 'bar',
+          data: {
+            labels: readJson('rc-week-labels'),
+            datasets: [{
+              data: readJson('rc-week-counts'),
+              backgroundColor: '#123e5b',
+              borderRadius: 3,
+              maxBarThickness: 28
+            }]
+          },
+          options: {
+            animation: false,
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#eee9dd' } },
+              x: { grid: { display: false } }
+            }
+          }
+        });
+      } catch (e) {}
+    }
+  });
+</script>
+{% endblock %}
