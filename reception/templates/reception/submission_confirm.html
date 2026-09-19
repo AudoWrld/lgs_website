@@ -39,7 +39,7 @@
   </table>
 
   <div class="rc-form-actions">
-    <a href="{% url 'reception:sample_registration_detail' submission.pk %}" class="btn btn-outline">Go Back and Edit</a>
+    <a href="{% url 'reception:sample_registration_detail' submission.slug %}" class="btn btn-outline">Go Back and Edit</a>
     <form method="post" action="{% url 'reception:submission_confirm_submit' submission.pk %}">
       {% csrf_token %}
       <button type="submit" class="btn btn-primary"><i class='bx bx-check'></i> Confirm &amp; Submit</button>

@@ -142,7 +142,7 @@
           </span>
         </div>
 
-        <a href="{% url 'reception:sample_registration_detail' submission.pk %}"
+        <a href="{% url 'reception:sample_registration_detail' submission.slug %}"
            class="btn {% if submission.is_submitted %}btn-outline{% else %}btn-primary{% endif %} rc-sub-action">
           {% if submission.is_submitted %}View Details{% else %}Add Samples{% endif %}
           <i class='bx {% if submission.is_submitted %}bx-detail{% else %}bx-right-arrow-alt{% endif %}'></i>
