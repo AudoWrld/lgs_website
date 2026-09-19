@@ -127,6 +127,24 @@
   margin-top: 1.5rem;
 }
 
+.pd-readonly-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 1.5rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(37, 152, 82, 0.25);
+  border-radius: 4px;
+  background: rgba(37, 152, 82, 0.08);
+  color: #1f7a45;
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.pd-readonly-notice i {
+  font-size: 1.25rem;
+}
+
 .pd-update-card h3 {
   font-size: 1rem;
   margin-bottom: 1.25rem;

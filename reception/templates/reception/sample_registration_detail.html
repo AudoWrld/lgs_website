@@ -56,17 +56,19 @@
     </div>
   </section>
 
+  {% if submission.is_submitted %}
   <div class="rc-page-actions" aria-label="Submission actions">
-    <a href="{% url 'reception:payment_detail' submission.reference %}" class="btn btn-primary rc-page-action">
-      <i class='bx bx-wallet'></i> Add Payment
+    <a href="{% url 'reception:payment_detail' submission.reference %}" class="btn btn-outline rc-page-action">
+      <i class='bx bx-check-circle'></i> Check Payment Status
     </a>
-    <a href="{% url 'reception:generate_worksheet' %}?submission={{ submission.slug|urlencode }}" class="btn btn-outline rc-page-action" target="_blank" rel="noopener">
+    <a href="{% url 'reception:generate_worksheet' %}?submission={{ submission.slug|urlencode }}" class="btn btn-outline rc-page-action" rel="noopener">
       <i class='bx bx-printer'></i> Print Worksheet
     </a>
-    <a href="{% url 'reception:client_submission_form' %}?submission={{ submission.slug|urlencode }}" class="btn btn-outline rc-page-action" target="_blank" rel="noopener">
+    <a href="{% url 'reception:client_submission_form_detail' submission.reference %}" class="btn btn-outline rc-page-action" rel="noopener">
       <i class='bx bx-file'></i> Client Submission Form
     </a>
   </div>
+  {% endif %}
 
   <div class="rc-sample-layout">
 

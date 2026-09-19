@@ -61,6 +61,11 @@ urlpatterns = [
         views.client_submission_form,
         name="client_submission_form",
     ),
+    path(
+        "client-submission/<path:reference>/",
+        views.client_submission_form_detail,
+        name="client_submission_form_detail",
+    ),
     path("payments/", views.payment_list, name="payment_details"),
     path("payments/<path:reference>/", views.payment_detail, name="payment_detail"),
     path("expenses/new/", views.add_expense, name="add_expense"),

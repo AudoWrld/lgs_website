@@ -1,7 +1,130 @@
 {% extends "reception/base_reception.html" %}
+{% load static %}
 
+{% block title %}Client Submission Form — {{ submission.reference }}{% endblock %}
 {% block page_title %}Client Submission Form{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'reception/css/client_submission_form.css' %}">
+{% endblock %}
+
 {% block content %}
-<p>Review and print the complete client submission details for laboratory processing.</p>
+<div class="csf-toolbar">
+  <a href="{% url 'reception:client_submission_form' %}" class="pd-back-link">
+    <i class='bx bx-chevron-left'></i> Back
+  </a>
+  <button type="button" class="btn btn-primary" onclick="window.print()">
+    <i class='bx bx-printer'></i> Print / Save PDF
+  </button>
+</div>
+
+<div class="csf-sheet">
+
+  <div class="csf-header">
+    <img src="{% static 'core/img/lgs-logo.png' %}" alt="LGS Mineral Assay Laboratory" class="csf-logo">
+    <div>
+      <h1>LGS MINERAL ASSAY LABORATORY</h1>
+      <span class="csf-subtitle">Client Submission Form</span>
+    </div>
+  </div>
+
+  <div class="csf-reference">
+    <span class="csf-reference-label">Client Reference</span>
+    <span class="csf-reference-value">{{ submission.reference }}</span>
+  </div>
+
+  <div class="csf-section">
+    <h2>Client Details</h2>
+    <dl class="csf-dl">
+      <div><dt>Client Type</dt><dd>{{ client.get_client_type_display }}</dd></div>
+      <div><dt>Client Name</dt><dd>{{ client.client_name }}</dd></div>
+      <div><dt>Contact Person</dt><dd>{{ client.contact_person }}</dd></div>
+      <div><dt>Email</dt><dd>{{ client.email }}</dd></div>
+      <div><dt>WhatsApp</dt><dd>{{ client.whatsapp_number }}</dd></div>
+    </dl>
+  </div>
+
+  <div class="csf-section">
+    <h2>Sample Details</h2>
+    <dl class="csf-dl">
+      <div><dt>Number of Samples</dt><dd>{{ total_samples }}</dd></div>
+      <div><dt>Sample Type(s)</dt><dd>{{ sample_types|join:", " }}</dd></div>
+      <div><dt>Requested Service(s)</dt><dd>{{ services|join:", " }}</dd></div>
+      <div><dt>Method(s) of Analysis</dt><dd>{{ methods|join:", " }}</dd></div>
+    </dl>
+  </div>
+
+  <div class="csf-section">
+    <h2>Payment</h2>
+    <dl class="csf-dl">
+      <div>
+        <dt>Payment Status</dt>
+        <dd class="csf-status csf-status-{{ payment.payment_status|lower }}">
+          {{ payment.get_payment_status_display|upper }}
+        </dd>
+      </div>
+
+      {% if has_outstanding %}
+      <div>
+        <dt>Amount to be Paid</dt>
+        <dd>TZS {{ payment.outstanding_balance|floatformat:2 }}</dd>
+      </div>
+      {% endif %}
+    </dl>
+
+    {% if has_outstanding and payment_accounts %}
+    <div class="csf-payment-accounts">
+      <span class="csf-payment-accounts-label">LGS Payment Accounts</span>
+      <div class="csf-account-grid">
+        {% for account in payment_accounts %}
+        <div class="csf-account-card">
+          {% if account.account_type == "BANK" %}
+            <span class="csf-account-type">Bank</span>
+            <dl class="csf-dl">
+              <div><dt>Bank Name</dt><dd>{{ account.bank_name }}</dd></div>
+              <div><dt>Account Name</dt><dd>{{ account.account_name }}</dd></div>
+              <div><dt>Account Number</dt><dd>{{ account.account_number }}</dd></div>
+            </dl>
+          {% else %}
+            <span class="csf-account-type">Mobile / Lipa Number</span>
+            <dl class="csf-dl">
+              <div><dt>Account Name</dt><dd>{{ account.account_name }}</dd></div>
+              <div><dt>Number</dt><dd>{{ account.account_number }}</dd></div>
+            </dl>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% elif has_outstanding %}
+    <p class="csf-no-accounts">No active payment accounts configured — contact management.</p>
+    {% endif %}
+  </div>
+
+  <div class="csf-section">
+    <h2>Client Portal Login</h2>
+    <dl class="csf-dl">
+      <div><dt>Username</dt><dd>{{ portal_username|default:"—" }}</dd></div>
+      <div>
+        <dt>Temporary Password</dt>
+        <dd>
+          {% if temp_password %}
+            <span class="csf-temp-password">{{ temp_password }}</span>
+          {% else %}
+            <span class="csf-password-unavailable">Not available — already issued or client uses an existing account.</span>
+          {% endif %}
+        </dd>
+      </div>
+    </dl>
+    <p class="csf-portal-note">
+      Use these login details to access the LGS Client Portal and download your completed and officially released Certificates of Analysis.
+    </p>
+  </div>
+
+  <div class="csf-footer">
+    <span>LGS African Group Company Limited</span>
+    <span>Generated {% now "d M Y, H:i" %}</span>
+  </div>
+
+</div>
 {% endblock %}

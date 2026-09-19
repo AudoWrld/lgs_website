@@ -1,0 +1,345 @@
+.csf-list-page {
+  max-width: 1050px;
+}
+
+.csf-list-toolbar {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1.25rem;
+}
+
+.csf-list-search label {
+  display: block;
+  color: var(--navy);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  margin-bottom: 0.45rem;
+}
+
+.csf-list-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.4rem 0.4rem 2.5rem;
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.csf-list-search-row > i {
+  position: absolute;
+  left: 0.85rem;
+  color: #8a97a1;
+}
+
+.csf-list-search-row input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: 0.5rem 0;
+  font: inherit;
+}
+
+.csf-list-search-row input:focus {
+  outline: none;
+}
+
+.csf-list-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1.75rem 0 0.8rem;
+}
+
+.csf-list-heading h2 {
+  margin: 0;
+}
+
+.csf-list-heading > span {
+  color: #6e7b84;
+  font-size: var(--fs-small);
+}
+
+.csf-submission-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.csf-submission-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.csf-list-reference {
+  font-family: var(--font-head);
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.csf-list-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem 1.25rem;
+  margin-top: 0.4rem;
+  color: #65727b;
+  font-size: var(--fs-small);
+}
+
+.csf-list-meta i {
+  color: var(--orange);
+  margin-right: 0.2rem;
+}
+
+@media (max-width: 560px) {
+  .csf-list-search-row {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .csf-list-search-row input {
+    flex-basis: calc(100% - 1rem);
+  }
+
+  .csf-list-search-row button {
+    width: 100%;
+  }
+
+  .csf-submission-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.csf-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.csf-sheet {
+  max-width: 720px;
+  margin: 0 auto;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2.5rem 3rem;
+}
+
+.csf-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 3px solid var(--orange);
+  margin-bottom: 1.5rem;
+}
+
+.csf-logo {
+  height: 48px;
+  width: auto;
+}
+
+.csf-header h1 {
+  font-size: 1.25rem;
+  margin: 0 0 0.2em;
+  letter-spacing: 0.02em;
+}
+
+.csf-subtitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--orange);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.csf-reference {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  background: var(--off-white);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0.85rem 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.csf-reference-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #6b7680;
+}
+
+.csf-reference-value {
+  font-family: var(--font-head);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.csf-section {
+  margin-bottom: 1.75rem;
+}
+
+.csf-section h2 {
+  font-size: 0.9375rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--navy);
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 0.9rem;
+}
+
+.csf-dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1.5rem;
+}
+
+.csf-dl > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.csf-dl dt {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8a97a1;
+  margin-bottom: 0.15rem;
+}
+
+.csf-dl dd {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--charcoal);
+}
+
+.csf-status {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.csf-status-paid {
+  color: #1f7a45;
+}
+.csf-status-partially_paid {
+  color: #b8791a;
+}
+.csf-status-unpaid,
+.csf-status-credit {
+  color: #a4342a;
+}
+
+.csf-payment-accounts {
+  margin-top: 1.25rem;
+}
+
+.csf-payment-accounts-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #6b7680;
+  margin-bottom: 0.6rem;
+}
+
+.csf-account-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.csf-account-card {
+  background: var(--off-white);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0.9rem 1.1rem;
+}
+
+.csf-account-type {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--orange);
+  margin-bottom: 0.5rem;
+}
+
+.csf-no-accounts {
+  font-size: 0.875rem;
+  color: #a4342a;
+  margin-top: 0.75rem;
+}
+
+.csf-temp-password {
+  display: inline-block;
+  font-family: "Space Grotesk", monospace;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: rgba(243, 154, 43, 0.12);
+  color: var(--navy);
+  padding: 0.2rem 0.6rem;
+  border-radius: 3px;
+}
+
+.csf-password-unavailable {
+  font-size: 0.8125rem;
+  color: #8a97a1;
+  font-style: italic;
+}
+
+.csf-portal-note {
+  font-size: 0.8125rem;
+  color: #6b7680;
+  margin-top: 1rem;
+  margin-bottom: 0;
+}
+
+.csf-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #8a97a1;
+  padding-top: 1.25rem;
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 640px) {
+  .csf-sheet {
+    padding: 1.5rem;
+  }
+
+  .csf-dl,
+  .csf-account-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  .app-sidebar,
+  .app-topbar,
+  .csf-toolbar {
+    display: none !important;
+  }
+
+  .app-content {
+    padding: 0 !important;
+  }
+
+  .csf-sheet {
+    max-width: none;
+    border: none;
+    padding: 0;
+  }
+}

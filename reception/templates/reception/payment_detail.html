@@ -43,6 +43,12 @@
     </div>
   </div>
 
+  {% if payment.payment_status == "PAID" %}
+  <div class="pd-readonly-notice">
+    <i class='bx bx-check-circle'></i>
+    <span>This payment is fully paid. Payment updates are no longer available.</span>
+  </div>
+  {% else %}
   <div class="pd-update-card">
     <h3>Update Payment</h3>
     <form method="post" class="rc-form" novalidate>
@@ -54,12 +60,32 @@
       </div>
       <div class="rc-field-row">
         <div class="rc-field"><label for="{{ update_form.payment_method.id_for_label }}">Payment Method</label>{{ update_form.payment_method }}{% if update_form.payment_method.errors %}<span class="rc-field-error">{{ update_form.payment_method.errors.0 }}</span>{% endif %}</div>
-        <div class="rc-field"><label for="{{ update_form.transaction_reference.id_for_label }}">Transaction Reference</label>{{ update_form.transaction_reference }}{% if update_form.transaction_reference.errors %}<span class="rc-field-error">{{ update_form.transaction_reference.errors.0 }}</span>{% endif %}</div>
+        <div class="rc-field" id="transaction-reference-field"><label for="{{ update_form.transaction_reference.id_for_label }}">Transaction Reference</label>{{ update_form.transaction_reference }}{% if update_form.transaction_reference.errors %}<span class="rc-field-error">{{ update_form.transaction_reference.errors.0 }}</span>{% endif %}</div>
       </div>
       <div class="rc-field"><label for="{{ update_form.payment_status.id_for_label }}">Payment Status</label>{{ update_form.payment_status }}{% if update_form.payment_status.errors %}<span class="rc-field-error">{{ update_form.payment_status.errors.0 }}</span>{% endif %}</div>
       <div class="rc-field"><label for="{{ update_form.remarks.id_for_label }}">Payment Remarks</label>{{ update_form.remarks }}</div>
       <button type="submit" class="btn btn-primary rc-submit"><i class='bx bx-save'></i> Save Update</button>
     </form>
   </div>
+  {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const paymentMethod = document.getElementById("{{ update_form.payment_method.id_for_label }}");
+  const transactionReference = document.getElementById("{{ update_form.transaction_reference.id_for_label }}");
+  const transactionReferenceField = document.getElementById("transaction-reference-field");
+
+  function updateReferenceField() {
+    const requiresReference = ["MPESA", "BANK", "LIPA_NUMBER"].includes(paymentMethod.value);
+    transactionReferenceField.hidden = !requiresReference;
+    transactionReference.required = requiresReference;
+    transactionReference.disabled = !requiresReference;
+    if (!requiresReference) transactionReference.value = "";
+  }
+
+  paymentMethod.addEventListener("change", updateReferenceField);
+  updateReferenceField();
+</script>
 {% endblock %}

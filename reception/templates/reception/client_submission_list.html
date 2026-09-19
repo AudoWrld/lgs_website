@@ -1,0 +1,54 @@
+{% extends "reception/base_reception.html" %}
+{% load static %}
+
+{% block title %}Client Submission Forms — LGS Reception{% endblock %}
+{% block page_title %}Client Submission Forms{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'reception/css/client_submission_form.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="csf-list-page">
+  <section class="csf-list-toolbar">
+    <form method="get" class="csf-list-search">
+      <label for="submission-search">Find a submitted submission</label>
+      <div class="csf-list-search-row">
+        <i class='bx bx-search'></i>
+        <input id="submission-search" type="search" name="q" value="{{ query }}" placeholder="Reference or client name">
+        <button type="submit" class="btn btn-primary"><i class='bx bx-search'></i> Search</button>
+      </div>
+    </form>
+  </section>
+
+  {% if submissions %}
+    <div class="csf-list-heading">
+      <h2>Submitted Submissions</h2>
+      <span>{{ submissions|length }} submission{{ submissions|length|pluralize }}</span>
+    </div>
+
+    <div class="csf-submission-list">
+      {% for submission in submissions %}
+        <article class="csf-submission-card">
+          <div>
+            <a href="{% url 'reception:client_submission_form_detail' submission.reference %}" class="csf-list-reference">{{ submission.reference }}</a>
+            <div class="csf-list-meta">
+              <span><i class='bx bx-user'></i> {{ submission.client.client_name }}</span>
+              <span><i class='bx bx-calendar'></i> {{ submission.receiving_date|date:"d M Y" }}</span>
+              <span><i class='bx bx-test-tube'></i> {{ submission.sample_count }} sample{{ submission.sample_count|pluralize }}</span>
+            </div>
+          </div>
+          <a href="{% url 'reception:client_submission_form_detail' submission.reference %}" class="btn btn-outline">
+            <i class='bx bx-show'></i> View Details
+          </a>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="rc-empty-state">
+      <i class='bx bx-file-blank'></i>
+      <p>No submitted submissions found.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

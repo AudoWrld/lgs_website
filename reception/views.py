@@ -19,6 +19,8 @@ from payments.views import payment_detail, payment_list
 from samples.forms import SampleForm
 from samples.models import Sample
 from submissions.models import Submission
+from payments.models import Payment, PaymentAccount
+from submissions.models import Submission
 
 PAGE_SIZE = 10
 
@@ -465,7 +467,80 @@ def generate_worksheet(request):
 
 @reception_required
 def client_submission_form(request):
-    return render(request, "reception/client_submission_form.html")
+    submissions = (
+        Submission.objects.filter(is_submitted=True)
+        .select_related("client")
+        .annotate(sample_count=Count("samples", distinct=True))
+        .order_by("-created_at")
+    )
+    query = request.GET.get("q", "").strip()
+    if query:
+        submissions = submissions.filter(
+            Q(reference__icontains=query) | Q(client__client_name__icontains=query)
+        )
+
+    return render(
+        request,
+        "reception/client_submission_list.html",
+        {"submissions": submissions, "query": query},
+    )
+
+
+@reception_required
+def client_submission_form_detail(request, reference):
+    submission = get_object_or_404(
+        Submission.objects.select_related("client"),
+        reference=reference,
+        is_submitted=True,
+    )
+    client = submission.client
+    payment, _ = Payment.objects.get_or_create(submission=submission)
+    payment.recalculate_gross_amount()
+    payment.save(update_fields=["gross_amount"])
+
+    samples = submission.samples.all()
+
+    sample_types = sorted(set(s.get_sample_type_display() for s in samples))
+
+    services = sorted(set(
+        ss.service.name
+        for s in samples
+        for ss in s.sample_services.select_related("service").all()
+    ))
+
+    methods = sorted(set(
+        ss.service.method_of_analysis
+        for s in samples
+        for ss in s.sample_services.select_related("service").all()
+        if ss.service.method_of_analysis
+    ))
+
+    has_outstanding = payment.payment_status in (Payment.UNPAID, Payment.PARTIALLY_PAID)
+    payment_accounts = PaymentAccount.objects.filter(is_active=True) if has_outstanding else []
+
+    portal_username = client.portal_user.email if client.portal_user else None
+    temp_password = None
+    if (
+        request.session.get("last_registered_client_id") == client.pk
+        and request.session.get("last_registered_temp_password")
+    ):
+        temp_password = request.session.pop("last_registered_temp_password")
+        request.session.pop("last_registered_client_id", None)
+        request.session.modified = True
+
+    return render(request, "reception/client_submission_form.html", {
+        "submission": submission,
+        "client": client,
+        "payment": payment,
+        "total_samples": samples.count(),
+        "sample_types": sample_types,
+        "services": services,
+        "methods": methods,
+        "has_outstanding": has_outstanding,
+        "payment_accounts": payment_accounts,
+        "portal_username": portal_username,
+        "temp_password": temp_password,
+    })
 
 
 @reception_required
