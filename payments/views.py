@@ -18,9 +18,12 @@ def payment_list(request):
     if status not in valid_statuses:
         status = "all"
 
-    submissions = Submission.objects.select_related("client").prefetch_related(
-        "payment"
-    ).annotate(sample_count=Count("samples", distinct=True))
+    submissions = (
+        Submission.objects.filter(is_submitted=True)
+        .select_related("client")
+        .prefetch_related("payment")
+        .annotate(sample_count=Count("samples", distinct=True))
+    )
 
     if query:
         submissions = submissions.filter(
