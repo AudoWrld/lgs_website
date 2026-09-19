@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.utils import timezone
+from django.utils.text import slugify
 
 
 class DailySubmissionSequence(models.Model):
@@ -20,6 +21,7 @@ class Submission(models.Model):
     reference = models.CharField(
         max_length=20, unique=True, db_index=True, editable=False
     )
+    slug = models.SlugField(max_length=80, unique=True, db_index=True, editable=False)
 
     client = models.ForeignKey(
         "accounts.Client",
@@ -66,9 +68,21 @@ class Submission(models.Model):
             seq.save(update_fields=["last_sequence"])
             return f"LGS/{for_date:%y%m%d}/{seq.last_sequence:02d}"
 
+    @classmethod
+    def generate_slug(cls, reference):
+        base_slug = slugify(reference) or "submission"
+        candidate = base_slug
+        suffix = 2
+        while cls.objects.filter(slug=candidate).exists():
+            candidate = f"{base_slug}-{suffix}"
+            suffix += 1
+        return candidate
+
     def save(self, *args, **kwargs):
         if not self.reference:
             self.reference = self.generate_reference(self.receiving_date)
+        if not self.slug:
+            self.slug = self.generate_slug(self.reference)
         super().save(*args, **kwargs)
 
     def validate_before_submit(self):
