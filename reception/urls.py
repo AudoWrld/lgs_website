@@ -26,7 +26,7 @@ urlpatterns = [
     path("clients/<slug:slug>/edit/", views.client_edit, name="client_edit"),
     path("samples/register/", views.submission_list, name="sample_registration"),
     path(
-        "samples/<int:submission_id>/",
+        "samples/<slug:slug>/",
         views.sample_registration_detail,
         name="sample_registration_detail",
     ),

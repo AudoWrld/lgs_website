@@ -92,7 +92,7 @@ def client_new_submission(request, slug):
     client = get_object_or_404(Client, slug=slug)
     submission = _start_submission_for_client(request, client)
     messages.success(request, f"New submission {submission.reference} started.")
-    return redirect("reception:sample_registration_detail", submission_id=submission.pk)
+    return redirect("reception:sample_registration_detail", slug=submission.slug)
 
 
 @reception_required
@@ -102,7 +102,7 @@ def submission_use(request, slug, submission_id):
     request.session["active_client_id"] = client.pk
     request.session["active_submission_id"] = submission.pk
     messages.success(request, f"Using submission {submission.reference}.")
-    return redirect("reception:sample_registration_detail", submission_id=submission.pk)
+    return redirect("reception:sample_registration_detail", slug=submission.slug)
 
 
 @reception_required
@@ -195,10 +195,7 @@ def client_register(request):
                     request,
                     f"Client registered: {client.client_name} — submission {submission.reference} started.",
                 )
-                return redirect(
-                    "reception:sample_registration_detail",
-                    submission_id=submission.pk,
-                )
+                return redirect("reception:sample_registration_detail", slug=submission.slug)
 
     return render(
         request,
@@ -329,9 +326,9 @@ def submission_list(request):
 
 
 @reception_required
-def sample_registration_detail(request, submission_id):
+def sample_registration_detail(request, slug):
     submission = get_object_or_404(
-        Submission.objects.select_related("client"), pk=submission_id
+        Submission.objects.select_related("client"), slug=slug
     )
     request.session["active_client_id"] = submission.client_id
     request.session["active_submission_id"] = submission.pk
@@ -348,9 +345,7 @@ def sample_registration_detail(request, submission_id):
             sample.save()
             form.save_m2m()
             messages.success(request, f"Sample {sample.client_sample_id} added.")
-            return redirect(
-                "reception:sample_registration_detail", submission_id=submission.pk
-            )
+            return redirect("reception:sample_registration_detail", slug=submission.slug)
     else:
         form = SampleForm(submission=submission)
 
@@ -371,9 +366,7 @@ def sample_edit(request, pk):
     submission = sample.submission
     if submission.is_submitted:
         messages.warning(request, "Submitted samples cannot be edited.")
-        return redirect(
-            "reception:sample_registration_detail", submission_id=submission.pk
-        )
+        return redirect("reception:sample_registration_detail", slug=submission.slug)
 
     samples = submission.samples.all().order_by("id")
     if request.method == "POST":
@@ -381,9 +374,7 @@ def sample_edit(request, pk):
         if form.is_valid():
             form.save()
             messages.success(request, f"Sample {sample.client_sample_id} updated.")
-            return redirect(
-                "reception:sample_registration_detail", submission_id=submission.pk
-            )
+            return redirect("reception:sample_registration_detail", slug=submission.slug)
     else:
         form = SampleForm(instance=sample, submission=submission)
 
@@ -404,18 +395,14 @@ def submission_submit_review(request, submission_id):
         Submission.objects.select_related("client"), pk=submission_id
     )
     if request.method != "POST":
-        return redirect(
-            "reception:sample_registration_detail", submission_id=submission.pk
-        )
+        return redirect("reception:sample_registration_detail", slug=submission.slug)
 
     try:
         submission.validate_before_submit()
     except ValidationError as exc:
         for error in exc.messages:
             messages.error(request, error)
-        return redirect(
-            "reception:sample_registration_detail", submission_id=submission.pk
-        )
+        return redirect("reception:sample_registration_detail", slug=submission.slug)
 
     return render(
         request,
@@ -433,9 +420,7 @@ def submission_confirm_submit(request, submission_id):
         Submission.objects.select_related("client"), pk=submission_id
     )
     if request.method != "POST":
-        return redirect(
-            "reception:sample_registration_detail", submission_id=submission.pk
-        )
+        return redirect("reception:sample_registration_detail", slug=submission.slug)
 
     try:
         submission.validate_before_submit()
@@ -443,9 +428,7 @@ def submission_confirm_submit(request, submission_id):
     except ValidationError as exc:
         for error in exc.messages:
             messages.error(request, error)
-        return redirect(
-            "reception:sample_registration_detail", submission_id=submission.pk
-        )
+        return redirect("reception:sample_registration_detail", slug=submission.slug)
 
     messages.success(request, f"Submission {submission.reference} was submitted.")
     return redirect("reception:sample_registration")
@@ -456,15 +439,13 @@ def sample_remove(request, submission_id, pk):
     submission = get_object_or_404(Submission, pk=submission_id)
     if submission.is_submitted:
         messages.warning(request, "Submitted samples cannot be removed.")
-        return redirect(
-            "reception:sample_registration_detail", submission_id=submission.pk
-        )
+        return redirect("reception:sample_registration_detail", slug=submission.slug)
 
     sample = get_object_or_404(Sample, pk=pk, submission=submission)
     sample_label = sample.client_sample_id
     sample.delete()
     messages.success(request, f"Sample {sample_label} removed.")
-    return redirect("reception:sample_registration_detail", submission_id=submission_id)
+    return redirect("reception:sample_registration_detail", slug=submission.slug)
 
 
 @reception_required
