@@ -1,16 +1,32 @@
+from datetime import timedelta
+from urllib.parse import urlencode
+
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.db.models import Q
+from django.core.paginator import Paginator
+from django.db.models import Count, Q
+from django.db.models.functions import TruncDate
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.utils.dateparse import parse_date
 
 from accounts.decorators import reception_required
 from accounts.forms import ClientForm, ClientSearchForm
 from accounts.models import Client, ClientEditLog
 from accounts.utils import generate_temp_password, normalize_tz_phone
-from submissions.models import Submission
 from samples.forms import SampleForm
 from samples.models import Sample
+from submissions.models import Submission
+
+PAGE_SIZE = 10
+
+SORT_OPTIONS = {
+    "newest": ("-created_at",),
+    "oldest": ("created_at",),
+    "samples": ("-sample_count", "-created_at"),
+    "reference": ("reference",),
+}
 
 User = get_user_model()
 
@@ -76,23 +92,17 @@ def client_new_submission(request, slug):
     client = get_object_or_404(Client, slug=slug)
     submission = _start_submission_for_client(request, client)
     messages.success(request, f"New submission {submission.reference} started.")
-    return redirect(
-        "reception:sample_registration_detail", submission_id=submission.pk
-    )
+    return redirect("reception:sample_registration_detail", submission_id=submission.pk)
 
 
 @reception_required
 def submission_use(request, slug, submission_id):
     client = get_object_or_404(Client, slug=slug)
-    submission = get_object_or_404(
-        Submission, pk=submission_id, client=client
-    )
+    submission = get_object_or_404(Submission, pk=submission_id, client=client)
     request.session["active_client_id"] = client.pk
     request.session["active_submission_id"] = submission.pk
     messages.success(request, f"Using submission {submission.reference}.")
-    return redirect(
-        "reception:sample_registration_detail", submission_id=submission.pk
-    )
+    return redirect("reception:sample_registration_detail", submission_id=submission.pk)
 
 
 @reception_required
@@ -197,19 +207,132 @@ def client_register(request):
     )
 
 
-@reception_required
-def sample_registration(request):
-    submissions = Submission.objects.select_related("client").prefetch_related("samples")
-    return render(
-        request,
-        "reception/sample_registration.html",
-        {"submissions": submissions},
+def build_stats():
+    today = timezone.localdate()
+    days = [today - timedelta(days=offset) for offset in range(6, -1, -1)]
+    per_day = dict(
+        Submission.objects.filter(created_at__date__gte=days[0])
+        .annotate(day=TruncDate("created_at"))
+        .values("day")
+        .annotate(total=Count("id"))
+        .values_list("day", "total")
     )
+    week_counts = [per_day.get(day, 0) for day in days]
+    return {
+        "total": Submission.objects.count(),
+        "today": Submission.objects.filter(created_at__date=today).count(),
+        "pending": Submission.objects.filter(is_submitted=False).count(),
+        "submitted": Submission.objects.filter(is_submitted=True).count(),
+        "total_samples": Sample.objects.count(),
+        "week_labels": [day.strftime("%a") for day in days],
+        "week_counts": week_counts,
+        "week_total": sum(week_counts),
+    }
+
+
+def parse_date_param(value):
+    try:
+        return parse_date(value) if value else None
+    except ValueError:
+        return None
+
+
+@reception_required
+def submission_list(request):
+    query = request.GET.get("q", "").strip()
+    status = request.GET.get("status", "all")
+    if status not in ("all", "pending", "submitted"):
+        status = "all"
+    sort = request.GET.get("sort", "newest")
+    if sort not in SORT_OPTIONS:
+        sort = "newest"
+    date_from = parse_date_param(request.GET.get("date_from"))
+    date_to = parse_date_param(request.GET.get("date_to"))
+
+    submissions = Submission.objects.select_related("client", "registered_by").annotate(
+        sample_count=Count("samples", distinct=True),
+        test_count=Count("samples__sample_services", distinct=True),
+    )
+
+    if query:
+        submissions = submissions.filter(
+            Q(reference__icontains=query)
+            | Q(client__client_name__icontains=query)
+            | Q(client__contact_person__icontains=query)
+            | Q(
+                pk__in=Sample.objects.filter(client_sample_id__icontains=query).values(
+                    "submission_id"
+                )
+            )
+        )
+    if status == "pending":
+        submissions = submissions.filter(is_submitted=False)
+    elif status == "submitted":
+        submissions = submissions.filter(is_submitted=True)
+    if date_from:
+        submissions = submissions.filter(created_at__date__gte=date_from)
+    if date_to:
+        submissions = submissions.filter(created_at__date__lte=date_to)
+
+    submissions = submissions.order_by(*SORT_OPTIONS[sort])
+
+    paginator = Paginator(submissions, PAGE_SIZE)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    page_obj.object_list = list(page_obj.object_list)
+
+    type_labels = dict(Sample.SAMPLE_TYPE_CHOICES)
+    breakdown = {}
+    type_rows = (
+        Sample.objects.filter(
+            submission_id__in=[item.pk for item in page_obj.object_list]
+        )
+        .values("submission_id", "sample_type")
+        .annotate(total=Count("id"))
+        .order_by("sample_type")
+    )
+    for row in type_rows:
+        label = type_labels.get(row["sample_type"], row["sample_type"])
+        breakdown.setdefault(row["submission_id"], []).append(
+            f"{label} × {row['total']}"
+        )
+
+    for item in page_obj.object_list:
+        item.type_summary = breakdown.get(item.pk, [])
+
+    active = {
+        "q": query,
+        "status": status if status != "all" else "",
+        "date_from": date_from.isoformat() if date_from else "",
+        "date_to": date_to.isoformat() if date_to else "",
+        "sort": sort if sort != "newest" else "",
+    }
+    active = {key: value for key, value in active.items() if value}
+    without_status = {key: value for key, value in active.items() if key != "status"}
+
+    context = {
+        "page_obj": page_obj,
+        "page_range": paginator.get_elided_page_range(
+            number=page_obj.number, on_each_side=1, on_ends=1
+        ),
+        "ellipsis": paginator.ELLIPSIS,
+        "stats": build_stats(),
+        "query": query,
+        "status": status,
+        "sort": sort,
+        "date_from": date_from.isoformat() if date_from else "",
+        "date_to": date_to.isoformat() if date_to else "",
+        "qs_page": urlencode(active),
+        "qs_status": urlencode(without_status),
+        "has_filters": bool(active),
+    }
+    return render(request, "reception/submission_list.html", context)
 
 
 @reception_required
 def sample_registration_detail(request, submission_id):
-    submission = get_object_or_404(Submission.objects.select_related("client"), pk=submission_id)
+    submission = get_object_or_404(
+        Submission.objects.select_related("client"), pk=submission_id
+    )
     request.session["active_client_id"] = submission.client_id
     request.session["active_submission_id"] = submission.pk
     samples = submission.samples.all().order_by("id")
@@ -277,7 +400,9 @@ def sample_edit(request, pk):
 
 @reception_required
 def submission_submit_review(request, submission_id):
-    submission = get_object_or_404(Submission.objects.select_related("client"), pk=submission_id)
+    submission = get_object_or_404(
+        Submission.objects.select_related("client"), pk=submission_id
+    )
     if request.method != "POST":
         return redirect(
             "reception:sample_registration_detail", submission_id=submission.pk
@@ -304,7 +429,9 @@ def submission_submit_review(request, submission_id):
 
 @reception_required
 def submission_confirm_submit(request, submission_id):
-    submission = get_object_or_404(Submission.objects.select_related("client"), pk=submission_id)
+    submission = get_object_or_404(
+        Submission.objects.select_related("client"), pk=submission_id
+    )
     if request.method != "POST":
         return redirect(
             "reception:sample_registration_detail", submission_id=submission.pk
@@ -337,9 +464,7 @@ def sample_remove(request, submission_id, pk):
     sample_label = sample.client_sample_id
     sample.delete()
     messages.success(request, f"Sample {sample_label} removed.")
-    return redirect(
-        "reception:sample_registration_detail", submission_id=submission_id
-    )
+    return redirect("reception:sample_registration_detail", submission_id=submission_id)
 
 
 @reception_required
