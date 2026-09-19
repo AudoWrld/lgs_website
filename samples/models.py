@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils.text import slugify
 
 
 class Service(models.Model):
@@ -80,6 +81,7 @@ class Sample(models.Model):
         related_name="samples",
     )
 
+    slug = models.SlugField(max_length=120, unique=True, db_index=True, editable=False)
     client_sample_id = models.CharField(max_length=50)
     sample_type = models.CharField(max_length=20, choices=SAMPLE_TYPE_CHOICES)
     other_sample_type = models.CharField(max_length=100, blank=True)
@@ -111,6 +113,22 @@ class Sample(models.Model):
 
     def __str__(self):
         return f"{self.submission.reference} — {self.client_sample_id}"
+
+    @classmethod
+    def generate_slug(cls, submission_slug, client_sample_id):
+        base = slugify(f"{submission_slug}-{client_sample_id}") or "sample"
+        candidate = base
+        suffix = 2
+        while cls.objects.filter(slug=candidate).exists():
+            candidate = f"{base}-{suffix}"
+            suffix += 1
+        return candidate
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            submission_slug = self.submission.slug if self.submission_id else "sample"
+            self.slug = self.generate_slug(submission_slug, self.client_sample_id)
+        super().save(*args, **kwargs)
 
     def clean(self):
         if self.sample_type == self.OTHER and not self.other_sample_type:

@@ -160,10 +160,10 @@
               </td>
               <td class="rc-row-actions">
                 {% if not submission.is_submitted %}
-                  <a href="{% url 'reception:sample_edit' sample.pk %}" class="rc-action rc-edit-link" aria-label="Edit {{ sample.client_sample_id }}" title="Edit sample">
+                  <a href="{% url 'reception:sample_edit' submission.slug sample.slug %}" class="rc-action rc-edit-link" aria-label="Edit {{ sample.client_sample_id }}" title="Edit sample">
                     <i class='bx bx-edit'></i><span>Edit</span>
                   </a>
-                  <a href="{% url 'reception:sample_remove' submission.pk sample.pk %}" onclick="return confirm('Remove sample {{ sample.client_sample_id }}?');" class="rc-action rc-remove-link" aria-label="Remove {{ sample.client_sample_id }}" title="Remove sample">
+                  <a href="{% url 'reception:sample_remove' submission.slug sample.slug %}" onclick="return confirm('Remove sample {{ sample.client_sample_id }}?');" class="rc-action rc-remove-link" aria-label="Remove {{ sample.client_sample_id }}" title="Remove sample">
                     <i class='bx bx-trash'></i><span>Remove</span>
                   </a>
                 {% else %}

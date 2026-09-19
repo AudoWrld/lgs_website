@@ -31,12 +31,12 @@ urlpatterns = [
         name="sample_registration_detail",
     ),
     path(
-        "samples/<int:pk>/edit/",
+        "samples/<slug:submission_slug>/<slug:sample_slug>/edit/",
         views.sample_edit,
         name="sample_edit",
     ),
     path(
-        "samples/<int:submission_id>/<int:pk>/remove/",
+        "samples/<slug:submission_slug>/<slug:sample_slug>/remove/",
         views.sample_remove,
         name="sample_remove",
     ),

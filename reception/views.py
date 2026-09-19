@@ -361,9 +361,13 @@ def sample_registration_detail(request, slug):
 
 
 @reception_required
-def sample_edit(request, pk):
-    sample = get_object_or_404(Sample.objects.select_related("submission"), pk=pk)
-    submission = sample.submission
+def sample_edit(request, submission_slug, sample_slug):
+    submission = get_object_or_404(Submission.objects.select_related("client"), slug=submission_slug)
+    sample = get_object_or_404(
+        Sample.objects.select_related("submission"),
+        submission=submission,
+        slug=sample_slug,
+    )
     if submission.is_submitted:
         messages.warning(request, "Submitted samples cannot be edited.")
         return redirect("reception:sample_registration_detail", slug=submission.slug)
@@ -435,13 +439,13 @@ def submission_confirm_submit(request, submission_id):
 
 
 @reception_required
-def sample_remove(request, submission_id, pk):
-    submission = get_object_or_404(Submission, pk=submission_id)
+def sample_remove(request, submission_slug, sample_slug):
+    submission = get_object_or_404(Submission, slug=submission_slug)
     if submission.is_submitted:
         messages.warning(request, "Submitted samples cannot be removed.")
         return redirect("reception:sample_registration_detail", slug=submission.slug)
 
-    sample = get_object_or_404(Sample, pk=pk, submission=submission)
+    sample = get_object_or_404(Sample, slug=sample_slug, submission=submission)
     sample_label = sample.client_sample_id
     sample.delete()
     messages.success(request, f"Sample {sample_label} removed.")
