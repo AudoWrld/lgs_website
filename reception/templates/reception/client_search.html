@@ -5,62 +5,95 @@
 {% block page_title %}Search Client{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'reception/css/client_search.css' %}">
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'reception/css/client_lookup.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="rc-panel">
-  <form method="get" class="rc-search-form">
-    {{ form.query.label_tag }}
-    <div class="rc-search-bar">
-      <i class='bx bx-search-alt'></i>
-      {{ form.query }}
-      <button type="submit" class="btn btn-primary">Search</button>
+<div class="sc-page">
+
+  <div class="sc-card sc-search-card">
+    <div class="sc-card-head">
+      <h3>Find a Client</h3>
+      <p>Search by client name, contact person, email or WhatsApp number.</p>
     </div>
-    {% if form.query.errors %}
-      <span class="rc-field-error">{{ form.query.errors.0 }}</span>
-    {% endif %}
-  </form>
+
+    <form method="get" class="sc-search-form" autocomplete="off">
+      <div class="sc-search-field">
+        {{ form.query.label_tag }}
+        <div class="sc-search-bar">
+          <i class='bx bx-search-alt'></i>
+          {{ form.query }}
+          <button type="submit" class="btn btn-primary sc-btn">Search</button>
+        </div>
+        {% if form.query.errors %}
+          <span class="sc-field-error">{{ form.query.errors.0 }}</span>
+        {% endif %}
+      </div>
+    </form>
+  </div>
 
   {% if searched %}
     {% if results %}
-      <div class="rc-results">
-        <span class="rc-results-count">{{ results|length }} client{{ results|length|pluralize }} found</span>
-
-        {% for client in results %}
-        <div class="rc-client-card">
-          <div class="rc-client-info">
-            <span class="rc-client-type">{{ client.get_client_type_display }}</span>
-            <h3>{{ client.client_name }}</h3>
-            <dl>
-              <div><dt>Contact Person</dt><dd>{{ client.contact_person }}</dd></div>
-              <div><dt>Email</dt><dd>{{ client.email }}</dd></div>
-              <div><dt>WhatsApp</dt><dd>{{ client.whatsapp_number }}</dd></div>
-            </dl>
+      <div class="sc-card">
+        <div class="sc-card-head sc-card-head--row">
+          <div>
+            <h3>Search Results</h3>
+            <p>{{ results|length }} client{{ results|length|pluralize }} found</p>
           </div>
-          <div class="rc-client-actions">
-            <a href="{% url 'reception:client_new_submission' client.slug %}" class="btn btn-primary">
-              <i class='bx bx-plus'></i> Add Submission
-            </a>
-            <a href="{% url 'reception:client_submissions' client.slug %}" class="btn btn-outline">
-              <i class='bx bx-list-ul'></i> View Submissions
-            </a>
-            <a href="{% url 'reception:client_edit' client.slug %}" class="btn btn-outline">
-              <i class='bx bx-edit'></i> Edit Client Information
-            </a>
-          </div>
+          <a href="{% url 'reception:client_register' %}" class="btn btn-outline sc-btn">
+            <i class='bx bx-user-plus'></i> Register New Client
+          </a>
         </div>
-        {% endfor %}
+
+        <div class="sc-table-wrap">
+          <table class="sc-table">
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Contact Person</th>
+                <th>Email</th>
+                <th>WhatsApp</th>
+                <th class="sc-col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for client in results %}
+              <tr>
+                <td>
+                  <span class="sc-cell-name">{{ client.client_name }}</span>
+                  <span class="sc-type">{{ client.get_client_type_display }}</span>
+                </td>
+                <td>{{ client.contact_person|default:"—" }}</td>
+                <td class="sc-cell-wrap">{{ client.email|default:"—" }}</td>
+                <td class="sc-cell-nowrap">{{ client.whatsapp_number|default:"—" }}</td>
+                <td class="sc-cell-actions">
+                  <a href="{% url 'reception:client_new_submission' client.slug %}" class="btn btn-primary sc-action">
+                    <i class='bx bx-plus'></i> Add Submission
+                  </a>
+                  <a href="{% url 'reception:client_submissions' client.slug %}" class="btn btn-outline sc-action">
+                    <i class='bx bx-list-ul'></i> View
+                  </a>
+                  <a href="{% url 'reception:client_edit' client.slug %}" class="btn btn-outline sc-action">
+                    <i class='bx bx-edit'></i> Edit
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     {% else %}
-      <div class="rc-empty-state">
+      <div class="sc-card sc-empty">
         <i class='bx bx-user-x'></i>
         <p>No matching client found.</p>
-        <a href="{% url 'reception:client_register' %}" class="btn btn-primary">
+        <a href="{% url 'reception:client_register' %}" class="btn btn-primary sc-btn">
           <i class='bx bx-user-plus'></i> Register New Client
         </a>
       </div>
     {% endif %}
   {% endif %}
+
 </div>
 {% endblock %}

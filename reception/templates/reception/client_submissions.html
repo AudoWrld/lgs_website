@@ -1,3 +1,4 @@
+
 {% extends "reception/base_reception.html" %}
 {% load static %}
 
@@ -5,48 +6,117 @@
 {% block page_title %}Client Submissions{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'reception/css/client_search.css' %}">
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'reception/css/client_submissions.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="rc-panel">
-  <div class="rc-client-card">
-    <div class="rc-client-info">
-      <span class="rc-client-type">{{ client.get_client_type_display }}</span>
-      <h3>{{ client.client_name }}</h3>
-      <p>{{ client.contact_person }} · {{ client.email }}</p>
+<div class="cs-page">
+
+  <section class="cs-summary">
+    <div class="cs-summary-item cs-summary-main">
+      <span class="cs-summary-label">Client</span>
+      <span class="cs-summary-name">{{ client.client_name }}</span>
+      <span class="cs-type">{{ client.get_client_type_display }}</span>
     </div>
-    <div class="rc-client-actions">
-      <a href="{% url 'reception:client_new_submission' client.slug %}" class="btn btn-primary">
-        <i class='bx bx-plus'></i> Start New Submission
-      </a>
-      <a href="{% url 'reception:client_search' %}" class="btn btn-outline">Back to Search</a>
+
+    <div class="cs-summary-item">
+      <span class="cs-summary-label">Contact Person</span>
+      {% if client.contact_person %}
+        <span class="cs-summary-value">{{ client.contact_person }}</span>
+      {% else %}
+        <span class="cs-summary-note">Not provided</span>
+      {% endif %}
     </div>
+
+    <div class="cs-summary-item">
+      <span class="cs-summary-label">Contact</span>
+      {% if client.email %}
+        <span class="cs-summary-value cs-summary-small">{{ client.email }}</span>
+      {% endif %}
+      {% if client.whatsapp_number %}
+        <span class="cs-summary-note">{{ client.whatsapp_number }}</span>
+      {% endif %}
+      {% if not client.email and not client.whatsapp_number %}
+        <span class="cs-summary-note">No contact details</span>
+      {% endif %}
+    </div>
+
+    <div class="cs-summary-item cs-summary-count">
+      <span class="cs-summary-label">Submissions</span>
+      <span class="cs-summary-count-value">{{ submissions|length }}</span>
+    </div>
+  </section>
+
+  <div class="cs-card">
+    <div class="cs-card-head">
+      <div>
+        <h3>Submission References</h3>
+        <p>{{ submissions|length }} submission{{ submissions|length|pluralize }} for this client</p>
+      </div>
+      <div class="cs-head-actions">
+        <a href="{% url 'reception:client_search' %}" class="btn btn-outline cs-btn">
+          <i class='bx bx-left-arrow-alt'></i> Back to Search
+        </a>
+        <a href="{% url 'reception:client_new_submission' client.slug %}" class="btn btn-primary cs-btn">
+          <i class='bx bx-plus'></i> Start New Submission
+        </a>
+      </div>
+    </div>
+
+    {% if submissions %}
+      <div class="cs-table-wrap">
+        <table class="cs-table">
+          <thead>
+            <tr>
+              <th>Reference</th>
+              <th>Received</th>
+              <th>Samples</th>
+              <th>Status</th>
+              <th class="cs-col-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for submission in submissions %}
+            <tr>
+              <td class="cs-cell-ref">{{ submission.reference }}</td>
+              <td>
+                <span class="cs-cell-main">{{ submission.created_at|date:"d M Y" }}</span>
+                <span class="cs-cell-note">{{ submission.created_at|date:"H:i" }}</span>
+              </td>
+              <td>
+                <span class="cs-cell-main">{{ submission.total_samples }}</span>
+              </td>
+              <td>
+                <span class="cs-badge {% if submission.is_submitted %}cs-badge--submitted{% else %}cs-badge--progress{% endif %}">
+                  {% if submission.is_submitted %}Submitted{% else %}In Progress{% endif %}
+                </span>
+                {% if submission.is_submitted and submission.submitted_at %}
+                  <span class="cs-cell-note">{{ submission.submitted_at|date:"d M Y, H:i" }}</span>
+                {% endif %}
+              </td>
+              <td class="cs-cell-actions">
+                <a href="{% url 'reception:sample_registration_detail' submission.slug %}"
+                   class="btn {% if submission.is_submitted %}btn-outline{% else %}btn-primary{% endif %} cs-action">
+                  {% if submission.is_submitted %}View{% else %}Add Samples{% endif %}
+                  <i class='bx {% if submission.is_submitted %}bx-show{% else %}bx-right-arrow-alt{% endif %}'></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="cs-empty">
+        <i class='bx bx-file'></i>
+        <p>No submissions exist for this client yet.</p>
+        <a href="{% url 'reception:client_new_submission' client.slug %}" class="btn btn-primary cs-btn">
+          <i class='bx bx-plus'></i> Start New Submission
+        </a>
+      </div>
+    {% endif %}
   </div>
 
-  {% if submissions %}
-    <div class="rc-results">
-      <span class="rc-results-count">{{ submissions|length }} submission{{ submissions|length|pluralize }}</span>
-      {% for submission in submissions %}
-      <div class="rc-client-card">
-        <div class="rc-client-info">
-          <span class="rc-client-type">Submission Reference</span>
-          <h3>{{ submission.reference }}</h3>
-          <p>{{ submission.created_at|date:"d M Y H:i" }} · {{ submission.total_samples }} sample{{ submission.total_samples|pluralize }}</p>
-        </div>
-        <div class="rc-client-actions">
-          <a href="{% url 'reception:sample_registration_detail' submission.slug %}" class="btn btn-primary">
-            <i class='bx bx-right-arrow-alt'></i> Add Samples
-          </a>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <div class="rc-empty-state">
-      <i class='bx bx-file'></i>
-      <p>No submissions exist for this client yet.</p>
-    </div>
-  {% endif %}
 </div>
 {% endblock %}

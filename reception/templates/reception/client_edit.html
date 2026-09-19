@@ -5,53 +5,62 @@
 {% block page_title %}Edit Client Information{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
 <link rel="stylesheet" href="{% static 'reception/css/client_form.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="rc-panel">
-  <div class="rc-form-card">
-    <h2>Editing: {{ client.client_name }}</h2>
-    <p class="rc-form-note">Changes apply to all future submissions and are logged for audit purposes.</p>
+<div class="cr-page">
+  <div class="cr-card">
+    <div class="cr-card-head">
+      <h3>Editing: {{ client.client_name }}</h3>
+      <p>Changes apply to all future submissions and are logged for audit purposes.</p>
+    </div>
 
-    <form method="post" class="rc-form" novalidate>
+    <form method="post" class="cr-form" novalidate autocomplete="off">
       {% csrf_token %}
 
-      <div class="rc-field">
+      <div class="cr-grid">
+      <div class="cr-field">
         <label for="{{ form.client_type.id_for_label }}">Client Type</label>
         {{ form.client_type }}
-        {% if form.client_type.errors %}<span class="rc-field-error">{{ form.client_type.errors.0 }}</span>{% endif %}
+        {% if form.client_type.errors %}<span class="cr-field-error">{{ form.client_type.errors.0 }}</span>{% endif %}
       </div>
 
-      <div class="rc-field">
+      <div class="cr-field">
         <label for="{{ form.client_name.id_for_label }}">Client Name</label>
         {{ form.client_name }}
-        {% if form.client_name.errors %}<span class="rc-field-error">{{ form.client_name.errors.0 }}</span>{% endif %}
+        {% if form.client_name.errors %}<span class="cr-field-error">{{ form.client_name.errors.0 }}</span>{% endif %}
       </div>
 
-      <div class="rc-field">
+      <div class="cr-field cr-field--full">
         <label for="{{ form.contact_person.id_for_label }}">Contact Person</label>
         {{ form.contact_person }}
-        {% if form.contact_person.errors %}<span class="rc-field-error">{{ form.contact_person.errors.0 }}</span>{% endif %}
+        {% if form.contact_person.errors %}<span class="cr-field-error">{{ form.contact_person.errors.0 }}</span>{% endif %}
       </div>
 
-      <div class="rc-field-row">
-        <div class="rc-field">
-          <label for="{{ form.email.id_for_label }}">Email Address</label>
-          {{ form.email }}
-          {% if form.email.errors %}<span class="rc-field-error">{{ form.email.errors.0 }}</span>{% endif %}
-        </div>
-
-        <div class="rc-field">
-          <label for="{{ form.whatsapp_number.id_for_label }}">WhatsApp Number</label>
-          {{ form.whatsapp_number }}
-          {% if form.whatsapp_number.errors %}<span class="rc-field-error">{{ form.whatsapp_number.errors.0 }}</span>{% endif %}
-        </div>
+      <div class="cr-field">
+        <label for="{{ form.email.id_for_label }}">Email Address</label>
+        {{ form.email }}
+        {% if form.email.errors %}<span class="cr-field-error">{{ form.email.errors.0 }}</span>{% endif %}
       </div>
 
-      <div class="rc-form-actions">
-        <a href="{% url 'reception:client_search' %}" class="btn btn-outline">Cancel</a>
-        <button type="submit" class="btn btn-primary">
+      <div class="cr-field">
+        <label for="{{ form.whatsapp_number.id_for_label }}">WhatsApp Number</label>
+        {{ form.whatsapp_number }}
+        {% if form.whatsapp_number.errors %}<span class="cr-field-error">{{ form.whatsapp_number.errors.0 }}</span>{% endif %}
+      </div>
+      </div>
+
+      {% if form.non_field_errors %}
+        <span class="cr-field-error">{{ form.non_field_errors.0 }}</span>
+      {% endif %}
+
+      <div class="cr-actions">
+        <a href="{% url 'reception:client_search' %}" class="btn btn-outline cr-btn">
+          <i class='bx bx-left-arrow-alt'></i> Cancel
+        </a>
+        <button type="submit" class="btn btn-primary cr-btn">
           <i class='bx bx-save'></i> Save Changes
         </button>
       </div>

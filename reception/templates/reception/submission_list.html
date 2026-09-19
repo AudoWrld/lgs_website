@@ -140,7 +140,7 @@
                 {% endif %}
               </td>
               <td class="sl-cell-actions">
-                <a href="{% url 'reception:sample_registration_detail' submission.pk %}"
+                <a href="{% url 'reception:sample_registration_detail' submission.slug %}"
                    class="btn {% if submission.is_submitted %}btn-outline{% else %}btn-primary{% endif %} sl-action">
                   {% if submission.is_submitted %}View{% else %}Add Samples{% endif %}
                   <i class='bx {% if submission.is_submitted %}bx-show{% else %}bx-right-arrow-alt{% endif %}'></i>
