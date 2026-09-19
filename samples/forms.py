@@ -30,9 +30,11 @@ class SampleForm(forms.ModelForm):
         model = Sample
         fields = ["client_sample_id", "sample_type", "other_sample_type", "services"]
         widgets = {
-            "client_sample_id": forms.TextInput(attrs={"placeholder": "e.g. ABC-001"}),
+            "client_sample_id": forms.TextInput(
+                attrs={"placeholder": "e.g. ABC-001", "autocomplete": "off"}
+            ),
             "other_sample_type": forms.TextInput(
-                attrs={"placeholder": "Specify sample type"}
+                attrs={"placeholder": "Specify sample type", "autocomplete": "off"}
             ),
         }
 
