@@ -287,7 +287,7 @@ img {
 }
 .app-content {
   flex: 1;
-  padding: 1.75rem;
+  padding: 15px;
 }
 @media (max-width: 900px) {
   .app-sidebar {
@@ -326,7 +326,7 @@ img {
 }
 @media (max-width: 560px) {
   .app-content {
-    padding: 1.25rem;
+    padding: 10px;
   }
   .app-topbar {
     padding: 0 1rem;
