@@ -148,3 +148,38 @@ class PaymentTransaction(models.Model):
 
     def __str__(self):
         return f"{self.payment.submission.reference} — {self.amount} ({self.created_at:%Y-%m-%d})"
+
+
+class PaymentAccount(models.Model):
+    BANK = "BANK"
+    MOBILE = "MOBILE"
+
+    ACCOUNT_TYPE_CHOICES = [
+        (BANK, "Bank"),
+        (MOBILE, "Mobile / Lipa Number"),
+    ]
+
+    account_type = models.CharField(max_length=10, choices=ACCOUNT_TYPE_CHOICES)
+    bank_name = models.CharField(max_length=100, blank=True)
+    account_name = models.CharField(max_length=150)
+    account_number = models.CharField(max_length=50)
+    is_active = models.BooleanField(default=True)
+    display_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["display_order", "account_type"]
+        verbose_name = "LGS Payment Account"
+        verbose_name_plural = "LGS Payment Accounts"
+
+    def __str__(self):
+        if self.account_type == self.BANK:
+            return f"{self.bank_name} — {self.account_number}"
+        return f"Lipa Number — {self.account_number}"
+
+    def clean(self):
+        if self.account_type == self.BANK and not self.bank_name:
+            from django.core.exceptions import ValidationError
+
+            raise ValidationError(
+                {"bank_name": "Bank Name is required for a Bank account."}
+            )

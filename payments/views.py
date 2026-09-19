@@ -53,6 +53,10 @@ def payment_detail(request, reference):
     payment.save(update_fields=["gross_amount"])
 
     if request.method == "POST":
+        if payment.payment_status == Payment.PAID:
+            messages.info(request, "This payment is already marked as Paid.")
+            return redirect("reception:payment_detail", reference=submission.reference)
+
         update_form = PaymentUpdateForm(request.POST)
         if update_form.is_valid():
             cleaned = update_form.cleaned_data

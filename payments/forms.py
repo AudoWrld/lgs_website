@@ -71,6 +71,10 @@ class PaymentUpdateForm(forms.Form):
         method = cleaned.get("payment_method")
         reference = cleaned.get("transaction_reference")
 
+        if method == Payment.CASH:
+            cleaned["transaction_reference"] = ""
+            return cleaned
+
         if method in Payment.METHODS_REQUIRING_REFERENCE and not reference:
             self.add_error(
                 "transaction_reference",
