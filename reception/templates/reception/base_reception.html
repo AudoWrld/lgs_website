@@ -347,9 +347,7 @@
           {% if messages %}
           <ul class="messages" role="status">
             {% for message in messages %}
-            <li class="message message-{{ message.level_tag|default:'info' }}">
-              {{ message }}
-            </li>
+            <li class="message {{ message.tags }}">{{ message }}</li>
             {% endfor %}
           </ul>
           {% endif %} {% block content %}{% endblock %}
@@ -357,6 +355,15 @@
       </div>
     </div>
 
+    <script>
+      (function () {
+        var box = document.querySelector(".messages");
+        if (!box) return;
+        setTimeout(function () {
+          box.remove();
+        }, 5000);
+      })();
+    </script>
     {% block extra_js %}{% endblock %}
   </body>
 </html>
