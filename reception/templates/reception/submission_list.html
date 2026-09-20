@@ -10,40 +10,48 @@
 {% endblock %}
 
 {% block content %}
+{% widthratio stats.submitted stats.total 100 as submitted_pct %}
 <div class="sl-page">
 
   <section class="sl-top">
     <div class="sl-stats">
+      <div class="sl-stat sl-stat--hero">
+        <span class="sl-stat-label">Awaiting submission</span>
+        <span class="sl-stat-value" data-count>{{ stats.pending|default:0 }}</span>
+        <div class="sl-progress" role="img" aria-label="{{ submitted_pct }}% of submissions have been submitted">
+          <span class="sl-progress-fill" style="width: {{ submitted_pct }}%"></span>
+        </div>
+        <div class="sl-hero-foot">
+          <span>{{ stats.submitted|default:0 }} of {{ stats.total|default:0 }} submitted</span>
+          <a href="?status=pending" class="sl-hero-link">Review pending</a>
+        </div>
+      </div>
+
       <div class="sl-stat">
-        <span class="sl-stat-label">Total Submissions</span>
-        <span class="sl-stat-value">{{ stats.total|default:0 }}</span>
+        <span class="sl-stat-label">Total submissions</span>
+        <span class="sl-stat-value" data-count>{{ stats.total|default:0 }}</span>
       </div>
       <div class="sl-stat">
-        <span class="sl-stat-label">Received Today</span>
-        <span class="sl-stat-value">{{ stats.today|default:0 }}</span>
+        <span class="sl-stat-label">Received today</span>
+        <span class="sl-stat-value" data-count>{{ stats.today|default:0 }}</span>
       </div>
       <div class="sl-stat">
-        <span class="sl-stat-label">This Week</span>
-        <span class="sl-stat-value">{{ stats.week_total|default:0 }}</span>
+        <span class="sl-stat-label">This week</span>
+        <span class="sl-stat-value" data-count>{{ stats.week_total|default:0 }}</span>
       </div>
       <div class="sl-stat">
-        <span class="sl-stat-label">Awaiting Submission</span>
-        <span class="sl-stat-value">{{ stats.pending|default:0 }}</span>
-      </div>
-      <div class="sl-stat">
-        <span class="sl-stat-label">Submitted</span>
-        <span class="sl-stat-value">{{ stats.submitted|default:0 }}</span>
-      </div>
-      <div class="sl-stat">
-        <span class="sl-stat-label">Samples Registered</span>
-        <span class="sl-stat-value">{{ stats.total_samples|default:0 }}</span>
+        <span class="sl-stat-label">Samples registered</span>
+        <span class="sl-stat-value" data-count>{{ stats.total_samples|default:0 }}</span>
       </div>
     </div>
 
     <div class="sl-chart-card">
-      <span class="sl-stat-label">Submissions, Last 7 Days</span>
+      <div class="sl-chart-head">
+        <span class="sl-stat-label">Submissions, last 7 days</span>
+        <span class="sl-chart-total">{{ stats.week_total|default:0 }}</span>
+      </div>
       <div class="sl-chart-wrap">
-        <canvas id="rc-weekly-chart"></canvas>
+        <canvas id="rc-weekly-chart" role="img" aria-label="Bar chart of submissions received in the last 7 days"></canvas>
       </div>
     </div>
   </section>
@@ -51,23 +59,24 @@
   <div class="sl-card">
 
     <nav class="sl-tabs" aria-label="Filter by status">
-      <a href="?{{ qs_status }}" class="sl-tab {% if status == 'all' %}is-active{% endif %}">
+      <a href="?{{ qs_status }}" class="sl-tab {% if status == 'all' %}is-active{% endif %}"{% if status == 'all' %} aria-current="page"{% endif %}>
         All <span class="sl-tab-count">{{ stats.total|default:0 }}</span>
       </a>
-      <a href="?status=pending&{{ qs_status }}" class="sl-tab {% if status == 'pending' %}is-active{% endif %}">
+      <a href="?status=pending&{{ qs_status }}" class="sl-tab {% if status == 'pending' %}is-active{% endif %}"{% if status == 'pending' %} aria-current="page"{% endif %}>
         Pending <span class="sl-tab-count">{{ stats.pending|default:0 }}</span>
       </a>
-      <a href="?status=submitted&{{ qs_status }}" class="sl-tab {% if status == 'submitted' %}is-active{% endif %}">
+      <a href="?status=submitted&{{ qs_status }}" class="sl-tab {% if status == 'submitted' %}is-active{% endif %}"{% if status == 'submitted' %} aria-current="page"{% endif %}>
         Submitted <span class="sl-tab-count">{{ stats.submitted|default:0 }}</span>
       </a>
     </nav>
 
-    <form method="get" class="sl-toolbar" autocomplete="off">
+    <form method="get" class="sl-toolbar" autocomplete="off" data-autosubmit>
       <input type="hidden" name="status" value="{{ status }}">
 
       <div class="sl-search">
-        <i class='bx bx-search'></i>
-        <input type="text" name="q" value="{{ query }}" placeholder="Search reference, client, contact or sample ID">
+        <i class='bx bx-search' aria-hidden="true"></i>
+        <input type="text" name="q" value="{{ query }}" placeholder="Search reference, client, contact or sample ID" aria-label="Search submissions">
+        <kbd class="sl-kbd" aria-hidden="true">/</kbd>
       </div>
 
       <div class="sl-field">
@@ -101,30 +110,35 @@
         <table class="sl-table">
           <thead>
             <tr>
-              <th>Reference</th>
-              <th>Client</th>
-              <th>Samples</th>
-              <th>Tests</th>
-              <th>Received</th>
-              <th>Status</th>
-              <th class="sl-col-actions">Actions</th>
+              <th scope="col">Reference</th>
+              <th scope="col">Client</th>
+              <th scope="col">Samples</th>
+              <th scope="col">Tests</th>
+              <th scope="col">Received</th>
+              <th scope="col">Status</th>
+              <th scope="col" class="sl-col-actions">Actions</th>
             </tr>
           </thead>
           <tbody>
             {% for submission in page_obj %}
-            <tr>
-              <td class="sl-cell-ref">{{ submission.reference }}</td>
+            <tr class="{% if submission.is_submitted %}is-submitted{% else %}is-pending{% endif %}">
               <td>
-                <span class="sl-cell-main">{{ submission.client.client_name }}</span>
+                <a href="{% url 'reception:sample_registration_detail' submission.slug %}" class="sl-cell-ref">{{ submission.reference }}</a>
               </td>
               <td>
-                <span class="sl-cell-main">{{ submission.sample_count }}</span>
+                <span class="sl-client">
+                  <span class="sl-avatar" aria-hidden="true">{{ submission.client.client_name|slice:":1"|upper }}</span>
+                  <span class="sl-cell-main">{{ submission.client.client_name }}</span>
+                </span>
+              </td>
+              <td>
+                <span class="sl-count">{{ submission.sample_count }}</span>
               </td>
               <td>
                 {% if submission.test_count %}
-                  <span class="sl-cell-main">{{ submission.test_count }}</span>
+                  <span class="sl-count">{{ submission.test_count }}</span>
                 {% else %}
-                  <span class="sl-cell-note">None yet</span>
+                  <span class="sl-cell-note sl-cell-note--inline">None yet</span>
                 {% endif %}
               </td>
               <td>
@@ -143,7 +157,7 @@
                 <a href="{% url 'reception:sample_registration_detail' submission.slug %}"
                    class="btn {% if submission.is_submitted %}btn-outline{% else %}btn-primary{% endif %} sl-action">
                   {% if submission.is_submitted %}View{% else %}Add Samples{% endif %}
-                  <i class='bx {% if submission.is_submitted %}bx-show{% else %}bx-right-arrow-alt{% endif %}'></i>
+                  <i class='bx {% if submission.is_submitted %}bx-show{% else %}bx-right-arrow-alt{% endif %}' aria-hidden="true"></i>
                 </a>
               </td>
             </tr>
@@ -160,39 +174,41 @@
         {% if page_obj.paginator.num_pages > 1 %}
         <nav class="sl-pager-nav" aria-label="Pagination">
           {% if page_obj.has_previous %}
-            <a class="sl-page-link" href="?page={{ page_obj.previous_page_number }}&{{ qs_page }}"><i class='bx bx-chevron-left'></i></a>
+            <a class="sl-page-link" href="?page={{ page_obj.previous_page_number }}&{{ qs_page }}" aria-label="Previous page"><i class='bx bx-chevron-left' aria-hidden="true"></i></a>
           {% else %}
-            <span class="sl-page-link is-disabled"><i class='bx bx-chevron-left'></i></span>
+            <span class="sl-page-link is-disabled" aria-hidden="true"><i class='bx bx-chevron-left'></i></span>
           {% endif %}
 
           {% for number in page_range %}
             {% if number == ellipsis %}
               <span class="sl-page-gap">…</span>
             {% elif number == page_obj.number %}
-              <span class="sl-page-link is-current">{{ number }}</span>
+              <span class="sl-page-link is-current" aria-current="page">{{ number }}</span>
             {% else %}
               <a class="sl-page-link" href="?page={{ number }}&{{ qs_page }}">{{ number }}</a>
             {% endif %}
           {% endfor %}
 
           {% if page_obj.has_next %}
-            <a class="sl-page-link" href="?page={{ page_obj.next_page_number }}&{{ qs_page }}"><i class='bx bx-chevron-right'></i></a>
+            <a class="sl-page-link" href="?page={{ page_obj.next_page_number }}&{{ qs_page }}" aria-label="Next page"><i class='bx bx-chevron-right' aria-hidden="true"></i></a>
           {% else %}
-            <span class="sl-page-link is-disabled"><i class='bx bx-chevron-right'></i></span>
+            <span class="sl-page-link is-disabled" aria-hidden="true"><i class='bx bx-chevron-right'></i></span>
           {% endif %}
         </nav>
         {% endif %}
       </div>
     {% elif has_filters %}
       <div class="sl-empty">
-        <i class='bx bx-search-alt'></i>
-        <p>No submissions match your filters.</p>
+        <span class="sl-empty-icon"><i class='bx bx-search-alt' aria-hidden="true"></i></span>
+        <h3>No matches</h3>
+        <p>No submissions match your filters. Try a wider date range or a different search.</p>
         <a href="{{ request.path }}" class="btn btn-outline">Reset Filters</a>
       </div>
     {% else %}
       <div class="sl-empty">
-        <i class='bx bx-file'></i>
-        <p>No submission references have been created yet.</p>
+        <span class="sl-empty-icon"><i class='bx bx-file' aria-hidden="true"></i></span>
+        <h3>No submissions yet</h3>
+        <p>Search for a client to create the first submission reference.</p>
         <a href="{% url 'reception:client_search' %}" class="btn btn-primary">Search Client</a>
       </div>
     {% endif %}
@@ -206,47 +222,5 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    function readJson(id) {
-      var el = document.getElementById(id);
-      if (!el) return [];
-      try {
-        var value = JSON.parse(el.textContent);
-        if (typeof value === 'string') value = JSON.parse(value);
-        return Array.isArray(value) ? value : [];
-      } catch (e) {
-        return [];
-      }
-    }
-
-    var canvas = document.getElementById('rc-weekly-chart');
-    if (canvas && typeof Chart !== 'undefined') {
-      try {
-        new Chart(canvas, {
-          type: 'bar',
-          data: {
-            labels: readJson('rc-week-labels'),
-            datasets: [{
-              data: readJson('rc-week-counts'),
-              backgroundColor: '#123e5b',
-              borderRadius: 2,
-              maxBarThickness: 26
-            }]
-          },
-          options: {
-            animation: false,
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#eee9dd' } },
-              x: { grid: { display: false } }
-            }
-          }
-        });
-      } catch (e) {}
-    }
-  });
-</script>
+<script src="{% static 'reception/js/submission_list.js' %}" defer></script>
 {% endblock %}

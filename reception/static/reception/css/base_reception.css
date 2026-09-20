@@ -454,9 +454,8 @@ img {
 .app-content {
   flex: 1;
   width: 100%;
-  max-width: 1400px;
   margin: 0 auto;
-  padding: 1.25rem;
+  padding: 15px;
 }
 
 .messages {
@@ -729,11 +728,11 @@ textarea:disabled {
 
 @media (max-width: 560px) {
   .app-content {
-    padding: 0.75rem;
+    padding: 15px;
   }
 
   .app-topbar {
-    padding: 0 1rem;
+    padding: 0 20px;
   }
 
   .card {
