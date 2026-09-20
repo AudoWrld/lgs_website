@@ -10,12 +10,19 @@
 
 {% block content %}
 <div class="csf-toolbar">
-  <a href="{% url 'reception:client_submission_form' %}" class="pd-back-link">
+  <a href="{% url 'reception:payment_detail' submission.reference %}" class="pd-back-link">
     <i class='bx bx-chevron-left'></i> Back
   </a>
-  <button type="button" class="btn btn-primary" onclick="window.print()">
-    <i class='bx bx-printer'></i> Print / Save PDF
-  </button>
+
+  <div class="csf-toolbar-actions">
+    <a href="{% url 'reception:client_submission_form_pdf' submission.reference %}?view=1"
+       target="_blank" rel="noopener" class="btn btn-outline">
+      <i class='bx bx-printer'></i> Print
+    </a>
+    <a href="{% url 'reception:client_submission_form_pdf' submission.reference %}" class="btn btn-primary">
+      <i class='bx bx-download'></i> Download PDF
+    </a>
+  </div>
 </div>
 
 <div class="csf-sheet">
@@ -102,24 +109,40 @@
   </div>
 
   <div class="csf-section">
-    <h2>Client Portal Login</h2>
-    <dl class="csf-dl">
-      <div><dt>Username</dt><dd>{{ portal_username|default:"—" }}</dd></div>
-      <div>
-        <dt>Temporary Password</dt>
-        <dd>
-          {% if temp_password %}
-            <span class="csf-temp-password">{{ temp_password }}</span>
-          {% else %}
-            <span class="csf-password-unavailable">Not available — already issued or client uses an existing account.</span>
-          {% endif %}
-        </dd>
-      </div>
-    </dl>
-    <p class="csf-portal-note">
-      Use these login details to access the LGS Client Portal and download your completed and officially released Certificates of Analysis.
-    </p>
-  </div>
+  <h2>Client Portal Login</h2>
+  <dl class="csf-dl">
+    <div><dt>Username</dt><dd>{{ portal_username|default:"—" }}</dd></div>
+    <div>
+      <dt>Temporary Password</dt>
+      <dd>
+        {% if temp_password %}
+          <span class="csf-temp-password">{{ temp_password }}</span>
+        {% elif can_reissue_password %}
+          <span class="csf-password-unavailable">
+            Not currently displayed — the client hasn't logged in yet.
+          </span>
+        {% else %}
+          <span class="csf-password-unavailable">
+            Client has already logged in and set their own password.
+          </span>
+        {% endif %}
+      </dd>
+    </div>
+  </dl>
+
+  {% if can_reissue_password and not temp_password %}
+  <form method="post" action="{% url 'reception:client_reissue_temp_password' submission.reference %}" class="csf-reissue-form">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-outline">
+      <i class='bx bx-refresh'></i> Reissue Temporary Password
+    </button>
+  </form>
+  {% endif %}
+
+  <p class="csf-portal-note">
+    Use these login details to access the LGS Client Portal and download your completed and officially released Certificates of Analysis.
+  </p>
+</div>
 
   <div class="csf-footer">
     <span>LGS African Group Company Limited</span>
