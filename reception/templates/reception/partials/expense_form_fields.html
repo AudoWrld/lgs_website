@@ -1,73 +1,47 @@
 <div class="expense-fields">
+  <p class="rc-required-note"><span class="rc-required" aria-hidden="true">*</span>Required field</p>
+
   <div class="rc-field{% if form.category.errors %} has-error{% endif %}">
-    <label for="{{ form.category.id_for_label }}"
-      >Expense Category{% if form.category.field.required %}<span
-        class="rc-required"
-        aria-hidden="true"
-        >*</span
-      ><span class="visually-hidden"> (required)</span>{% endif %}</label
-    >
-    {{ form.category }} {% if form.category.errors %}
-    <p class="rc-field-error" role="alert">{{ form.category.errors.0 }}</p>
+    <label for="{{ form.category.id_for_label }}">Expense Category{% if form.category.field.required %}<span class="rc-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
+    {{ form.category }}
+    {% if form.category.errors %}
+      <p class="rc-field-error" id="{{ form.category.id_for_label }}-error" role="alert">{{ form.category.errors.0 }}</p>
     {% endif %}
   </div>
 
-  <div
-    class="rc-field{% if form.other_category.errors %} has-error{% endif %}"
-    id="other-category-field"
-  >
-    <label for="{{ form.other_category.id_for_label }}"
-      >Specify Expense Category<span class="rc-required" aria-hidden="true"
-        >*</span
-      ><span class="visually-hidden"> (required)</span></label
-    >
-    {{ form.other_category }} {% if form.other_category.errors %}
-    <p class="rc-field-error" role="alert">
-      {{ form.other_category.errors.0 }}
-    </p>
+  <div class="rc-field{% if form.other_category.errors %} has-error{% endif %}" id="other-category-field"{% if form.category.value != "OTHER" %} hidden{% endif %}>
+    <label for="{{ form.other_category.id_for_label }}">Specify Expense Category<span class="rc-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+    {{ form.other_category }}
+    {% if form.other_category.errors %}
+      <p class="rc-field-error" id="{{ form.other_category.id_for_label }}-error" role="alert">{{ form.other_category.errors.0 }}</p>
     {% endif %}
   </div>
 
   <div class="rc-field{% if form.description.errors %} has-error{% endif %}">
-    <label for="{{ form.description.id_for_label }}"
-      >Description{% if form.description.field.required %}<span
-        class="rc-required"
-        aria-hidden="true"
-        >*</span
-      ><span class="visually-hidden"> (required)</span>{% endif %}</label
-    >
-    {{ form.description }} {% if form.description.errors %}
-    <p class="rc-field-error" role="alert">{{ form.description.errors.0 }}</p>
+    <label for="{{ form.description.id_for_label }}">Description{% if form.description.field.required %}<span class="rc-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
+    {{ form.description }}
+    {% if form.description.errors %}
+      <p class="rc-field-error" id="{{ form.description.id_for_label }}-error" role="alert">{{ form.description.errors.0 }}</p>
     {% endif %}
   </div>
 
   <div class="rc-field-row">
     <div class="rc-field{% if form.amount.errors %} has-error{% endif %}">
-      <label for="{{ form.amount.id_for_label }}"
-        >Amount (TZS){% if form.amount.field.required %}<span
-          class="rc-required"
-          aria-hidden="true"
-          >*</span
-        ><span class="visually-hidden"> (required)</span>{% endif %}</label
-      >
-      {{ form.amount }} {% if form.amount.errors %}
-      <p class="rc-field-error" role="alert">{{ form.amount.errors.0 }}</p>
+      <label for="{{ form.amount.id_for_label }}">Amount (TZS){% if form.amount.field.required %}<span class="rc-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
+      <div class="rc-input-affix">
+        <span class="rc-affix" aria-hidden="true">TZS</span>
+        {{ form.amount }}
+      </div>
+      {% if form.amount.errors %}
+        <p class="rc-field-error" id="{{ form.amount.id_for_label }}-error" role="alert">{{ form.amount.errors.0 }}</p>
       {% endif %}
     </div>
-    <div
-      class="rc-field{% if form.payment_method.errors %} has-error{% endif %}"
-    >
-      <label for="{{ form.payment_method.id_for_label }}"
-        >Payment Method{% if form.payment_method.field.required %}<span
-          class="rc-required"
-          aria-hidden="true"
-          >*</span
-        ><span class="visually-hidden"> (required)</span>{% endif %}</label
-      >
-      {{ form.payment_method }} {% if form.payment_method.errors %}
-      <p class="rc-field-error" role="alert">
-        {{ form.payment_method.errors.0 }}
-      </p>
+
+    <div class="rc-field{% if form.payment_method.errors %} has-error{% endif %}">
+      <label for="{{ form.payment_method.id_for_label }}">Payment Method{% if form.payment_method.field.required %}<span class="rc-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
+      {{ form.payment_method }}
+      {% if form.payment_method.errors %}
+        <p class="rc-field-error" id="{{ form.payment_method.id_for_label }}-error" role="alert">{{ form.payment_method.errors.0 }}</p>
       {% endif %}
     </div>
   </div>

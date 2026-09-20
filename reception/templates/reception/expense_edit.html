@@ -29,31 +29,27 @@
           <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
           Save Changes
         </button>
-        <button type="submit" name="action" value="submit" class="btn btn-primary"
-                onclick="return confirm('Submit this expense? You will not be able to view, edit, or access it again after submitting.');">
+        <button type="submit" name="action" value="submit" class="btn btn-primary" data-confirm-submit>
           <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
           Submit Expense
         </button>
       </div>
     </form>
+
+    <dialog id="submit-dialog" class="rc-dialog" aria-labelledby="submit-dialog-title" aria-describedby="submit-dialog-text">
+      <div class="rc-dialog-body">
+        <h3 id="submit-dialog-title">Submit this expense?</h3>
+        <p id="submit-dialog-text">After you submit, you will not be able to view, edit, or access this expense again.</p>
+      </div>
+      <div class="rc-dialog-actions">
+        <button type="button" class="btn btn-outline" data-dialog-cancel>Keep Editing</button>
+        <button type="button" class="btn btn-primary" data-dialog-confirm>Yes, Submit</button>
+      </div>
+    </dialog>
   </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script>
-  const categoryField = document.getElementById("{{ form.category.id_for_label }}");
-  const otherCategoryField = document.getElementById("other-category-field");
-  const otherCategoryInput = document.getElementById("{{ form.other_category.id_for_label }}");
-
-  function updateOtherCategory() {
-    const isOther = categoryField.value === "OTHER";
-    otherCategoryField.hidden = !isOther;
-    otherCategoryInput.required = isOther;
-    if (!isOther) otherCategoryInput.value = "";
-  }
-
-  categoryField.addEventListener("change", updateOtherCategory);
-  updateOtherCategory();
-</script>
+<script src="{% static 'reception/js/expense_form.js' %}" defer></script>
 {% endblock %}

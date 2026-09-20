@@ -36,19 +36,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-  const categoryField = document.getElementById("{{ form.category.id_for_label }}");
-  const otherCategoryField = document.getElementById("other-category-field");
-  const otherCategoryInput = document.getElementById("{{ form.other_category.id_for_label }}");
-
-  function updateOtherCategory() {
-    const isOther = categoryField.value === "OTHER";
-    otherCategoryField.hidden = !isOther;
-    otherCategoryInput.required = isOther;
-    if (!isOther) otherCategoryInput.value = "";
-  }
-
-  categoryField.addEventListener("change", updateOtherCategory);
-  updateOtherCategory();
-</script>
+<script src="{% static 'reception/js/expense_form.js' %}" defer></script>
 {% endblock %}

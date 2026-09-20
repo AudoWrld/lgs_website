@@ -46,6 +46,18 @@
   margin-top: 0.35rem;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .expense-fields {
   display: flex;
   flex-direction: column;
@@ -70,7 +82,7 @@
 
 .rc-required-note .rc-required {
   margin-left: 0;
-  margin-right: 0.2rem;
+  margin-right: 0.3rem;
 }
 
 .expense-fields .rc-field-row {
@@ -99,6 +111,9 @@
   color: var(--charcoal);
   font: inherit;
   line-height: 1.4;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .expense-fields .rc-field select {
@@ -116,12 +131,38 @@
   resize: vertical;
 }
 
+.expense-fields .rc-field input:hover,
+.expense-fields .rc-field select:hover,
+.expense-fields .rc-field textarea:hover {
+  border-color: #a79f8a;
+}
+
 .expense-fields .rc-field input:focus,
 .expense-fields .rc-field select:focus,
 .expense-fields .rc-field textarea:focus {
   outline: none;
   border-color: var(--navy);
   box-shadow: 0 0 0 3px rgba(18, 62, 91, 0.18);
+}
+
+.rc-input-affix {
+  position: relative;
+}
+
+.rc-input-affix .rc-affix {
+  position: absolute;
+  top: 50%;
+  left: 0.85rem;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.expense-fields .rc-input-affix input {
+  padding-left: 3.1rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .expense-fields .rc-field.has-error input,
@@ -154,6 +195,51 @@
   border-top: 1px solid var(--line);
 }
 
+.expense-actions .btn.is-loading,
+.rc-dialog-actions .btn.is-loading {
+  opacity: 0.65;
+  cursor: progress;
+  pointer-events: none;
+}
+
+.rc-dialog {
+  width: min(92vw, 26rem);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--navy);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--charcoal);
+  box-shadow: 0 24px 60px rgba(18, 62, 91, 0.28);
+}
+
+.rc-dialog::backdrop {
+  background: rgba(16, 30, 42, 0.55);
+}
+
+.rc-dialog-body {
+  padding: 1.5rem 1.5rem 1rem;
+}
+
+.rc-dialog-body h3 {
+  margin: 0 0 0.5rem;
+  color: var(--navy);
+}
+
+.rc-dialog-body p {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  line-height: 1.55;
+}
+
+.rc-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem 1.5rem;
+}
+
 @media (max-width: 560px) {
   .expense-form-card {
     padding: 1.25rem;
@@ -163,11 +249,21 @@
     grid-template-columns: 1fr;
   }
 
-  .expense-actions {
+  .expense-actions,
+  .rc-dialog-actions {
     flex-direction: column-reverse;
   }
 
-  .expense-actions .btn {
+  .expense-actions .btn,
+  .rc-dialog-actions .btn {
     width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expense-fields .rc-field input,
+  .expense-fields .rc-field select,
+  .expense-fields .rc-field textarea {
+    transition: none;
   }
 }
