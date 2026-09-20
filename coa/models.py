@@ -30,6 +30,15 @@ class COAReportingPreference(models.Model):
         related_name="coa_preferences_set",
     )
     saved_at = models.DateTimeField(auto_now=True)
+    is_finalized = models.BooleanField(default=False)
+    finalized_at = models.DateTimeField(null=True, blank=True)
+    finalized_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="coa_preferences_finalized",
+    )
 
     class Meta:
         verbose_name = "COA Reporting Preference"
@@ -96,6 +105,26 @@ class COAGroupSample(models.Model):
                 fields=["sample"], name="sample_assigned_to_one_group_only"
             )
         ]
+
+
+class COAReportingPreferenceChange(models.Model):
+    preference = models.ForeignKey(
+        COAReportingPreference,
+        on_delete=models.CASCADE,
+        related_name="changes",
+    )
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="coa_preference_changes",
+    )
+    changed_at = models.DateTimeField(auto_now_add=True)
+    action = models.CharField(max_length=30)
+    previous_preference_type = models.CharField(max_length=15, blank=True)
+    new_preference_type = models.CharField(max_length=15, blank=True)
+    group_number = models.PositiveIntegerField(null=True, blank=True)
 
 
 class COA(models.Model):

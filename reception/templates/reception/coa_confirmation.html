@@ -3,19 +3,66 @@
 
 {% block title %}COA Preference Confirmed — {{ submission.reference }}{% endblock %}
 {% block page_title %}COA Reporting Preference{% endblock %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'reception/css/coa_reporting_preference.css' %}">{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'reception/css/coa_reporting_preference.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="coa-page">
-  <div class="rc-ref-header coa-ref-header"><div><span class="rc-ref-label">Submission Reference</span><h2 class="rc-ref-value">{{ submission.reference }}</h2></div><div class="rc-ref-count"><span class="rc-ref-label">Total Samples</span><span class="rc-ref-count-value">{{ submission.total_samples }}</span></div></div>
+  <div class="rc-ref-header coa-ref-header">
+    <div>
+      <span class="rc-ref-label">Submission Reference</span>
+      <h2 class="rc-ref-value">{{ submission.reference }}</h2>
+    </div>
+    <div class="rc-ref-count">
+      <span class="rc-ref-label">Total Samples</span>
+      <span class="rc-ref-count-value">{{ submission.total_samples }}</span>
+    </div>
+  </div>
+
+  {% include "reception/partials/coa_steps.html" with step=4 %}
+
   <section class="coa-panel coa-confirmation">
-    <i class='bx bx-check-circle'></i>
-    <h2>{{ preference.get_preference_type_display }} saved</h2>
-    {% if preference.preference_type == "INDIVIDUAL" and submission.total_samples == 1 %}<p>Individual COA &mdash; assigned automatically.</p>{% else %}<p>Reporting preference saved for {{ submission.reference }}.</p>{% endif %}
-    {% if preference.preference_type == "CUSTOM_GROUP" %}
-      <div class="coa-groups coa-confirmed-groups">{% for group in groups %}<div class="coa-group-card"><div class="coa-group-head"><h3>Group {{ group.group_number }}</h3><form method="post" action="{% url 'reception:coa_group_delete' submission.reference group.group_number %}">{% csrf_token %}<button type="submit" class="btn btn-outline"><i class='bx bx-edit'></i> Edit Group</button></form></div><ul>{% for sample in group.samples.all %}<li><strong>{{ sample.client_sample_id }}</strong><span>{{ sample.get_sample_type_display }}</span></li>{% endfor %}</ul></div>{% endfor %}</div>
+    <span class="coa-success-mark">
+      <svg viewBox="0 0 52 52" aria-hidden="true"><circle class="coa-success-ring" cx="26" cy="26" r="24"></circle><path class="coa-success-tick" d="M15 27l8 8 14-16"></path></svg>
+    </span>
+    <h2>{{ preference.get_preference_type_display }} {% if preference.is_finalized %}saved{% else %}ready to save{% endif %}</h2>
+    {% if preference.preference_type == "INDIVIDUAL" and submission.total_samples == 1 %}
+      <p>Individual COA &mdash; assigned automatically.</p>
+    {% elif not preference.is_finalized %}
+      <p>Review this selection, then save the reporting preference.</p>
+    {% else %}
+      <p>Reporting preference saved for {{ submission.reference }}.</p>
     {% endif %}
-    <a href="{% url 'reception:coa_reporting_preference' submission.reference %}?change=1" class="btn btn-outline"><i class='bx bx-edit'></i> Edit Selection</a>
+
+    <dl class="coa-summary">
+      <div><dt>Preference</dt><dd>{{ preference.get_preference_type_display }}</dd></div>
+      <div><dt>Samples</dt><dd>{{ submission.total_samples }}</dd></div>
+      {% if preference.preference_type == "CUSTOM_GROUP" %}
+        <div><dt>Groups</dt><dd>{{ groups|length }}</dd></div>
+      {% endif %}
+    </dl>
+
+    {% if preference.preference_type == "CUSTOM_GROUP" %}
+      <div class="coa-groups coa-confirmed-groups">
+        {% for group in groups %}
+          {% include "reception/partials/coa_group_card.html" %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if not preference.is_finalized %}
+      <form method="post" class="coa-finalize-form">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary"><i class='bx bx-check' aria-hidden="true"></i> Save Reporting Preference</button>
+      </form>
+    {% elif can_edit %}
+      <a href="{% url 'reception:coa_reporting_preference' submission.reference %}?change=1" class="btn btn-outline"><i class='bx bx-edit' aria-hidden="true"></i> Edit Selection</a>
+    {% else %}
+      <p class="coa-locked-note"><i class='bx bx-lock-alt' aria-hidden="true"></i> Locked because COA generation has started.</p>
+    {% endif %}
   </section>
 </div>
 {% endblock %}

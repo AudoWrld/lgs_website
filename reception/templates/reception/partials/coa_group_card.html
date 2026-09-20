@@ -1,0 +1,18 @@
+<article class="coa-group-card">
+  <div class="coa-group-head">
+    <span class="coa-group-num" aria-hidden="true">{{ group.group_number }}</span>
+    <div class="coa-group-title">
+      <h3>Group {{ group.group_number }}</h3>
+      <span>{{ group.samples.all|length }} sample{{ group.samples.all|length|pluralize }}</span>
+    </div>
+    <form method="post" action="{% url 'reception:coa_group_delete' submission.reference group.group_number %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline"><i class='bx bx-edit' aria-hidden="true"></i> Edit Group</button>
+    </form>
+  </div>
+  <ul>
+    {% for sample in group.samples.all %}
+      <li><strong>{{ sample.client_sample_id }}</strong><span>{{ sample.get_sample_type_display }}</span></li>
+    {% endfor %}
+  </ul>
+</article>

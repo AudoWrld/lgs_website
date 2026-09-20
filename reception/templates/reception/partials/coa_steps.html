@@ -1,0 +1,14 @@
+<ol class="coa-steps" aria-label="Reporting preference progress">
+  <li class="coa-step{% if step > 1 %} is-done{% elif step == 1 %} is-current{% endif %}"{% if step == 1 %} aria-current="step"{% endif %}>
+    <span class="coa-step-dot">{% if step > 1 %}<i class='bx bx-check' aria-hidden="true"></i>{% else %}1{% endif %}</span>
+    <span class="coa-step-label">Preference</span>
+  </li>
+  <li class="coa-step{% if step > 2 %} is-done{% elif step == 2 %} is-current{% endif %}"{% if step == 2 %} aria-current="step"{% endif %}>
+    <span class="coa-step-dot">{% if step > 2 %}<i class='bx bx-check' aria-hidden="true"></i>{% else %}2{% endif %}</span>
+    <span class="coa-step-label">Groups</span>
+  </li>
+  <li class="coa-step{% if step > 3 %} is-done{% elif step == 3 %} is-current{% endif %}"{% if step == 3 %} aria-current="step"{% endif %}>
+    <span class="coa-step-dot">{% if step > 3 %}<i class='bx bx-check' aria-hidden="true"></i>{% else %}3{% endif %}</span>
+    <span class="coa-step-label">Review</span>
+  </li>
+</ol>

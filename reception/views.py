@@ -16,7 +16,13 @@ from accounts.decorators import reception_required
 from accounts.forms import ClientForm, ClientSearchForm
 from accounts.models import Client, ClientEditLog
 from accounts.utils import generate_temp_password, normalize_tz_phone
-from coa.models import COAGroup, COAGroupSample, COAReportingPreference
+from coa.models import (
+    COA,
+    COAGroup,
+    COAGroupSample,
+    COAReportingPreference,
+    COAReportingPreferenceChange,
+)
 from expences.forms import ExpenseForm
 from expences.models import Expense
 from payments.views import payment_detail, payment_list
@@ -449,8 +455,17 @@ def submission_submit_review(request, submission_id):
     submission = get_object_or_404(
         Submission.objects.select_related("client"), pk=submission_id
     )
-    if request.method != "POST":
+    if submission.is_submitted:
         return redirect("reception:sample_registration_detail", slug=submission.slug)
+
+    if request.method == "POST":
+        try:
+            submission.validate_before_submit()
+        except ValidationError as exc:
+            for error in exc.messages:
+                messages.error(request, error)
+            return redirect("reception:sample_registration_detail", slug=submission.slug)
+        return redirect("reception:submission_submit_review", submission_id=submission.pk)
 
     try:
         submission.validate_before_submit()
@@ -516,12 +531,38 @@ def _save_coa_preference(preference, preference_type, user):
     preference.save()
 
 
+def _coa_generation_started(submission):
+    return COA.objects.filter(submission=submission).exists()
+
+
+def _log_coa_change(
+    preference, user, action, previous_type="", new_type="", group_number=None
+):
+    COAReportingPreferenceChange.objects.create(
+        preference=preference,
+        changed_by=user,
+        action=action,
+        previous_preference_type=previous_type,
+        new_preference_type=new_type,
+        group_number=group_number,
+    )
+
+
 @reception_required
 def coa_reporting_preference(request, reference):
     submission = _coa_submission(reference)
     total_samples = submission.total_samples
     preference = COAReportingPreference.objects.filter(submission=submission).first()
     changing = request.GET.get("change") == "1"
+
+    if (
+        changing
+        and preference is not None
+        and preference.is_finalized
+        and _coa_generation_started(submission)
+    ):
+        messages.error(request, "This reporting preference is locked because COA generation has started.")
+        return redirect("reception:coa_confirmation", reference=reference)
 
     if total_samples == 1:
         if preference is None:
@@ -533,6 +574,11 @@ def coa_reporting_preference(request, reference):
             _save_coa_preference(
                 preference, COAReportingPreference.INDIVIDUAL, request.user
             )
+            if not preference.is_finalized:
+                preference.is_finalized = True
+                preference.finalized_at = timezone.now()
+                preference.finalized_by = request.user
+                preference.save(update_fields=["is_finalized", "finalized_at", "finalized_by", "saved_at"])
         except ValidationError as exc:
             messages.error(request, exc.messages[0])
             return redirect(
@@ -571,9 +617,29 @@ def coa_reporting_preference(request, reference):
             with transaction.atomic():
                 if preference is None:
                     preference = COAReportingPreference(submission=submission)
+                previous_type = preference.preference_type
+                if preference.is_finalized and _coa_generation_started(submission):
+                    raise ValidationError("This reporting preference is locked because COA generation has started.")
                 _save_coa_preference(preference, preference_type, request.user)
-                if preference_type != COAReportingPreference.CUSTOM_GROUP:
+                if preference.is_finalized and previous_type != preference_type:
+                    _log_coa_change(
+                        preference,
+                        request.user,
+                        "SELECTION_CHANGED",
+                        previous_type=previous_type,
+                        new_type=preference_type,
+                    )
+                if preference_type == COAReportingPreference.CUSTOM_GROUP:
+                    preference.is_finalized = False
+                    preference.finalized_at = None
+                    preference.finalized_by = None
+                    preference.save(update_fields=["is_finalized", "finalized_at", "finalized_by", "saved_at"])
+                else:
                     preference.groups.all().delete()
+                    preference.is_finalized = False
+                    preference.finalized_at = None
+                    preference.finalized_by = None
+                    preference.save(update_fields=["is_finalized", "finalized_at", "finalized_by", "saved_at"])
         except ValidationError as exc:
             return render(
                 request,
@@ -609,6 +675,9 @@ def coa_custom_group_wizard(request, reference):
         submission=submission,
         preference_type=COAReportingPreference.CUSTOM_GROUP,
     )
+    if preference.is_finalized and _coa_generation_started(submission):
+        messages.error(request, "This reporting preference is locked because COA generation has started.")
+        return redirect("reception:coa_confirmation", reference=reference)
     assigned_ids = COAGroupSample.objects.filter(
         group__preference=preference
     ).values_list("sample_id", flat=True)
@@ -646,6 +715,13 @@ def coa_custom_group_wizard(request, reference):
                         for sample in selected_samples
                     ]
                 )
+                if preference.is_finalized:
+                    _log_coa_change(
+                        preference,
+                        request.user,
+                        "GROUP_ADDED",
+                        group_number=next_group_number,
+                    )
         except IntegrityError:
             messages.error(
                 request,
@@ -684,6 +760,9 @@ def coa_final_review(request, reference):
         submission=submission,
         preference_type=COAReportingPreference.CUSTOM_GROUP,
     )
+    if preference.is_finalized and _coa_generation_started(submission):
+        messages.error(request, "This reporting preference is locked because COA generation has started.")
+        return redirect("reception:coa_confirmation", reference=reference)
     if not preference.all_samples_assigned():
         return redirect("reception:coa_custom_group_wizard", reference=reference)
     groups = preference.groups.prefetch_related("samples").all()
@@ -702,9 +781,19 @@ def coa_group_delete(request, reference, group_number):
         submission=submission,
         preference_type=COAReportingPreference.CUSTOM_GROUP,
     )
+    if preference.is_finalized and _coa_generation_started(submission):
+        messages.error(request, "This reporting preference is locked because COA generation has started.")
+        return redirect("reception:coa_confirmation", reference=reference)
     group = get_object_or_404(preference.groups, group_number=group_number)
     if request.method == "POST":
         group.delete()
+        if preference.is_finalized:
+            _log_coa_change(
+                preference,
+                request.user,
+                "GROUP_DELETED",
+                group_number=group_number,
+            )
         messages.success(
             request, f"Group {group_number} removed. Assign its samples again."
         )
@@ -717,13 +806,31 @@ def coa_confirmation(request, reference):
     submission = _coa_submission(reference)
     preference = get_object_or_404(COAReportingPreference, submission=submission)
     if request.method == "POST":
+        if preference.is_finalized and _coa_generation_started(submission):
+            messages.error(request, "This reporting preference is locked because COA generation has started.")
+            return redirect("reception:coa_confirmation", reference=reference)
+        if (
+            preference.preference_type == COAReportingPreference.CUSTOM_GROUP
+            and not preference.all_samples_assigned()
+        ):
+            messages.error(request, "UNASSIGNED SAMPLES REMAIN")
+            return redirect("reception:coa_custom_group_wizard", reference=reference)
+        preference.is_finalized = True
+        preference.finalized_at = timezone.now()
+        preference.finalized_by = request.user
+        preference.save(update_fields=["is_finalized", "finalized_at", "finalized_by", "saved_at"])
         messages.success(request, "Reporting preference saved")
         return redirect("reception:coa_confirmation", reference=reference)
     groups = preference.groups.prefetch_related("samples").all()
     return render(
         request,
         "reception/coa_confirmation.html",
-        {"submission": submission, "preference": preference, "groups": groups},
+        {
+            "submission": submission,
+            "preference": preference,
+            "groups": groups,
+            "can_edit": not _coa_generation_started(submission),
+        },
     )
 
 

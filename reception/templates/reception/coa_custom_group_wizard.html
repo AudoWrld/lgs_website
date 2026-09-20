@@ -3,24 +3,51 @@
 
 {% block title %}Custom COA Groups — {{ submission.reference }}{% endblock %}
 {% block page_title %}Custom COA Groups{% endblock %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'reception/css/coa_reporting_preference.css' %}">{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'reception/css/coa_reporting_preference.css' %}">
+{% endblock %}
 
 {% block content %}
+{% widthratio remaining_count total_samples 100 as remaining_pct %}
 <div class="coa-page">
   <div class="rc-ref-header coa-ref-header">
-    <div><span class="rc-ref-label">Submission Reference</span><h2 class="rc-ref-value">{{ submission.reference }}</h2></div>
-    <div class="rc-ref-count"><span class="rc-ref-label">Samples Remaining</span><span class="rc-ref-count-value">{{ remaining_count }}</span></div>
+    <div>
+      <span class="rc-ref-label">Submission Reference</span>
+      <h2 class="rc-ref-value">{{ submission.reference }}</h2>
+    </div>
+    <div class="rc-ref-count">
+      <span class="rc-ref-label">Samples Remaining</span>
+      <span class="rc-ref-count-value">{{ remaining_count }}</span>
+    </div>
   </div>
+
+  {% include "reception/partials/coa_steps.html" with step=2 %}
+
   <section class="coa-panel">
     <div class="coa-panel-head">
-      <h2>Assign Samples to Group {{ next_group_number }}</h2>
-      <p>Group {{ next_group_number }} &mdash; {{ remaining_count }} of {{ total_samples }} total samples remaining</p>
+      <h2>Assign samples to Group {{ next_group_number }}</h2>
+      <p>{{ remaining_count }} of {{ total_samples }} samples still need a group.</p>
+      <div class="coa-meter" role="img" aria-label="{{ remaining_count }} of {{ total_samples }} samples remaining">
+        <span class="coa-meter-fill" style="width: calc(100% - {{ remaining_pct }}%)"></span>
+      </div>
     </div>
-    {% if error %}<div class="rc-form-alert">{{ error }}</div>{% endif %}
+
+    {% if error %}<div class="rc-form-alert" role="alert">{{ error }}</div>{% endif %}
+
     {% if available_samples %}
     <form method="post">
       {% csrf_token %}
-      <div class="rc-checkbox-list coa-checkbox-list">
+      <div class="coa-toolbar">
+        <span class="coa-selected" data-coa-selected aria-live="polite">0 selected</span>
+        <div class="coa-toolbar-actions">
+          <button type="button" class="coa-link-btn" data-coa-all>Select all</button>
+          <button type="button" class="coa-link-btn" data-coa-clear>Clear</button>
+        </div>
+      </div>
+
+      <div class="rc-checkbox-list coa-checkbox-list" data-coa-list>
         {% for sample in available_samples %}
         <label class="rc-checkbox-item">
           <input type="checkbox" name="sample_ids" value="{{ sample.pk }}">
@@ -28,11 +55,21 @@
         </label>
         {% endfor %}
       </div>
-      <button type="submit" class="btn btn-primary coa-submit"><i class='bx bx-right-arrow-alt'></i> Next</button>
+
+      <div class="coa-actions">
+        <button type="submit" class="btn btn-primary coa-submit" data-coa-next>Next <i class='bx bx-right-arrow-alt' aria-hidden="true"></i></button>
+      </div>
     </form>
     {% else %}
-      <div class="rc-empty-state"><i class='bx bx-check-circle'></i><p>All samples have been assigned.</p></div>
+      <div class="rc-empty-state coa-empty">
+        <span class="coa-auto-icon"><i class='bx bx-check' aria-hidden="true"></i></span>
+        <p>All samples have been assigned.</p>
+      </div>
     {% endif %}
   </section>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'reception/js/coa_reporting_preference.js' %}" defer></script>
 {% endblock %}

@@ -4,19 +4,90 @@
 }
 
 .coa-ref-header {
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.coa-steps {
+  display: flex;
+  align-items: center;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  list-style: none;
+}
+
+.coa-step {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.6rem;
+  color: #7b858c;
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.coa-step:not(:last-child)::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  margin: 0 0.9rem;
+  background: var(--line);
+}
+
+.coa-step.is-done:not(:last-child)::after {
+  background: var(--navy);
+}
+
+.coa-step-dot {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--white);
+  font-family: var(--font-head);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.coa-step-dot i {
+  font-size: 1.1rem;
+}
+
+.coa-step.is-current {
+  color: var(--navy);
+}
+
+.coa-step.is-current .coa-step-dot {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 4px rgba(243, 154, 43, 0.18);
+  color: var(--navy);
+}
+
+.coa-step.is-done {
+  color: var(--navy);
+}
+
+.coa-step.is-done .coa-step-dot {
+  border-color: var(--navy);
+  background: var(--navy);
+  color: var(--white);
 }
 
 .coa-panel {
-  padding: 1.5rem;
+  padding: 1.75rem;
   background: var(--white);
   border: 1px solid var(--line);
+  border-top: 3px solid var(--navy);
   border-radius: 6px;
 }
 
 .coa-panel-head {
-  margin-bottom: 1.25rem;
-  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.1rem;
   border-bottom: 1px solid var(--line);
 }
 
@@ -26,70 +97,163 @@
 }
 
 .coa-panel-head p,
-.coa-confirmation p {
+.coa-confirmation > p {
   margin: 0;
   color: #6e7b84;
   font-size: var(--fs-small);
 }
 
+.coa-meter {
+  height: 6px;
+  margin-top: 1rem;
+  border-radius: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.coa-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--orange);
+  transition: width 0.4s ease;
+}
+
 .coa-choice-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 1rem;
 }
 
 .coa-choice-card {
+  position: relative;
   display: flex;
-  min-height: 170px;
   flex-direction: column;
   align-items: flex-start;
-  justify-content: center;
-  gap: 0.55rem;
+  gap: 0.4rem;
   padding: 1.25rem;
   border: 1px solid var(--line);
-  border-radius: 5px;
+  border-radius: 6px;
   background: var(--white);
   color: var(--charcoal);
+  font: inherit;
   text-align: left;
   cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.coa-choice-card:hover {
-  border-color: var(--orange);
-  background: var(--off-white);
+.coa-choice-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--orange);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.25s ease;
 }
 
-.coa-choice-card i {
-  color: var(--orange);
-  font-size: 2rem;
+.coa-choice-card:hover,
+.coa-choice-card:focus-visible {
+  border-color: var(--navy);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(18, 62, 91, 0.12);
+}
+
+.coa-choice-card:hover::before,
+.coa-choice-card:focus-visible::before {
+  transform: scaleX(1);
+}
+
+.coa-choice-card:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
 }
 
 .coa-choice-card strong {
+  margin-top: 0.6rem;
   color: var(--navy);
   font-family: var(--font-head);
   font-size: 1.05rem;
 }
 
-.coa-choice-card span,
-.coa-auto-confirmed span {
+.coa-choice-desc {
   color: #6e7b84;
   font-size: var(--fs-small);
+  line-height: 1.45;
+}
+
+.coa-choice-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: auto;
+  padding-top: 0.9rem;
+  color: var(--navy);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.coa-choice-meta i {
+  font-size: 1.15rem;
+  transition: transform 0.15s ease;
+}
+
+.coa-choice-card:hover .coa-choice-meta i {
+  transform: translateX(3px);
+}
+
+.coa-sheets {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.4rem;
+  height: 52px;
+}
+
+.coa-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 34px;
+  height: 100%;
+  padding: 8px 6px;
+  border: 1px solid #cfc8b8;
+  border-radius: 3px;
+  background: var(--off-white);
+  box-shadow: 0 1px 0 rgba(18, 62, 91, 0.08);
+}
+
+.coa-sheet--mid {
+  width: 52px;
+}
+
+.coa-sheet--wide {
+  width: 84px;
+}
+
+.coa-line {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--navy);
+  opacity: 0.25;
+}
+
+.coa-line:first-child {
+  width: 60%;
+  background: var(--orange);
+  opacity: 1;
 }
 
 .coa-auto-confirmed {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
+  gap: 0.9rem;
+  padding: 1rem 1.1rem;
   border: 1px solid rgba(37, 152, 82, 0.25);
-  border-radius: 4px;
+  border-radius: 6px;
   background: rgba(37, 152, 82, 0.08);
-}
-
-.coa-auto-confirmed i,
-.coa-confirmation > i {
-  color: #1f7a45;
-  font-size: 2rem;
 }
 
 .coa-auto-confirmed div {
@@ -98,43 +262,45 @@
   gap: 0.15rem;
 }
 
+.coa-auto-confirmed strong {
+  color: var(--navy);
+}
+
+.coa-auto-confirmed span:not(.coa-auto-icon) {
+  color: #5a6a72;
+  font-size: var(--fs-small);
+}
+
+.coa-auto-icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #1f7a45;
+  color: var(--white);
+}
+
+.coa-auto-icon i {
+  font-size: 1.4rem;
+}
+
+.coa-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+}
+
 .coa-next-link,
 .coa-submit {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  margin-top: 1rem;
 }
 
-.coa-checkbox-list {
-  max-height: 400px;
-  margin-bottom: 1rem;
-}
-
-.coa-checkbox-list .rc-checkbox-item span {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-
-.coa-checkbox-list small {
-  color: #6e7b84;
-  font-size: 0.8rem;
-}
-
-.coa-groups {
-  display: grid;
-  gap: 1rem;
-}
-
-.coa-group-card {
-  padding: 1rem;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  background: var(--off-white);
-}
-
-.coa-group-head {
+.coa-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -142,10 +308,184 @@
   margin-bottom: 0.75rem;
 }
 
-.coa-group-head h3,
-.coa-group-card h3 {
+.coa-selected {
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--off-white);
+  color: #6e7b84;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.coa-selected.has-selection {
+  border-color: var(--navy);
+  background: var(--navy);
+  color: var(--white);
+}
+
+.coa-toolbar-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.coa-link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--navy);
+  font: inherit;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.coa-link-btn:hover:not(:disabled) {
+  color: var(--orange);
+}
+
+.coa-link-btn:disabled {
+  color: #b7c1c9;
+  cursor: default;
+}
+
+.coa-link-btn:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.coa-checkbox-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  max-height: 420px;
+  padding: 0.15rem;
+  overflow-y: auto;
+}
+
+.coa-checkbox-list .rc-checkbox-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--white);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.coa-checkbox-list .rc-checkbox-item:hover {
+  border-color: #a79f8a;
+}
+
+.coa-checkbox-list .rc-checkbox-item:has(input:checked) {
+  border-color: var(--navy);
+  background: rgba(18, 62, 91, 0.05);
+  box-shadow: inset 3px 0 0 var(--orange);
+}
+
+.coa-checkbox-list .rc-checkbox-item:has(input:focus-visible) {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
+.coa-checkbox-list input[type="checkbox"] {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.15rem;
+  accent-color: var(--navy);
+}
+
+.coa-checkbox-list .rc-checkbox-item span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.coa-checkbox-list strong {
+  color: var(--navy);
+  overflow-wrap: anywhere;
+}
+
+.coa-checkbox-list small {
+  color: #6e7b84;
+  font-size: 0.8rem;
+}
+
+.coa-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.coa-empty p {
+  margin: 0;
+  color: #5a6a72;
+}
+
+.coa-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.coa-group-card {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--white);
+  text-align: left;
+}
+
+.coa-group-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.coa-group-num {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--navy);
+  color: var(--white);
+  font-family: var(--font-head);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.coa-group-title {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.coa-group-title h3 {
   margin: 0;
   font-size: 1rem;
+}
+
+.coa-group-title span {
+  color: #7b858c;
+  font-size: 0.75rem;
+}
+
+.coa-group-head form {
+  margin: 0;
 }
 
 .coa-group-head .btn {
@@ -153,11 +493,11 @@
   align-items: center;
   gap: 0.3rem;
   padding: 0.4rem 0.7rem;
+  font-size: 0.8125rem;
 }
 
 .coa-group-card ul {
   display: grid;
-  gap: 0.45rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -167,13 +507,18 @@
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  padding-top: 0.45rem;
+  padding: 0.5rem 0;
   border-top: 1px solid var(--line);
   font-size: var(--fs-small);
 }
 
+.coa-group-card li strong {
+  color: var(--charcoal);
+}
+
 .coa-group-card li span {
   color: #6e7b84;
+  text-align: right;
 }
 
 .coa-review-actions {
@@ -190,36 +535,152 @@
   margin: 0;
 }
 
+.coa-review-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .coa-confirmation {
   text-align: center;
 }
 
-.coa-confirmation > i {
-  display: block;
-  margin-bottom: 0.75rem;
+.coa-success-mark {
+  display: inline-block;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 0.9rem;
 }
 
-.coa-confirmation .btn {
-  display: inline-block;
-  margin-top: 1.25rem;
+.coa-success-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: #1f7a45;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.coa-success-ring {
+  stroke-dasharray: 151;
+  stroke-dashoffset: 151;
+  animation: coa-draw 0.6s ease-out 0.05s forwards;
+}
+
+.coa-success-tick {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: coa-draw 0.35s ease-out 0.55s forwards;
+}
+
+.coa-summary {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1px;
+  max-width: 480px;
+  margin: 1.5rem auto 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.coa-summary div {
+  flex: 1;
+  min-width: 120px;
+  padding: 0.8rem 1rem;
+  background: var(--off-white);
+}
+
+.coa-summary dt {
+  margin-bottom: 0.2rem;
+  color: #7b858c;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.coa-summary dd {
+  margin: 0;
+  color: var(--navy);
+  font-family: var(--font-head);
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
 .coa-confirmed-groups {
   margin-top: 1.5rem;
-  text-align: left;
+}
+
+.coa-locked-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 1.25rem !important;
+  color: #8a5a12 !important;
+  font-weight: 600;
+}
+
+.coa-confirmation > .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 1.5rem;
+}
+
+@keyframes coa-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 @media (max-width: 700px) {
-  .coa-choice-grid {
+  .coa-panel {
+    padding: 1.25rem;
+  }
+
+  .coa-step-label {
+    display: none;
+  }
+
+  .coa-step.is-current .coa-step-label {
+    display: inline;
+  }
+
+  .coa-checkbox-list {
+    grid-template-columns: 1fr;
+  }
+
+  .coa-groups {
     grid-template-columns: 1fr;
   }
 
   .coa-review-actions {
     align-items: stretch;
-    flex-direction: column;
+    flex-direction: column-reverse;
   }
 
-  .coa-review-actions .btn {
+  .coa-review-actions .btn,
+  .coa-actions .btn {
     width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coa-choice-card,
+  .coa-choice-card::before,
+  .coa-choice-meta i,
+  .coa-meter-fill,
+  .coa-checkbox-list .rc-checkbox-item {
+    transition: none;
+  }
+
+  .coa-success-ring,
+  .coa-success-tick {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }
