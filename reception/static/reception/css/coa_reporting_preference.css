@@ -1,0 +1,225 @@
+.coa-page {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.coa-ref-header {
+  margin-bottom: 1rem;
+}
+
+.coa-panel {
+  padding: 1.5rem;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.coa-panel-head {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.coa-panel-head h2,
+.coa-confirmation h2 {
+  margin: 0 0 0.25rem;
+}
+
+.coa-panel-head p,
+.coa-confirmation p {
+  margin: 0;
+  color: #6e7b84;
+  font-size: var(--fs-small);
+}
+
+.coa-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.coa-choice-card {
+  display: flex;
+  min-height: 170px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--white);
+  color: var(--charcoal);
+  text-align: left;
+  cursor: pointer;
+}
+
+.coa-choice-card:hover {
+  border-color: var(--orange);
+  background: var(--off-white);
+}
+
+.coa-choice-card i {
+  color: var(--orange);
+  font-size: 2rem;
+}
+
+.coa-choice-card strong {
+  color: var(--navy);
+  font-family: var(--font-head);
+  font-size: 1.05rem;
+}
+
+.coa-choice-card span,
+.coa-auto-confirmed span {
+  color: #6e7b84;
+  font-size: var(--fs-small);
+}
+
+.coa-auto-confirmed {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid rgba(37, 152, 82, 0.25);
+  border-radius: 4px;
+  background: rgba(37, 152, 82, 0.08);
+}
+
+.coa-auto-confirmed i,
+.coa-confirmation > i {
+  color: #1f7a45;
+  font-size: 2rem;
+}
+
+.coa-auto-confirmed div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.coa-next-link,
+.coa-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 1rem;
+}
+
+.coa-checkbox-list {
+  max-height: 400px;
+  margin-bottom: 1rem;
+}
+
+.coa-checkbox-list .rc-checkbox-item span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.coa-checkbox-list small {
+  color: #6e7b84;
+  font-size: 0.8rem;
+}
+
+.coa-groups {
+  display: grid;
+  gap: 1rem;
+}
+
+.coa-group-card {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--off-white);
+}
+
+.coa-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.coa-group-head h3,
+.coa-group-card h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.coa-group-head .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.7rem;
+}
+
+.coa-group-card ul {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.coa-group-card li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-small);
+}
+
+.coa-group-card li span {
+  color: #6e7b84;
+}
+
+.coa-review-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.coa-review-actions form {
+  margin: 0;
+}
+
+.coa-confirmation {
+  text-align: center;
+}
+
+.coa-confirmation > i {
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.coa-confirmation .btn {
+  display: inline-block;
+  margin-top: 1.25rem;
+}
+
+.coa-confirmed-groups {
+  margin-top: 1.5rem;
+  text-align: left;
+}
+
+@media (max-width: 700px) {
+  .coa-choice-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .coa-review-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .coa-review-actions .btn {
+    width: 100%;
+  }
+}

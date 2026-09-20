@@ -1,0 +1,38 @@
+{% extends "reception/base_reception.html" %}
+{% load static %}
+
+{% block title %}Custom COA Groups — {{ submission.reference }}{% endblock %}
+{% block page_title %}Custom COA Groups{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'reception/css/coa_reporting_preference.css' %}">{% endblock %}
+
+{% block content %}
+<div class="coa-page">
+  <div class="rc-ref-header coa-ref-header">
+    <div><span class="rc-ref-label">Submission Reference</span><h2 class="rc-ref-value">{{ submission.reference }}</h2></div>
+    <div class="rc-ref-count"><span class="rc-ref-label">Samples Remaining</span><span class="rc-ref-count-value">{{ remaining_count }}</span></div>
+  </div>
+  <section class="coa-panel">
+    <div class="coa-panel-head">
+      <h2>Assign Samples to Group {{ next_group_number }}</h2>
+      <p>Group {{ next_group_number }} &mdash; {{ remaining_count }} of {{ total_samples }} total samples remaining</p>
+    </div>
+    {% if error %}<div class="rc-form-alert">{{ error }}</div>{% endif %}
+    {% if available_samples %}
+    <form method="post">
+      {% csrf_token %}
+      <div class="rc-checkbox-list coa-checkbox-list">
+        {% for sample in available_samples %}
+        <label class="rc-checkbox-item">
+          <input type="checkbox" name="sample_ids" value="{{ sample.pk }}">
+          <span><strong>{{ sample.client_sample_id }}</strong><small>{{ sample.get_sample_type_display }}{% if sample.other_sample_type %} — {{ sample.other_sample_type }}{% endif %}</small></span>
+        </label>
+        {% endfor %}
+      </div>
+      <button type="submit" class="btn btn-primary coa-submit"><i class='bx bx-right-arrow-alt'></i> Next</button>
+    </form>
+    {% else %}
+      <div class="rc-empty-state"><i class='bx bx-check-circle'></i><p>All samples have been assigned.</p></div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

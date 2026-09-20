@@ -1,7 +1,56 @@
 {% extends "reception/base_reception.html" %}
+{% load static %}
 
+{% block title %}COA Reporting Preference — {{ submission.reference }}{% endblock %}
 {% block page_title %}COA Reporting Preference{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'reception/css/coa_reporting_preference.css' %}">
+{% endblock %}
+
 {% block content %}
-<p>Choose how the client should receive the certificate of analysis.</p>
+<div class="coa-page">
+	<div class="rc-ref-header coa-ref-header">
+		<div>
+			<span class="rc-ref-label">Submission Reference</span>
+			<h2 class="rc-ref-value">{{ submission.reference }}</h2>
+		</div>
+		<div class="rc-ref-count">
+			<span class="rc-ref-label">Total Samples</span>
+			<span class="rc-ref-count-value">{{ total_samples }}</span>
+		</div>
+	</div>
+
+	<section class="coa-panel">
+		<div class="coa-panel-head">
+			<h2>Choose Reporting Preference</h2>
+			<p>Select how certificates should be reported for this submission.</p>
+		</div>
+
+		{% if error %}<div class="rc-form-alert">{{ error }}</div>{% endif %}
+
+		{% if total_samples == 1 %}
+			<div class="coa-auto-confirmed">
+				<i class='bx bx-check-circle'></i>
+				<div><strong>Individual COA</strong><span>Assigned automatically for a single-sample submission.</span></div>
+			</div>
+			<a href="{% url 'reception:coa_confirmation' submission.reference %}" class="btn btn-primary coa-next-link">Continue <i class='bx bx-right-arrow-alt'></i></a>
+		{% else %}
+			<form method="post" class="coa-choice-grid">
+				{% csrf_token %}
+				<button type="submit" name="preference_type" value="INDIVIDUAL" class="coa-choice-card">
+					<i class='bx bx-file'></i><strong>Individual COA</strong><span>One certificate for each sample.</span>
+				</button>
+				<button type="submit" name="preference_type" value="COMBINED" class="coa-choice-card">
+					<i class='bx bx-layer'></i><strong>Combined COA</strong><span>One certificate covering the submission.</span>
+				</button>
+				{% if total_samples >= 3 %}
+				<button type="submit" name="preference_type" value="CUSTOM_GROUP" class="coa-choice-card">
+					<i class='bx bx-grid-alt'></i><strong>Custom Group COA</strong><span>Assign samples into certificate groups.</span>
+				</button>
+				{% endif %}
+			</form>
+		{% endif %}
+	</section>
+</div>
 {% endblock %}

@@ -1,0 +1,24 @@
+{% extends "reception/base_reception.html" %}
+{% load static %}
+
+{% block title %}Review COA Groups — {{ submission.reference }}{% endblock %}
+{% block page_title %}Review COA Groups{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'reception/css/coa_reporting_preference.css' %}">{% endblock %}
+
+{% block content %}
+<div class="coa-page">
+  <div class="rc-ref-header coa-ref-header"><div><span class="rc-ref-label">Submission Reference</span><h2 class="rc-ref-value">{{ submission.reference }}</h2></div><div class="rc-ref-count"><span class="rc-ref-label">Groups</span><span class="rc-ref-count-value">{{ groups|length }}</span></div></div>
+  <section class="coa-panel">
+    <div class="coa-panel-head"><h2>Review Custom Groups</h2><p>Confirm the samples assigned to each COA group.</p></div>
+    <div class="coa-groups">
+      {% for group in groups %}
+      <article class="coa-group-card">
+        <div class="coa-group-head"><h3>Group {{ group.group_number }}</h3><form method="post" action="{% url 'reception:coa_group_delete' submission.reference group.group_number %}">{% csrf_token %}<button class="btn btn-outline" type="submit"><i class='bx bx-edit'></i> Edit Group</button></form></div>
+        <ul>{% for sample in group.samples.all %}<li><strong>{{ sample.client_sample_id }}</strong><span>{{ sample.get_sample_type_display }}</span></li>{% endfor %}</ul>
+      </article>
+      {% endfor %}
+    </div>
+    <div class="coa-review-actions"><a href="{% url 'reception:coa_custom_group_wizard' submission.reference %}" class="btn btn-outline">Back</a><form method="post" action="{% url 'reception:coa_confirmation' submission.reference %}">{% csrf_token %}<button type="submit" class="btn btn-primary"><i class='bx bx-check'></i> Save Reporting Preference</button></form></div>
+  </section>
+</div>
+{% endblock %}

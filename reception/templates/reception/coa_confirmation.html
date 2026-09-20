@@ -1,0 +1,21 @@
+{% extends "reception/base_reception.html" %}
+{% load static %}
+
+{% block title %}COA Preference Confirmed — {{ submission.reference }}{% endblock %}
+{% block page_title %}COA Reporting Preference{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'reception/css/coa_reporting_preference.css' %}">{% endblock %}
+
+{% block content %}
+<div class="coa-page">
+  <div class="rc-ref-header coa-ref-header"><div><span class="rc-ref-label">Submission Reference</span><h2 class="rc-ref-value">{{ submission.reference }}</h2></div><div class="rc-ref-count"><span class="rc-ref-label">Total Samples</span><span class="rc-ref-count-value">{{ submission.total_samples }}</span></div></div>
+  <section class="coa-panel coa-confirmation">
+    <i class='bx bx-check-circle'></i>
+    <h2>{{ preference.get_preference_type_display }} saved</h2>
+    {% if preference.preference_type == "INDIVIDUAL" and submission.total_samples == 1 %}<p>Individual COA &mdash; assigned automatically.</p>{% else %}<p>Reporting preference saved for {{ submission.reference }}.</p>{% endif %}
+    {% if preference.preference_type == "CUSTOM_GROUP" %}
+      <div class="coa-groups coa-confirmed-groups">{% for group in groups %}<div class="coa-group-card"><div class="coa-group-head"><h3>Group {{ group.group_number }}</h3><form method="post" action="{% url 'reception:coa_group_delete' submission.reference group.group_number %}">{% csrf_token %}<button type="submit" class="btn btn-outline"><i class='bx bx-edit'></i> Edit Group</button></form></div><ul>{% for sample in group.samples.all %}<li><strong>{{ sample.client_sample_id }}</strong><span>{{ sample.get_sample_type_display }}</span></li>{% endfor %}</ul></div>{% endfor %}</div>
+    {% endif %}
+    <a href="{% url 'reception:coa_reporting_preference' submission.reference %}?change=1" class="btn btn-outline"><i class='bx bx-edit'></i> Edit Selection</a>
+  </section>
+</div>
+{% endblock %}

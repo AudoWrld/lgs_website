@@ -520,12 +520,15 @@ def _save_coa_preference(preference, preference_type, user):
 def coa_reporting_preference(request, reference):
     submission = _coa_submission(reference)
     total_samples = submission.total_samples
-    preference, _ = COAReportingPreference.objects.get_or_create(
-        submission=submission,
-        defaults={"preference_type": COAReportingPreference.INDIVIDUAL},
-    )
+    preference = COAReportingPreference.objects.filter(submission=submission).first()
+    changing = request.GET.get("change") == "1"
 
     if total_samples == 1:
+        if preference is None:
+            preference = COAReportingPreference(
+                submission=submission,
+                preference_type=COAReportingPreference.INDIVIDUAL,
+            )
         try:
             _save_coa_preference(
                 preference, COAReportingPreference.INDIVIDUAL, request.user
@@ -534,6 +537,17 @@ def coa_reporting_preference(request, reference):
             messages.error(request, exc.messages[0])
             return redirect("reception:sample_registration_detail", slug=submission.slug)
         return redirect("reception:coa_confirmation", reference=reference)
+
+    if request.method == "GET" and not changing and preference is not None:
+        if preference.preference_type == COAReportingPreference.CUSTOM_GROUP:
+            if preference.all_samples_assigned():
+                return redirect("reception:coa_confirmation", reference=reference)
+            return redirect("reception:coa_custom_group_wizard", reference=reference)
+        if preference.preference_type in (
+            COAReportingPreference.INDIVIDUAL,
+            COAReportingPreference.COMBINED,
+        ):
+            return redirect("reception:coa_confirmation", reference=reference)
 
     if request.method == "POST":
         preference_type = request.POST.get("preference_type")
@@ -549,6 +563,8 @@ def coa_reporting_preference(request, reference):
 
         try:
             with transaction.atomic():
+                if preference is None:
+                    preference = COAReportingPreference(submission=submission)
                 _save_coa_preference(preference, preference_type, request.user)
                 if preference_type != COAReportingPreference.CUSTOM_GROUP:
                     preference.groups.all().delete()
