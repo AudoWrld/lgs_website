@@ -62,6 +62,16 @@ urlpatterns = [
         name="client_submission_form",
     ),
     path(
+        "client-submission/<path:reference>/reissue-password/",
+        views.client_reissue_temp_password,
+        name="client_reissue_temp_password",
+    ),
+    path(
+        "client-submission/<path:reference>/pdf/",
+        views.client_submission_form_pdf,
+        name="client_submission_form_pdf",
+    ),
+    path(
         "client-submission/<path:reference>/",
         views.client_submission_form_detail,
         name="client_submission_form_detail",

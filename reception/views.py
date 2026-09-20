@@ -21,6 +21,8 @@ from samples.models import Sample
 from submissions.models import Submission
 from payments.models import Payment, PaymentAccount
 from submissions.models import Submission
+from django.http import HttpResponse
+from reception.pdf import render_client_submission_form_pdf
 
 PAGE_SIZE = 10
 
@@ -198,7 +200,9 @@ def client_register(request):
                     request,
                     f"Client registered: {client.client_name} — submission {submission.reference} started.",
                 )
-                return redirect("reception:sample_registration_detail", slug=submission.slug)
+                return redirect(
+                    "reception:sample_registration_detail", slug=submission.slug
+                )
 
     return render(
         request,
@@ -348,7 +352,9 @@ def sample_registration_detail(request, slug):
             sample.save()
             form.save_m2m()
             messages.success(request, f"Sample {sample.client_sample_id} added.")
-            return redirect("reception:sample_registration_detail", slug=submission.slug)
+            return redirect(
+                "reception:sample_registration_detail", slug=submission.slug
+            )
     else:
         form = SampleForm(submission=submission)
 
@@ -365,7 +371,9 @@ def sample_registration_detail(request, slug):
 
 @reception_required
 def sample_edit(request, submission_slug, sample_slug):
-    submission = get_object_or_404(Submission.objects.select_related("client"), slug=submission_slug)
+    submission = get_object_or_404(
+        Submission.objects.select_related("client"), slug=submission_slug
+    )
     sample = get_object_or_404(
         Sample.objects.select_related("submission"),
         submission=submission,
@@ -381,7 +389,9 @@ def sample_edit(request, submission_slug, sample_slug):
         if form.is_valid():
             form.save()
             messages.success(request, f"Sample {sample.client_sample_id} updated.")
-            return redirect("reception:sample_registration_detail", slug=submission.slug)
+            return redirect(
+                "reception:sample_registration_detail", slug=submission.slug
+            )
     else:
         form = SampleForm(instance=sample, submission=submission)
 
@@ -487,6 +497,35 @@ def client_submission_form(request):
 
 
 @reception_required
+def client_reissue_temp_password(request, reference):
+    submission = get_object_or_404(Submission, reference=reference)
+    client = submission.client
+
+    if not client.portal_user:
+        messages.error(request, "This client has no portal account yet.")
+        return redirect("reception:client_submission_form_detail", reference=reference)
+
+    if not client.portal_user.must_change_password:
+        messages.warning(
+            request,
+            "This client has already logged in and set their own password — "
+            "reissuing is not available. Ask them to use 'Forgot Password' instead.",
+        )
+        return redirect("reception:client_submission_form_detail", reference=reference)
+
+    new_temp_password = generate_temp_password()
+    client.portal_user.set_password(new_temp_password)
+    client.portal_user.must_change_password = True
+    client.portal_user.save(update_fields=["password", "must_change_password"])
+
+    request.session["reissued_temp_password"] = new_temp_password
+    request.session["reissued_client_id"] = client.pk
+
+    messages.success(request, "New temporary password generated.")
+    return redirect("reception:client_submission_form_detail", reference=reference)
+
+
+@reception_required
 def client_submission_form_detail(request, reference):
     submission = get_object_or_404(
         Submission.objects.select_related("client"),
@@ -502,45 +541,143 @@ def client_submission_form_detail(request, reference):
 
     sample_types = sorted(set(s.get_sample_type_display() for s in samples))
 
-    services = sorted(set(
-        ss.service.name
-        for s in samples
-        for ss in s.sample_services.select_related("service").all()
-    ))
+    services = sorted(
+        set(
+            ss.service.name
+            for s in samples
+            for ss in s.sample_services.select_related("service").all()
+        )
+    )
 
-    methods = sorted(set(
-        ss.service.method_of_analysis
-        for s in samples
-        for ss in s.sample_services.select_related("service").all()
-        if ss.service.method_of_analysis
-    ))
+    methods = sorted(
+        set(
+            ss.service.method_of_analysis
+            for s in samples
+            for ss in s.sample_services.select_related("service").all()
+            if ss.service.method_of_analysis
+        )
+    )
 
     has_outstanding = payment.payment_status in (Payment.UNPAID, Payment.PARTIALLY_PAID)
-    payment_accounts = PaymentAccount.objects.filter(is_active=True) if has_outstanding else []
+    payment_accounts = (
+        PaymentAccount.objects.filter(is_active=True) if has_outstanding else []
+    )
 
     portal_username = client.portal_user.email if client.portal_user else None
+
     temp_password = None
-    if (
-        request.session.get("last_registered_client_id") == client.pk
-        and request.session.get("last_registered_temp_password")
-    ):
+    if request.session.get(
+        "last_registered_client_id"
+    ) == client.pk and request.session.get("last_registered_temp_password"):
         temp_password = request.session.pop("last_registered_temp_password")
         request.session.pop("last_registered_client_id", None)
         request.session.modified = True
+    elif request.session.get("reissued_client_id") == client.pk and request.session.get(
+        "reissued_temp_password"
+    ):
+        temp_password = request.session.pop("reissued_temp_password")
+        request.session.pop("reissued_client_id", None)
+        request.session.modified = True
 
-    return render(request, "reception/client_submission_form.html", {
-        "submission": submission,
-        "client": client,
-        "payment": payment,
-        "total_samples": samples.count(),
-        "sample_types": sample_types,
-        "services": services,
-        "methods": methods,
-        "has_outstanding": has_outstanding,
-        "payment_accounts": payment_accounts,
-        "portal_username": portal_username,
-        "temp_password": temp_password,
-    })
+    can_reissue_password = bool(
+        client.portal_user and client.portal_user.must_change_password
+    )
+
+    return render(
+        request,
+        "reception/client_submission_form.html",
+        {
+            "submission": submission,
+            "client": client,
+            "payment": payment,
+            "total_samples": samples.count(),
+            "sample_types": sample_types,
+            "services": services,
+            "methods": methods,
+            "has_outstanding": has_outstanding,
+            "payment_accounts": payment_accounts,
+            "portal_username": portal_username,
+            "temp_password": temp_password,
+            "can_reissue_password": can_reissue_password,
+        },
+    )
+
+
+@reception_required
+def client_submission_form_pdf(request, reference):
+    submission = get_object_or_404(
+        Submission.objects.select_related("client"),
+        reference=reference,
+        is_submitted=True,
+    )
+    client = submission.client
+    payment, _ = Payment.objects.get_or_create(submission=submission)
+    payment.recalculate_gross_amount()
+    payment.save(update_fields=["gross_amount"])
+
+    samples = submission.samples.all()
+
+    sample_types = sorted(set(s.get_sample_type_display() for s in samples))
+    services = sorted(
+        set(
+            ss.service.name
+            for s in samples
+            for ss in s.sample_services.select_related("service").all()
+        )
+    )
+    methods = sorted(
+        set(
+            ss.service.method_of_analysis
+            for s in samples
+            for ss in s.sample_services.select_related("service").all()
+            if ss.service.method_of_analysis
+        )
+    )
+
+    has_outstanding = payment.payment_status in (Payment.UNPAID, Payment.PARTIALLY_PAID)
+    payment_accounts = (
+        PaymentAccount.objects.filter(is_active=True) if has_outstanding else []
+    )
+
+    portal_username = client.portal_user.email if client.portal_user else None
+
+    temp_password = None
+    if request.session.get(
+        "last_registered_client_id"
+    ) == client.pk and request.session.get("last_registered_temp_password"):
+        temp_password = request.session.pop("last_registered_temp_password")
+        request.session.pop("last_registered_client_id", None)
+        request.session.modified = True
+    elif request.session.get("reissued_client_id") == client.pk and request.session.get(
+        "reissued_temp_password"
+    ):
+        temp_password = request.session.pop("reissued_temp_password")
+        request.session.pop("reissued_client_id", None)
+        request.session.modified = True
+
+    pdf_bytes = render_client_submission_form_pdf(
+        {
+            "submission": submission,
+            "client": client,
+            "payment": payment,
+            "total_samples": samples.count(),
+            "sample_types": sample_types,
+            "services": services,
+            "methods": methods,
+            "has_outstanding": has_outstanding,
+            "payment_accounts": payment_accounts,
+            "portal_username": portal_username,
+            "temp_password": temp_password,
+        }
+    )
+
+    filename = (
+        f"LGS_Client_Submission_Form_{submission.reference.replace('/', '-')}.pdf"
+    )
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    disposition = "inline" if request.GET.get("view") == "1" else "attachment"
+    response["Content-Disposition"] = f'{disposition}; filename="{filename}"'
+    return response
 
 
 @reception_required
