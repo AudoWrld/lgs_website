@@ -1,8 +1,80 @@
 {% extends "reception/base_reception.html" %}
+{% load static %}
 
+{% block title %}Dashboard — LGS Reception{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'reception/css/reception_dashboard.css' %}">
+{% endblock %}
+
 {% block content %}
-  <h1>Welcome to the Reception Dashboard</h1>
-  <p>This is a simple dashboard for the reception area.</p>
+
+<div class="dash-stats">
+  <div class="dash-stat-card">
+    <span class="dash-stat-label">Today's Submissions</span>
+    <span class="dash-stat-value">{{ today_submissions_count }}</span>
+  </div>
+  <div class="dash-stat-card dash-stat-warning">
+    <span class="dash-stat-label">Pending Payments</span>
+    <span class="dash-stat-value">{{ pending_payments_count }}</span>
+  </div>
+  <div class="dash-stat-card dash-stat-warning">
+    <span class="dash-stat-label">Awaiting Worksheet</span>
+    <span class="dash-stat-value">{{ awaiting_worksheet_count }}</span>
+  </div>
+</div>
+
+<div class="dash-actions">
+
+  <a href="{% url 'reception:client_search' %}" class="dash-action-card">
+    <i class='bx bx-user-plus'></i>
+    <span class="dash-action-title">New Client Submission</span>
+    <span class="dash-action-desc">Search or register a client and start a new submission</span>
+  </a>
+
+  <a href="{% url 'reception:client_search' %}" class="dash-action-card">
+    <i class='bx bx-search-alt'></i>
+    <span class="dash-action-title">Search Client</span>
+    <span class="dash-action-desc">Find an existing client's record</span>
+  </a>
+
+  <a href="{% url 'reception:sample_registration' %}" class="dash-action-card">
+    <i class='bx bx-flask'></i>
+    <span class="dash-action-title">Sample Registration</span>
+    <span class="dash-action-desc">Add samples under an active submission reference</span>
+  </a>
+
+  <a href="{% url 'reception:coa_reporting_preference' %}" class="dash-action-card">
+    <i class='bx bx-list-check'></i>
+    <span class="dash-action-title">COA Reporting Preference</span>
+    <span class="dash-action-desc">Assign Individual, Combined, or Custom Group COA</span>
+  </a>
+
+  <a href="{% url 'reception:generate_worksheet' %}" class="dash-action-card">
+    <i class='bx bx-file-blank'></i>
+    <span class="dash-action-title">Generate Lab Worksheet</span>
+    <span class="dash-action-desc">Automatically build laboratory worksheets</span>
+  </a>
+
+  <a href="{% url 'reception:client_submission_form' %}" class="dash-action-card">
+    <i class='bx bx-printer'></i>
+    <span class="dash-action-title">Client Submission Form</span>
+    <span class="dash-action-desc">Generate the printable client-facing form</span>
+  </a>
+
+  <a href="{% url 'reception:payment_details' %}" class="dash-action-card">
+    <i class='bx bx-wallet'></i>
+    <span class="dash-action-title">Payment Details</span>
+    <span class="dash-action-desc">View current position and update payments</span>
+  </a>
+
+  <a href="{% url 'reception:add_expense' %}" class="dash-action-card">
+    <i class='bx bx-plus-circle'></i>
+    <span class="dash-action-title">Add Expense</span>
+    <span class="dash-action-desc">Record a new expense before submission</span>
+  </a>
+
+</div>
+
 {% endblock %}

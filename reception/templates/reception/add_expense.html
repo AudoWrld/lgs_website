@@ -1,7 +1,51 @@
 {% extends "reception/base_reception.html" %}
+{% load static %}
 
+{% block title %}Add Expense — LGS Reception{% endblock %}
 {% block page_title %}Add Expense{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'reception/css/expense_form.css' %}">
+{% endblock %}
+
 {% block content %}
-<p>Capture a new reception expense for the laboratory’s operational records.</p>
+<div class="expense-form-page">
+	<div class="expense-form-card rc-panel">
+		<div class="expense-form-head">
+			<h2>Capture Expense</h2>
+			<p>Enter an expense and save it before submitting it for review.</p>
+		</div>
+
+		<form method="post" class="rc-form" novalidate>
+			{% csrf_token %}
+			{% if form.non_field_errors %}
+				<div class="rc-form-alert">{% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}</div>
+			{% endif %}
+
+			{% include "reception/partials/expense_form_fields.html" %}
+
+			<button type="submit" class="btn btn-primary rc-submit">
+				<i class='bx bx-save'></i> Create Expense
+			</button>
+		</form>
+	</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+	const categoryField = document.getElementById("{{ form.category.id_for_label }}");
+	const otherCategoryField = document.getElementById("other-category-field");
+	const otherCategoryInput = document.getElementById("{{ form.other_category.id_for_label }}");
+
+	function updateOtherCategory() {
+		const isOther = categoryField.value === "OTHER";
+		otherCategoryField.hidden = !isOther;
+		otherCategoryInput.required = isOther;
+		if (!isOther) otherCategoryInput.value = "";
+	}
+
+	categoryField.addEventListener("change", updateOtherCategory);
+	updateOtherCategory();
+</script>
 {% endblock %}

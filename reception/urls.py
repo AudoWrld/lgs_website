@@ -51,11 +51,36 @@ urlpatterns = [
         name="submission_confirm_submit",
     ),
     path(
-        "coa/reporting-preference/",
+        "coa/<path:reference>/reporting-preference/",
         views.coa_reporting_preference,
         name="coa_reporting_preference",
     ),
+    path(
+        "coa/<path:reference>/custom-groups/",
+        views.coa_custom_group_wizard,
+        name="coa_custom_group_wizard",
+    ),
+    path(
+        "coa/<path:reference>/review/",
+        views.coa_final_review,
+        name="coa_final_review",
+    ),
+    path(
+        "coa/<path:reference>/groups/<int:group_number>/delete/",
+        views.coa_group_delete,
+        name="coa_group_delete",
+    ),
+    path(
+        "coa/<path:reference>/confirmation/",
+        views.coa_confirmation,
+        name="coa_confirmation",
+    ),
     path("worksheets/new/", views.generate_worksheet, name="generate_worksheet"),
+    path(
+        "worksheets/<path:reference>/",
+        views.generate_worksheet_detail,
+        name="generate_worksheet_detail",
+    ),
     path(
         "client-submission/",
         views.client_submission_form,
@@ -79,4 +104,5 @@ urlpatterns = [
     path("payments/", views.payment_list, name="payment_details"),
     path("payments/<path:reference>/", views.payment_detail, name="payment_detail"),
     path("expenses/new/", views.add_expense, name="add_expense"),
+    path("expenses/<int:pk>/edit/", views.expense_edit, name="expense_edit"),
 ]

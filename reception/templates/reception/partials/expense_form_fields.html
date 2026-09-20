@@ -1,0 +1,32 @@
+<div class="expense-fields">
+  <div class="rc-field">
+    <label for="{{ form.category.id_for_label }}">Expense Category</label>
+    {{ form.category }}
+    {% if form.category.errors %}<span class="rc-field-error">{{ form.category.errors.0 }}</span>{% endif %}
+  </div>
+
+  <div class="rc-field" id="other-category-field">
+    <label for="{{ form.other_category.id_for_label }}">Specify Expense Category</label>
+    {{ form.other_category }}
+    {% if form.other_category.errors %}<span class="rc-field-error">{{ form.other_category.errors.0 }}</span>{% endif %}
+  </div>
+
+  <div class="rc-field">
+    <label for="{{ form.description.id_for_label }}">Description</label>
+    {{ form.description }}
+    {% if form.description.errors %}<span class="rc-field-error">{{ form.description.errors.0 }}</span>{% endif %}
+  </div>
+
+  <div class="rc-field-row">
+    <div class="rc-field">
+      <label for="{{ form.amount.id_for_label }}">Amount (TZS)</label>
+      {{ form.amount }}
+      {% if form.amount.errors %}<span class="rc-field-error">{{ form.amount.errors.0 }}</span>{% endif %}
+    </div>
+    <div class="rc-field">
+      <label for="{{ form.payment_method.id_for_label }}">Payment Method</label>
+      {{ form.payment_method }}
+      {% if form.payment_method.errors %}<span class="rc-field-error">{{ form.payment_method.errors.0 }}</span>{% endif %}
+    </div>
+  </div>
+</div>

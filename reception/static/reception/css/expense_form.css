@@ -1,0 +1,105 @@
+.expense-form-page {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.expense-form-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1.75rem;
+}
+
+.expense-form-head {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.expense-form-head h2 {
+  margin-bottom: 0.25rem;
+}
+
+.expense-form-head p {
+  margin: 0;
+  color: #6e7b84;
+  font-size: var(--fs-small);
+}
+
+.expense-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.expense-fields .rc-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.expense-fields .rc-field label {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: var(--navy);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.expense-fields .rc-field input,
+.expense-fields .rc-field select,
+.expense-fields .rc-field textarea {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--off-white);
+  color: var(--charcoal);
+  font: inherit;
+}
+
+.expense-fields .rc-field textarea {
+  resize: vertical;
+}
+
+.expense-fields .rc-field input:focus,
+.expense-fields .rc-field select:focus,
+.expense-fields .rc-field textarea:focus {
+  outline: none;
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px rgba(18, 62, 91, 0.12);
+  background: var(--white);
+}
+
+.expense-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.expense-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+@media (max-width: 560px) {
+  .expense-form-card {
+    padding: 1.25rem;
+  }
+
+  .expense-fields .rc-field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .expense-actions {
+    flex-direction: column-reverse;
+  }
+
+  .expense-actions .btn {
+    justify-content: center;
+  }
+}
