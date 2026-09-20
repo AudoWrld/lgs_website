@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils.text import slugify
 
 
 class Expense(models.Model):
@@ -54,6 +55,9 @@ class Expense(models.Model):
     ]
 
     category = models.CharField(max_length=30, choices=CATEGORY_CHOICES)
+    slug = models.SlugField(
+        max_length=160, unique=True, editable=False, blank=True
+    )
     other_category = models.CharField(max_length=100, blank=True)
     description = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
@@ -86,3 +90,14 @@ class Expense(models.Model):
 
     objects = models.Manager()
     reception_visible = ReceptionVisibleManager()
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base = slugify(f"{self.category}-{self.description}") or "expense"
+            candidate = base
+            suffix = 2
+            while type(self).objects.filter(slug=candidate).exclude(pk=self.pk).exists():
+                candidate = f"{base}-{suffix}"
+                suffix += 1
+            self.slug = candidate
+        super().save(*args, **kwargs)

@@ -535,7 +535,9 @@ def coa_reporting_preference(request, reference):
             )
         except ValidationError as exc:
             messages.error(request, exc.messages[0])
-            return redirect("reception:sample_registration_detail", slug=submission.slug)
+            return redirect(
+                "reception:sample_registration_detail", slug=submission.slug
+            )
         return redirect("reception:coa_confirmation", reference=reference)
 
     if request.method == "GET" and not changing and preference is not None:
@@ -558,7 +560,11 @@ def coa_reporting_preference(request, reference):
             return render(
                 request,
                 "reception/coa_reporting_preference.html",
-                {"submission": submission, "total_samples": total_samples, "error": "Choose a valid reporting preference."},
+                {
+                    "submission": submission,
+                    "total_samples": total_samples,
+                    "error": "Choose a valid reporting preference.",
+                },
             )
 
         try:
@@ -572,7 +578,11 @@ def coa_reporting_preference(request, reference):
             return render(
                 request,
                 "reception/coa_reporting_preference.html",
-                {"submission": submission, "total_samples": total_samples, "error": exc.messages[0]},
+                {
+                    "submission": submission,
+                    "total_samples": total_samples,
+                    "error": exc.messages[0],
+                },
             )
 
         if preference_type == COAReportingPreference.CUSTOM_GROUP:
@@ -582,7 +592,11 @@ def coa_reporting_preference(request, reference):
     return render(
         request,
         "reception/coa_reporting_preference.html",
-        {"submission": submission, "total_samples": total_samples, "preference": preference},
+        {
+            "submission": submission,
+            "total_samples": total_samples,
+            "preference": preference,
+        },
     )
 
 
@@ -607,7 +621,13 @@ def coa_custom_group_wizard(request, reference):
             return render(
                 request,
                 "reception/coa_custom_group_wizard.html",
-                {"submission": submission, "preference": preference, "available_samples": available_samples, "next_group_number": next_group_number, "error": "Select at least one sample for this group."},
+                {
+                    "submission": submission,
+                    "preference": preference,
+                    "available_samples": available_samples,
+                    "next_group_number": next_group_number,
+                    "error": "Select at least one sample for this group.",
+                },
             )
         selected_samples = list(
             submission.samples.filter(pk__in=selected_ids).exclude(pk__in=assigned_ids)
@@ -621,10 +641,16 @@ def coa_custom_group_wizard(request, reference):
                     preference=preference, group_number=next_group_number
                 )
                 COAGroupSample.objects.bulk_create(
-                    [COAGroupSample(group=group, sample=sample) for sample in selected_samples]
+                    [
+                        COAGroupSample(group=group, sample=sample)
+                        for sample in selected_samples
+                    ]
                 )
         except IntegrityError:
-            messages.error(request, "One or more selected samples were already assigned. Please try again.")
+            messages.error(
+                request,
+                "One or more selected samples were already assigned. Please try again.",
+            )
             return redirect("reception:coa_custom_group_wizard", reference=reference)
 
         if preference.all_samples_assigned():
@@ -679,7 +705,9 @@ def coa_group_delete(request, reference, group_number):
     group = get_object_or_404(preference.groups, group_number=group_number)
     if request.method == "POST":
         group.delete()
-        messages.success(request, f"Group {group_number} removed. Assign its samples again.")
+        messages.success(
+            request, f"Group {group_number} removed. Assign its samples again."
+        )
         return redirect("reception:coa_custom_group_wizard", reference=reference)
     return redirect("reception:coa_final_review", reference=reference)
 
@@ -986,16 +1014,16 @@ def add_expense(request):
             expense.is_submitted = False
             expense.added_by = request.user
             expense.save()
-            return redirect("reception:expense_edit", pk=expense.pk)
+            return redirect("reception:expense_edit", slug=expense.slug)
     else:
         form = ExpenseForm()
 
-    return render(request, "reception/add_expense.html", {"form": form})
+    return render(request, "reception/expense_add.html", {"form": form})
 
 
 @reception_required
-def expense_edit(request, pk):
-    expense = get_object_or_404(Expense.reception_visible, pk=pk)
+def expense_edit(request, slug):
+    expense = get_object_or_404(Expense.reception_visible, slug=slug)
 
     if request.method == "POST":
         form = ExpenseForm(request.POST, instance=expense)
@@ -1011,7 +1039,7 @@ def expense_edit(request, pk):
 
             form.save()
             messages.success(request, "Expense changes saved.")
-            return redirect("reception:expense_edit", pk=expense.pk)
+            return redirect("reception:expense_edit", slug=expense.slug)
     else:
         form = ExpenseForm(instance=expense)
 

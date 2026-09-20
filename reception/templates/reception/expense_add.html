@@ -1,8 +1,8 @@
 {% extends "reception/base_reception.html" %}
 {% load static %}
 
-{% block title %}Edit Expense — LGS Reception{% endblock %}
-{% block page_title %}Edit Expense{% endblock %}
+{% block title %}Add Expense — LGS Reception{% endblock %}
+{% block page_title %}Add Expense{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'reception/css/expense_form.css' %}">
@@ -12,8 +12,8 @@
 <div class="expense-form-page">
   <div class="expense-form-card rc-panel">
     <div class="expense-form-head">
-      <h2>Edit Expense</h2>
-      <p>Save changes while this expense is still available to Reception.</p>
+      <h2>Capture Expense</h2>
+      <p>Enter an expense and save it before submitting it for review.</p>
     </div>
 
     <form method="post" class="rc-form" novalidate>
@@ -25,14 +25,9 @@
       {% include "reception/partials/expense_form_fields.html" %}
 
       <div class="expense-actions">
-        <button type="submit" name="action" value="save" class="btn btn-outline">
+        <button type="submit" class="btn btn-primary rc-submit">
           <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-          Save Changes
-        </button>
-        <button type="submit" name="action" value="submit" class="btn btn-primary"
-                onclick="return confirm('Submit this expense? You will not be able to view, edit, or access it again after submitting.');">
-          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-          Submit Expense
+          Create Expense
         </button>
       </div>
     </form>

@@ -6,8 +6,9 @@
 .expense-form-card {
   background: var(--white);
   border: 1px solid var(--line);
-  border-radius: 4px;
-  padding: 1.75rem;
+  border-top: 3px solid var(--navy);
+  border-radius: var(--radius);
+  padding: 2rem;
 }
 
 .expense-form-head {
@@ -22,20 +23,61 @@
 
 .expense-form-head p {
   margin: 0;
-  color: #6e7b84;
+  color: var(--muted);
   font-size: var(--fs-small);
+}
+
+.expense-form-card .rc-form-alert {
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 1rem;
+  background: var(--error-bg);
+  border: 1px solid var(--error-text);
+  border-left-width: 4px;
+  border-radius: var(--radius);
+  color: var(--error-text);
+  font-size: var(--fs-small);
+}
+
+.expense-form-card .rc-form-alert p {
+  margin: 0;
+}
+
+.expense-form-card .rc-form-alert p + p {
+  margin-top: 0.35rem;
 }
 
 .expense-fields {
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: 1.25rem;
+}
+
+.expense-fields [hidden] {
+  display: none;
+}
+
+.rc-required-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.rc-required {
+  color: var(--error-text);
+  font-weight: 700;
+  margin-left: 0.2rem;
+}
+
+.rc-required-note .rc-required {
+  margin-left: 0;
+  margin-right: 0.2rem;
 }
 
 .expense-fields .rc-field-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.25rem;
+  align-items: start;
 }
 
 .expense-fields .rc-field label {
@@ -50,15 +92,27 @@
 .expense-fields .rc-field select,
 .expense-fields .rc-field textarea {
   width: 100%;
-  padding: 0.65rem 0.85rem;
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  background: var(--off-white);
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #c9c2b2;
+  border-radius: var(--radius);
+  background-color: var(--white);
   color: var(--charcoal);
   font: inherit;
+  line-height: 1.4;
+}
+
+.expense-fields .rc-field select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%23123e5b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  cursor: pointer;
 }
 
 .expense-fields .rc-field textarea {
+  min-height: 6rem;
   resize: vertical;
 }
 
@@ -67,8 +121,28 @@
 .expense-fields .rc-field textarea:focus {
   outline: none;
   border-color: var(--navy);
-  box-shadow: 0 0 0 3px rgba(18, 62, 91, 0.12);
-  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(18, 62, 91, 0.18);
+}
+
+.expense-fields .rc-field.has-error input,
+.expense-fields .rc-field.has-error select,
+.expense-fields .rc-field.has-error textarea {
+  border-color: var(--error-text);
+  background-color: #fffafa;
+}
+
+.expense-fields .rc-field.has-error input:focus,
+.expense-fields .rc-field.has-error select:focus,
+.expense-fields .rc-field.has-error textarea:focus {
+  border-color: var(--error-text);
+  box-shadow: 0 0 0 3px rgba(161, 42, 42, 0.2);
+}
+
+.rc-field-error {
+  margin: 0.4rem 0 0;
+  color: var(--error-text);
+  font-size: 0.8125rem;
+  font-weight: 500;
 }
 
 .expense-actions {
@@ -78,12 +152,6 @@
   margin-top: 1.5rem;
   padding-top: 1.25rem;
   border-top: 1px solid var(--line);
-}
-
-.expense-actions .btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
 }
 
 @media (max-width: 560px) {
@@ -100,6 +168,6 @@
   }
 
   .expense-actions .btn {
-    justify-content: center;
+    width: 100%;
   }
 }

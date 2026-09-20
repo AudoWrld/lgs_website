@@ -104,5 +104,5 @@ urlpatterns = [
     path("payments/", views.payment_list, name="payment_details"),
     path("payments/<path:reference>/", views.payment_detail, name="payment_detail"),
     path("expenses/new/", views.add_expense, name="add_expense"),
-    path("expenses/<int:pk>/edit/", views.expense_edit, name="expense_edit"),
+    path("expenses/<slug:slug>/edit/", views.expense_edit, name="expense_edit"),
 ]
