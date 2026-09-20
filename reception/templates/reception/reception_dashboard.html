@@ -5,70 +5,167 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
 <link rel="stylesheet" href="{% static 'reception/css/reception_dashboard.css' %}">
 {% endblock %}
 
 {% block content %}
+{% firstof request.user.first_name request.user.get_full_name "there" as display_name %}
 
-<div class="dash-stats">
+<section class="dash-hero">
+  <div class="dash-hero-main">
+    <div class="dash-hero-meta">
+      <i class='bx bx-time-five' aria-hidden="true"></i>
+      <span data-date>{% now "l, j F Y" %}</span>
+      <span class="dash-hero-divider" aria-hidden="true"></span>
+      <span><span data-time>{% now "H:i" %}</span> EAT</span>
+    </div>
+    <h1 class="dash-hero-title"><span data-greeting>Welcome back</span>, {{ display_name }}</h1>
+    <p class="dash-hero-sub">
+      {% if pending_payments_count or awaiting_worksheet_count %}
+        You have {{ pending_payments_count }} pending payment{{ pending_payments_count|pluralize }} and {{ awaiting_worksheet_count }} awaiting a worksheet.
+      {% else %}
+        You're all caught up. Nothing needs your attention right now.
+      {% endif %}
+    </p>
+  </div>
+  <div class="dash-hero-actions">
+    <a href="{% url 'reception:client_search' %}" class="dash-hero-btn dash-hero-btn--primary"><i class='bx bx-user-plus' aria-hidden="true"></i> New Submission</a>
+    <a href="{% url 'reception:payment_details' %}" class="dash-hero-btn dash-hero-btn--ghost"><i class='bx bx-wallet' aria-hidden="true"></i> Payment Details</a>
+  </div>
+</section>
+
+<section class="dash-stats" aria-label="Today at a glance">
   <div class="dash-stat-card">
-    <span class="dash-stat-label">Today's Submissions</span>
-    <span class="dash-stat-value">{{ today_submissions_count }}</span>
+    <span class="dash-stat-icon"><i class='bx bx-receipt' aria-hidden="true"></i></span>
+    <div class="dash-stat-body">
+      <span class="dash-stat-label">Today's submissions</span>
+      <span class="dash-stat-value">{{ today_submissions_count }}</span>
+    </div>
   </div>
-  <div class="dash-stat-card dash-stat-warning">
-    <span class="dash-stat-label">Pending Payments</span>
-    <span class="dash-stat-value">{{ pending_payments_count }}</span>
+  <div class="dash-stat-card{% if pending_payments_count %} dash-stat-warning{% endif %}">
+    <span class="dash-stat-icon"><i class='bx bx-credit-card' aria-hidden="true"></i></span>
+    <div class="dash-stat-body">
+      <span class="dash-stat-label">Pending payments</span>
+      <span class="dash-stat-value">{{ pending_payments_count }}</span>
+      <span class="dash-stat-hint">{% if pending_payments_count %}Needs attention{% else %}All clear{% endif %}</span>
+    </div>
   </div>
-  <div class="dash-stat-card dash-stat-warning">
-    <span class="dash-stat-label">Awaiting Worksheet</span>
-    <span class="dash-stat-value">{{ awaiting_worksheet_count }}</span>
+  <div class="dash-stat-card{% if awaiting_worksheet_count %} dash-stat-warning{% endif %}">
+    <span class="dash-stat-icon"><i class='bx bx-file-blank' aria-hidden="true"></i></span>
+    <div class="dash-stat-body">
+      <span class="dash-stat-label">Awaiting worksheet</span>
+      <span class="dash-stat-value">{{ awaiting_worksheet_count }}</span>
+      <span class="dash-stat-hint">{% if awaiting_worksheet_count %}Needs attention{% else %}All clear{% endif %}</span>
+    </div>
   </div>
+  <div class="dash-stat-card">
+    <span class="dash-stat-icon"><i class='bx bx-money' aria-hidden="true"></i></span>
+    <div class="dash-stat-body">
+      <span class="dash-stat-label">Today's expenses</span>
+      <span class="dash-stat-value">{{ todays_expenses_count }}</span>
+    </div>
+  </div>
+</section>
+
+<div class="dash-grid">
+  <div class="dash-col">
+    <section class="dash-panel">
+      <div class="dash-panel-head">
+        <h3>Submissions this week</h3>
+        <span>Last 7 days</span>
+      </div>
+      <div class="dash-graph">
+        <canvas id="dash-graph-canvas" aria-hidden="true"></canvas>
+      </div>
+      <ul class="dash-graph-data">
+        {% for item in weekly_chart %}
+        <li data-label="{{ item.label }}" data-count="{{ item.count }}">{{ item.label }}: {{ item.count }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="dash-panel">
+      <div class="dash-panel-head">
+        <h3>Recent submissions</h3>
+        <a href="{% url 'reception:sample_registration' %}" class="dash-recent-link">View all</a>
+      </div>
+      <div class="dash-recent-table">
+        <div class="dash-recent-row dash-recent-head">
+          <span>Reference</span>
+          <span>Client</span>
+          <span>Date</span>
+          <span>Status</span>
+          <span>Samples</span>
+        </div>
+        {% for submission in recent_submissions %}
+        <a href="{% url 'reception:sample_registration_detail' slug=submission.slug %}" class="dash-recent-row">
+          <span class="dash-recent-ref">{{ submission.reference }}</span>
+          <span class="dash-client">
+            <span class="dash-avatar" aria-hidden="true">{{ submission.client.client_name|slice:":1"|upper }}</span>
+            <span class="dash-client-name">{{ submission.client.client_name }}</span>
+          </span>
+          <span class="dash-recent-date">{{ submission.created_at|date:"d M Y" }}</span>
+          <span>{% if submission.is_submitted %}<span class="dash-badge dash-badge--done">Submitted</span>{% else %}<span class="dash-badge dash-badge--pending">Pending</span>{% endif %}</span>
+          <span class="dash-recent-count">{{ submission.sample_count }}</span>
+        </a>
+        {% empty %}
+        <div class="dash-recent-empty">
+          <span class="dash-empty-icon"><i class='bx bx-file' aria-hidden="true"></i></span>
+          <p>No submissions yet.</p>
+          <a href="{% url 'reception:client_search' %}" class="dash-recent-link">Start a new submission</a>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <aside class="dash-panel dash-quick">
+    <div class="dash-panel-head">
+      <h3>Quick actions</h3>
+    </div>
+    <nav class="dash-actions" aria-label="Quick actions">
+      <a href="{% url 'reception:client_search' %}" class="dash-action">
+        <span class="dash-action-icon"><i class='bx bx-user-plus' aria-hidden="true"></i></span>
+        <span class="dash-action-text"><span class="dash-action-title">New client submission</span><span class="dash-action-desc">Search or register a client and start a new submission</span></span>
+        <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
+      </a>
+      <a href="{% url 'reception:client_search' %}" class="dash-action">
+        <span class="dash-action-icon"><i class='bx bx-search-alt' aria-hidden="true"></i></span>
+        <span class="dash-action-text"><span class="dash-action-title">Search client</span><span class="dash-action-desc">Find an existing client's record</span></span>
+        <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
+      </a>
+      <a href="{% url 'reception:sample_registration' %}" class="dash-action">
+        <span class="dash-action-icon"><i class='bx bx-test-tube' aria-hidden="true"></i></span>
+        <span class="dash-action-text"><span class="dash-action-title">Sample registration</span><span class="dash-action-desc">Add samples under an active submission reference</span></span>
+        <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
+      </a>
+      <a href="{% url 'reception:generate_worksheet' %}" class="dash-action">
+        <span class="dash-action-icon"><i class='bx bx-file-blank' aria-hidden="true"></i></span>
+        <span class="dash-action-text"><span class="dash-action-title">Generate lab worksheet</span><span class="dash-action-desc">Automatically build laboratory worksheets</span></span>
+        <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
+      </a>
+      <a href="{% url 'reception:client_submission_form' %}" class="dash-action">
+        <span class="dash-action-icon"><i class='bx bx-printer' aria-hidden="true"></i></span>
+        <span class="dash-action-text"><span class="dash-action-title">Client submission form</span><span class="dash-action-desc">Generate the printable client-facing form</span></span>
+        <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
+      </a>
+      <a href="{% url 'reception:payment_details' %}" class="dash-action">
+        <span class="dash-action-icon"><i class='bx bx-wallet' aria-hidden="true"></i></span>
+        <span class="dash-action-text"><span class="dash-action-title">Payment details</span><span class="dash-action-desc">View current position and update payments</span></span>
+        <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
+      </a>
+      <a href="{% url 'reception:add_expense' %}" class="dash-action">
+        <span class="dash-action-icon"><i class='bx bx-plus-circle' aria-hidden="true"></i></span>
+        <span class="dash-action-text"><span class="dash-action-title">Add expense</span><span class="dash-action-desc">Record a new expense before submission</span></span>
+        <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
+      </a>
+    </nav>
+  </aside>
 </div>
+{% endblock %}
 
-<div class="dash-actions">
-
-  <a href="{% url 'reception:client_search' %}" class="dash-action-card">
-    <i class='bx bx-user-plus'></i>
-    <span class="dash-action-title">New Client Submission</span>
-    <span class="dash-action-desc">Search or register a client and start a new submission</span>
-  </a>
-
-  <a href="{% url 'reception:client_search' %}" class="dash-action-card">
-    <i class='bx bx-search-alt'></i>
-    <span class="dash-action-title">Search Client</span>
-    <span class="dash-action-desc">Find an existing client's record</span>
-  </a>
-
-  <a href="{% url 'reception:sample_registration' %}" class="dash-action-card">
-    <i class='bx bx-flask'></i>
-    <span class="dash-action-title">Sample Registration</span>
-    <span class="dash-action-desc">Add samples under an active submission reference</span>
-  </a>
-
-  <a href="{% url 'reception:generate_worksheet' %}" class="dash-action-card">
-    <i class='bx bx-file-blank'></i>
-    <span class="dash-action-title">Generate Lab Worksheet</span>
-    <span class="dash-action-desc">Automatically build laboratory worksheets</span>
-  </a>
-
-  <a href="{% url 'reception:client_submission_form' %}" class="dash-action-card">
-    <i class='bx bx-printer'></i>
-    <span class="dash-action-title">Client Submission Form</span>
-    <span class="dash-action-desc">Generate the printable client-facing form</span>
-  </a>
-
-  <a href="{% url 'reception:payment_details' %}" class="dash-action-card">
-    <i class='bx bx-wallet'></i>
-    <span class="dash-action-title">Payment Details</span>
-    <span class="dash-action-desc">View current position and update payments</span>
-  </a>
-
-  <a href="{% url 'reception:add_expense' %}" class="dash-action-card">
-    <i class='bx bx-plus-circle'></i>
-    <span class="dash-action-title">Add Expense</span>
-    <span class="dash-action-desc">Record a new expense before submission</span>
-  </a>
-
-</div>
-
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{% static 'reception/js/reception_dashboard.js' %}" defer></script>
 {% endblock %}

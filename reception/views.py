@@ -73,6 +73,29 @@ def reception_dashboard(request):
         created_at__date=today
     ).count()
 
+    days = [today - timedelta(days=offset) for offset in range(6, -1, -1)]
+    per_day = dict(
+        Submission.objects.filter(created_at__date__gte=days[0])
+        .annotate(day=TruncDate("created_at"))
+        .values("day")
+        .annotate(total=Count("id"))
+        .values_list("day", "total")
+    )
+    week_counts = [per_day.get(day, 0) for day in days]
+    week_labels = [day.strftime("%a") for day in days]
+
+    recent_submissions = (
+        Submission.objects.select_related("client")
+        .annotate(sample_count=Count("samples", distinct=True))
+        .order_by("-created_at")[:10]
+    )
+
+    max_week_count = max(week_counts) if max(week_counts) > 0 else 1
+    weekly_chart = [
+        {"label": label, "count": count, "height": int(count / max_week_count * 120)}
+        for label, count in zip(week_labels, week_counts)
+    ]
+
     return render(
         request,
         "reception/reception_dashboard.html",
@@ -81,6 +104,10 @@ def reception_dashboard(request):
             "pending_payments_count": pending_payments_count,
             "awaiting_worksheet_count": awaiting_worksheet_count,
             "todays_expenses_count": todays_expenses_count,
+            "week_labels": week_labels,
+            "week_counts": week_counts,
+            "recent_submissions": recent_submissions,
+            "weekly_chart": weekly_chart,
         },
     )
 
