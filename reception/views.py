@@ -87,7 +87,7 @@ def reception_dashboard(request):
     recent_submissions = (
         Submission.objects.select_related("client")
         .annotate(sample_count=Count("samples", distinct=True))
-        .order_by("-created_at")[:10]
+        .order_by("-created_at")[:6]
     )
 
     max_week_count = max(week_counts) if max(week_counts) > 0 else 1
