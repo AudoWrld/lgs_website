@@ -1,148 +1,261 @@
 {% extends "reception/base_reception.html" %}
 {% load static %}
 
-{% block title %}Payments — LGS Reception{% endblock %}
-{% block page_title %}Payments{% endblock %}
+{% block title %}Payment Details — LGS Reception{% endblock %}
+{% block page_title %}Payment Details{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'reception/css/reception_dashboard.css' %}">
 <link rel="stylesheet" href="{% static 'reception/css/payment_list.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="pl-page">
+<div class="ps-split{% if submission or not_found %} has-selection{% endif %}">
 
-  <section class="pl-panel">
-    <form method="get" class="pl-search" role="search">
-      <label for="payment-search" class="visually-hidden">Find a submission</label>
-      <div class="pl-search-field">
-        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <input id="payment-search" type="search" name="q" value="{{ query }}" placeholder="Search by reference or client name">
+  <aside class="dash-panel ps-list-panel">
+    <div class="dash-panel-head">
+      <h3><i class='bx bx-list-ul' aria-hidden="true"></i> Submissions</h3>
+      <span>{{ match_count }} found</span>
+    </div>
+
+    <form method="get" class="ps-search" id="ps-search-form" role="search">
+      <label for="ps-search-input" class="visually-hidden">Search submissions</label>
+      <div class="ps-search-field">
+        <i class='bx bx-search' aria-hidden="true"></i>
+        <input id="ps-search-input" type="search" name="q" value="{{ query }}" placeholder="Reference or client name" autocomplete="off"{% if query %} data-refocus{% endif %}>
       </div>
-      {% if status != "all" %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
-      <button type="submit" class="btn btn-primary">Search</button>
-      {% if query %}<a href="?{% if status != 'all' %}status={{ status }}{% endif %}" class="btn btn-outline">Clear</a>{% endif %}
+      {% if submission %}<input type="hidden" name="ref" value="{{ submission.reference }}">{% endif %}
     </form>
-  </section>
-
-  <section class="pl-kpis" aria-label="Payment status summary">
-    {% for kpi in kpis %}
-    <a href="?status={{ kpi.value }}{% if query %}&q={{ query|urlencode }}{% endif %}" class="pl-kpi pl-kpi-{{ kpi.tone }}">
-      <span class="pl-kpi-label">{{ kpi.label }}</span>
-      <span class="pl-kpi-value">{{ kpi.count }}</span>
-    </a>
-    {% endfor %}
-  </section>
-
-  <section class="pl-insights">
-    <div class="pl-panel">
-      <div class="pl-panel-head">
-        <h2>Payment Status Overview</h2>
-        <span class="pl-muted-text">{{ total_count }} submission{{ total_count|pluralize }}</span>
-      </div>
-      <div class="pl-chart-body">
-        <div class="pl-donut" style="background: {{ donut_gradient }}" role="img" aria-label="Payment status distribution">
-          <div class="pl-donut-hole">
-            <span class="pl-donut-total">{{ total_count }}</span>
-            <span class="pl-donut-caption">Submissions</span>
-          </div>
-        </div>
-        <ul class="pl-legend">
-          {% for segment in segments %}
-          <li>
-            <span class="pl-swatch" style="background: {{ segment.color }}"></span>
-            <span class="pl-legend-label">{{ segment.label }}</span>
-            <span class="pl-legend-count">{{ segment.count }}</span>
-            <span class="pl-legend-share">{{ segment.share }}%</span>
-          </li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
-
-    <div class="pl-panel">
-      <div class="pl-panel-head">
-        <h2>Needs Follow-up</h2>
-        <span class="pl-muted-text">Unpaid, partially paid or not started</span>
-      </div>
-      {% if follow_up %}
-      <ul class="pl-followup">
-        {% for item in follow_up %}
-        <li>
-          <div class="pl-followup-main">
-            <a href="{% url 'reception:payment_detail' item.reference %}" class="pl-reference">{{ item.reference }}</a>
-            <span class="pl-followup-client">{{ item.client.client_name }}</span>
-          </div>
-          {% if item.payment %}
-          <span class="pl-badge pl-badge-{{ item.payment.payment_status|lower }}">{{ item.payment.get_payment_status_display }}</span>
-          {% else %}
-          <span class="pl-badge pl-badge-not_started">Not Started</span>
-          {% endif %}
-        </li>
-        {% endfor %}
-      </ul>
-      {% else %}
-      <div class="empty-state">
-        <p>Nothing needs follow-up right now.</p>
-      </div>
-      {% endif %}
-    </div>
-  </section>
-
-  <section class="pl-panel">
-    <div class="pl-panel-head">
-      <h2>Submissions</h2>
-      <span class="pl-muted-text">Showing {{ submission_count }} submission{{ submission_count|pluralize }}</span>
-    </div>
-
-    <nav class="pl-filters" aria-label="Payment status filters">
-      {% for f in filters %}
-      <a href="?status={{ f.value }}{% if query %}&q={{ query|urlencode }}{% endif %}" class="pl-filter{% if status == f.value %} is-active{% endif %}">
-        {{ f.label }}
-        <span class="pl-filter-count">{{ f.count }}</span>
-      </a>
-      {% endfor %}
-    </nav>
 
     {% if submissions %}
-    <div class="table-wrap">
-      <table class="table pl-table">
-        <thead>
-          <tr>
-            <th>Reference</th>
-            <th>Client</th>
-            <th>Received</th>
-            <th class="num">Samples</th>
-            <th>Status</th>
-            <th class="num">Outstanding (TZS)</th>
-            <th><span class="visually-hidden">Actions</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for submission in submissions %}
-          <tr>
-            <td><a href="{% url 'reception:payment_detail' submission.reference %}" class="pl-reference">{{ submission.reference }}</a></td>
-            <td class="pl-client">{{ submission.client.client_name }}</td>
-            <td>{{ submission.receiving_date|date:"d M Y" }}</td>
-            <td class="num">{{ submission.sample_count }}</td>
-            {% if submission.payment %}
-            <td><span class="pl-badge pl-badge-{{ submission.payment.payment_status|lower }}">{{ submission.payment.get_payment_status_display }}</span></td>
-            <td class="num{% if submission.payment.outstanding_balance > 0 %} pl-due{% endif %}">{{ submission.payment.outstanding_balance|floatformat:"2g" }}</td>
+    <ul class="ps-list" id="ps-list">
+      {% for item in submissions %}
+      <li>
+        <a href="?ref={{ item.reference|urlencode:'' }}{% if query %}&q={{ query|urlencode:'' }}{% endif %}" class="ps-item{% if submission and item.pk == submission.pk %} is-active{% endif %}"{% if submission and item.pk == submission.pk %} aria-current="true"{% endif %}>
+          <span class="ps-item-top">
+            <span class="ps-item-ref">{{ item.reference }}</span>
+            {% if item.payment %}
+            <span class="ps-badge ps-status-{{ item.payment.payment_status|lower }}">{{ item.payment.get_payment_status_display }}</span>
             {% else %}
-            <td><span class="pl-badge pl-badge-not_started">Not Started</span></td>
-            <td class="num pl-empty-cell">—</td>
+            <span class="ps-badge ps-status-not_started">Not Started</span>
             {% endif %}
-            <td class="num"><a href="{% url 'reception:payment_detail' submission.reference %}" class="btn btn-outline btn-sm">View</a></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </span>
+          <span class="ps-item-client">{{ item.client.client_name }}</span>
+          <span class="ps-item-sub">{{ item.receiving_date|date:"d M Y" }} · {{ item.sample_count }} sample{{ item.sample_count|pluralize }}</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% if match_count > list_limit %}
+    <p class="ps-list-note">Showing the latest {{ list_limit }}. Type in the search box to narrow down.</p>
+    {% endif %}
+    {% else %}
+    <div class="ps-empty ps-empty-small">
+      <p>No submissions match your search.</p>
+    </div>
+    {% endif %}
+  </aside>
+
+  <section class="ps-detail">
+    {% if submission and payment %}
+
+    <div class="dash-panel ps-block">
+      <div class="ps-position-head">
+        <div>
+          <span class="ps-label">Submission reference</span>
+          <h2 class="ps-ref">{{ submission.reference }}</h2>
+        </div>
+        <div>
+          <span class="ps-label">Client</span>
+          <span class="ps-client">{{ submission.client.client_name }}</span>
+        </div>
+        <span class="ps-badge ps-badge-lg ps-status-{{ payment.payment_status|lower }}">{{ payment.get_payment_status_display }}</span>
+      </div>
+
+      <div class="ps-figures">
+        <div class="ps-figure">
+          <span class="ps-label">Gross amount</span>
+          <span class="ps-figure-value">{{ payment.gross_amount|floatformat:"2g" }}</span>
+        </div>
+        <div class="ps-figure">
+          <span class="ps-label">Discount</span>
+          <span class="ps-figure-value">{{ payment.discount|floatformat:"2g" }}</span>
+        </div>
+        <div class="ps-figure">
+          <span class="ps-label">Net payable</span>
+          <span class="ps-figure-value">{{ payment.net_amount_payable|floatformat:"2g" }}</span>
+        </div>
+        <div class="ps-figure">
+          <span class="ps-label">Total paid</span>
+          <span class="ps-figure-value">{{ payment.total_amount_paid|floatformat:"2g" }}</span>
+        </div>
+        <div class="ps-figure{% if payment.outstanding_balance > 0 %} ps-figure-due{% endif %}">
+          <span class="ps-label">Outstanding</span>
+          <span class="ps-figure-value">{{ payment.outstanding_balance|floatformat:"2g" }}</span>
+        </div>
+      </div>
+      <p class="ps-currency">All amounts in TZS. Calculated automatically.</p>
+
+      <dl class="ps-current">
+        <div><dt>Current method</dt><dd>{{ payment.get_payment_method_display|default:"Not recorded" }}</dd></div>
+        <div><dt>Transaction reference</dt><dd>{{ payment.transaction_reference|default:"Not recorded" }}</dd></div>
+        <div><dt>Remarks</dt><dd>{{ payment.remarks|default:"None" }}</dd></div>
+      </dl>
+    </div>
+
+    {% if payment.payment_status == "PAID" %}
+    <div class="dash-panel ps-block">
+      <div class="ps-notice">
+        <i class='bx bx-check-circle' aria-hidden="true"></i>
+        <span>This submission is fully paid. Payment updates are no longer available.</span>
+      </div>
     </div>
     {% else %}
-    <div class="empty-state">
-      <p>No submissions match these payment filters.</p>
+    <div class="dash-panel ps-block ps-form-panel">
+      <div class="dash-panel-head">
+        <h3><i class='bx bx-edit' aria-hidden="true"></i> Update payment</h3>
+        <span>New payment is added to the total paid</span>
+      </div>
+
+      <form method="post" class="ps-form" novalidate>
+        {% csrf_token %}
+
+        <div class="ps-form-body">
+            {% if update_form.non_field_errors %}
+            <div class="ps-alert" role="alert">
+            {% for error in update_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="ps-row">
+            <div class="ps-field{% if update_form.additional_amount_paid.errors %} has-error{% endif %}">
+                <label for="{{ update_form.additional_amount_paid.id_for_label }}">Additional amount paid{% if update_form.additional_amount_paid.field.required %}<span class="ps-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
+                {{ update_form.additional_amount_paid }}
+                {% if update_form.additional_amount_paid.errors %}<span class="ps-error">{{ update_form.additional_amount_paid.errors.0 }}</span>{% endif %}
+            </div>
+            <div class="ps-field{% if update_form.discount.errors %} has-error{% endif %}">
+                <label for="{{ update_form.discount.id_for_label }}">Discount{% if update_form.discount.field.required %}<span class="ps-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
+                {{ update_form.discount }}
+                {% if update_form.discount.errors %}<span class="ps-error">{{ update_form.discount.errors.0 }}</span>{% endif %}
+            </div>
+            </div>
+
+            <div class="ps-row" id="ps-method-row">
+            <div class="ps-field{% if update_form.payment_method.errors %} has-error{% endif %}">
+                <label for="{{ update_form.payment_method.id_for_label }}">Payment method{% if update_form.payment_method.field.required %}<span class="ps-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
+                {{ update_form.payment_method }}
+                {% if update_form.payment_method.errors %}<span class="ps-error">{{ update_form.payment_method.errors.0 }}</span>{% endif %}
+            </div>
+
+            <div class="ps-field{% if update_form.transaction_reference.errors %} has-error{% endif %}" id="transaction-reference-field">
+                <label for="{{ update_form.transaction_reference.id_for_label }}">Transaction reference<span class="ps-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+                {{ update_form.transaction_reference }}
+                {% if update_form.transaction_reference.errors %}<span class="ps-error">{{ update_form.transaction_reference.errors.0 }}</span>{% endif %}
+            </div>
+
+            <div class="ps-field ps-field-status{% if update_form.payment_status.errors %} has-error{% endif %}">
+                <label for="{{ update_form.payment_status.id_for_label }}">Payment status{% if update_form.payment_status.field.required %}<span class="ps-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
+                {{ update_form.payment_status }}
+                {% if update_form.payment_status.errors %}<span class="ps-error">{{ update_form.payment_status.errors.0 }}</span>{% endif %}
+            </div>
+            </div>
+
+            <div class="ps-field{% if update_form.remarks.errors %} has-error{% endif %}">
+            <label for="{{ update_form.remarks.id_for_label }}">Payment remarks{% if update_form.remarks.field.required %}<span class="ps-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
+            {{ update_form.remarks }}
+            {% if update_form.remarks.errors %}<span class="ps-error">{{ update_form.remarks.errors.0 }}</span>{% endif %}
+            </div>
+        </div>
+
+        <div class="ps-actions">
+            <button type="submit" class="btn btn-primary"><i class='bx bx-save' aria-hidden="true"></i> Save Update</button>
+        </div>
+        </form>
     </div>
+    {% endif %}
+
+    {% elif not_found %}
+
+    <div class="dash-panel ps-block">
+      <div class="ps-alert" role="alert">
+        <p><strong>Submission not found</strong> for “{{ reference }}”.</p>
+        <p>Pick a submission from the list on the left.</p>
+      </div>
+    </div>
+
+    {% else %}
+
+    <div class="dash-panel ps-block">
+      <div class="ps-empty">
+        <span class="dash-empty-icon"><i class='bx bx-wallet' aria-hidden="true"></i></span>
+        <p>Select a submission from the list to view and update its payment.</p>
+      </div>
+    </div>
+
     {% endif %}
   </section>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    var form = document.getElementById("ps-search-form");
+    var input = document.getElementById("ps-search-input");
+    if (form && input) {
+      var timer;
+      input.addEventListener("input", function () {
+        clearTimeout(timer);
+        timer = setTimeout(function () { form.submit(); }, 450);
+      });
+      if (input.hasAttribute("data-refocus")) {
+        input.focus();
+        var end = input.value.length;
+        input.setSelectionRange(end, end);
+      }
+    }
+
+    var list = document.getElementById("ps-list");
+    if (list) {
+      var saved = null;
+      try {
+        saved = sessionStorage.getItem("ps-list-scroll");
+        sessionStorage.removeItem("ps-list-scroll");
+      } catch (e) {}
+      if (saved !== null) list.scrollTop = parseInt(saved, 10) || 0;
+
+      var active = list.querySelector(".ps-item.is-active");
+      if (active) {
+        var listBox = list.getBoundingClientRect();
+        var activeBox = active.getBoundingClientRect();
+        if (activeBox.top < listBox.top || activeBox.bottom > listBox.bottom) {
+          list.scrollTop += (activeBox.top - listBox.top) - (listBox.height - activeBox.height) / 2;
+        }
+      }
+
+      list.addEventListener("click", function () {
+        try { sessionStorage.setItem("ps-list-scroll", String(list.scrollTop)); } catch (e) {}
+      });
+    }
+
+    var method = document.getElementById("{{ update_form.payment_method.id_for_label }}");
+    var reference = document.getElementById("{{ update_form.transaction_reference.id_for_label }}");
+    var referenceField = document.getElementById("transaction-reference-field");
+    var methodRow = document.getElementById("ps-method-row");
+    if (method && reference && referenceField && methodRow) {
+      var sync = function () {
+        var needed = ["MPESA", "BANK", "LIPA_NUMBER"].indexOf(method.value) !== -1;
+        referenceField.hidden = !needed;
+        reference.required = needed;
+        reference.disabled = !needed;
+        if (!needed) reference.value = "";
+        methodRow.classList.toggle("has-reference", needed);
+      };
+      method.addEventListener("change", sync);
+      sync();
+    }
+  })();
+</script>
 {% endblock %}
