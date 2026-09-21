@@ -88,112 +88,109 @@
     <article class="gw-sheet">
 
       <header class="gw-header">
-        <div class="gw-header-text">
-          <h1>LGS Mineral Assay Laboratory</h1>
-          <span>Laboratory Worksheet — Internal Use Only</span>
-        </div>
-        <div class="gw-ref">
-          <span class="gw-ref-label">Submission Reference</span>
-          <span class="gw-ref-value">{{ submission.reference }}</span>
-        </div>
+        <img class="gw-logo" src="{% static 'core/img/lgs-logo.png' %}" alt="LGS logo">
+        <h1>LGS Mineral Assay Laboratory</h1>
+        <span class="gw-header-sub">Laboratory Worksheet</span>
+        <span class="gw-header-note">Internal Laboratory Use Only</span>
       </header>
-
-      <div class="gw-stats">
-        <div class="gw-stat">
-          <span class="gw-label">Receiving Date</span>
-          <span class="gw-stat-value gw-stat-small">{{ submission.receiving_date|date:"d M Y" }}</span>
-        </div>
-        <div class="gw-stat">
-          <span class="gw-label">Receiving Time</span>
-          <span class="gw-stat-value gw-stat-small">{{ submission.receiving_time|time:"H:i" }}</span>
-        </div>
-        <div class="gw-stat">
-          <span class="gw-label">Worksheet Generated</span>
-          <span class="gw-stat-value gw-stat-small">{% now "d M Y, H:i" %}</span>
-        </div>
-        <div class="gw-stat">
-          <span class="gw-label">Total Samples</span>
-          <span class="gw-stat-value">{{ submission.sample_count|default:submission.total_samples }}</span>
-        </div>
-      </div>
 
       <div class="gw-body">
 
-        <section class="gw-section">
-          <h2 class="gw-section-title"><i class='bx bx-test-tube' aria-hidden="true"></i> Sample &amp; Service Summary</h2>
-          <dl class="gw-stack">
-            <div class="gw-field">
-              <dt class="gw-label">Sample Type(s)</dt>
-              <dd class="gw-chips">{% for item in sample_types %}<span class="gw-chip">{{ item }}</span>{% empty %}<span class="gw-muted">—</span>{% endfor %}</dd>
-            </div>
-            <div class="gw-field">
-              <dt class="gw-label">Requested Service(s)</dt>
-              <dd class="gw-chips">{% for item in services %}<span class="gw-chip">{{ item }}</span>{% empty %}<span class="gw-muted">—</span>{% endfor %}</dd>
-            </div>
-            <div class="gw-field">
-              <dt class="gw-label">Method(s) of Analysis</dt>
-              <dd class="gw-chips">{% for item in methods %}<span class="gw-chip gw-chip-alt">{{ item }}</span>{% empty %}<span class="gw-muted">—</span>{% endfor %}</dd>
-            </div>
-          </dl>
-        </section>
+        <!-- General header (table) -->
+        <table class="gw-info">
+          <tbody>
+            <tr>
+              <th>Submission Reference</th>
+              <td>{{ submission.reference }}</td>
+              <th>Total Samples</th>
+              <td>{{ submission.sample_count|default:submission.total_samples }}</td>
+            </tr>
+            <tr>
+              <th>Receiving Date</th>
+              <td>{{ submission.receiving_date|date:"d M Y" }}</td>
+              <th>Receiving Time</th>
+              <td>{{ submission.receiving_time|time:"H:i" }}</td>
+            </tr>
+            <tr>
+              <th>Worksheet Generated</th>
+              <td colspan="3">{% now "d M Y, H:i" %}</td>
+            </tr>
+            <tr>
+              <th>Sample Type(s)</th>
+              <td colspan="3">{% for item in sample_types %}{{ item }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+            </tr>
+            <tr>
+              <th>Requested Service(s)</th>
+              <td colspan="3">{% for item in services %}{{ item }}{% if not forloop.last %} &nbsp;|&nbsp; {% endif %}{% empty %}—{% endfor %}</td>
+            </tr>
+            <tr>
+              <th>Method(s) of Analysis</th>
+              <td colspan="3">{% for item in methods %}{{ item }}{% if not forloop.last %} &nbsp;|&nbsp; {% endif %}{% empty %}—{% endfor %}</td>
+            </tr>
+          </tbody>
+        </table>
 
         {% if worksheets %}
           {% for worksheet in worksheets %}
-          <section class="gw-section gw-worksheet-card">
-            <h2 class="gw-section-title"><i class='bx bx-spreadsheet' aria-hidden="true"></i> {{ worksheet.get_worksheet_type_display }}</h2>
-            <div class="gw-worksheet-meta">
-              {% if worksheet.elements %}<span>Elements: {{ worksheet.elements }}</span>{% endif %}
-              <span>Method: {{ worksheet.method_of_analysis }}</span>
-            </div>
+          <section class="gw-worksheet">
+            <h2 class="gw-worksheet-title">{{ worksheet.get_worksheet_type_display }}</h2>
+            <p class="gw-worksheet-meta">
+              {% if worksheet.elements %}<b>Elements:</b> {{ worksheet.elements }}{% endif %}
+              {% if worksheet.elements and worksheet.method_of_analysis %}&nbsp;&nbsp;&nbsp;{% endif %}
+              {% if worksheet.method_of_analysis %}<b>Method:</b> {{ worksheet.method_of_analysis }}{% endif %}
+            </p>
 
+            <div class="gw-table-scroll">
             {% if worksheet.worksheet_type == "MINERAL_ANALYSIS" %}
+              {% with els=worksheet.elements|split_elements %}
               <table class="gw-table">
                 <thead>
                   <tr>
-                    <th>S/N</th>
-                    <th>Beaker ID</th>
-                    <th>Laboratory Sample ID</th>
-                    <th>Weight</th>
-                    {% for el in worksheet.elements|split_elements %}<th>{{ el }}</th>{% endfor %}
-                    <th>Remarks</th>
+                    <th style="width:6%;">S/N</th>
+                    <th style="width:12%;">Beaker ID</th>
+                    <th style="width:22%;">Lab Sample ID</th>
+                    <th style="width:10%;">Weight</th>
+                    {% for el in els %}<th>{{ el }}</th>{% endfor %}
+                    <th style="width:14%;">Remarks</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for row in worksheet.rows.all %}
                   {% if row.row_type == "BLANK" %}
-                    <tr class="gw-blank-row"><td colspan="10">&nbsp;</td></tr>
+                    <tr class="gw-blank-row"><td colspan="{{ els|length|add:5 }}">&nbsp;</td></tr>
                   {% elif row.row_type == "CRM" %}
-                    <tr class="gw-crm-row"><td colspan="10">CRM</td></tr>
+                    <tr class="gw-crm-row"><td colspan="{{ els|length|add:5 }}">CRM</td></tr>
                   {% else %}
                     <tr>
-                      <td>{{ forloop.counter }}</td>
-                      <td>{{ row.beaker_id }}</td>
-                      <td>{{ row.lab_sample_mapping.lab_sample_id }} — Replicate {{ row.replicate_number }}</td>
+                      <td class="c">{{ forloop.counter }}</td>
+                      <td>{{ row.beaker_id|default:"" }}</td>
+                      <td>{{ row.lab_sample_mapping.lab_sample_id }}<br>Replicate {{ row.replicate_number }}</td>
                       <td>{{ row.weight|default:"" }}</td>
-                      {% for el in worksheet.elements|split_elements %}<td></td>{% endfor %}
-                      <td>{{ row.remarks }}</td>
+                      {% for el in els %}<td></td>{% endfor %}
+                      <td>{{ row.remarks|default:"" }}</td>
                     </tr>
                   {% endif %}
                   {% endfor %}
                 </tbody>
               </table>
+              {% endwith %}
 
             {% elif worksheet.worksheet_type == "CARBON_ACTIVITY" %}
               <table class="gw-table">
                 <thead>
                   <tr>
-                    <th>S/N</th>
-                    <th>Laboratory Sample ID</th>
-                    <th>20 ppm Gold Standard</th>
-                    <th>Virgin Carbon</th>
-                    <th>Conc-1</th>
+                    <th style="width:7%;">S/N</th>
+                    <th style="width:30%;">Lab Sample ID</th>
+                    <th style="width:21%;">20 ppm Gold Standard</th>
+                    <th style="width:21%;">Virgin Carbon</th>
+                    <th style="width:21%;">Conc-1</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for row in worksheet.rows.all %}
                   <tr>
-                    <td>{{ forloop.counter }}</td>
-                    <td>{{ row.lab_sample_mapping.lab_sample_id }} — Replicate {{ row.replicate_number }}</td>
+                    <td class="c">{{ forloop.counter }}</td>
+                    <td>{{ row.lab_sample_mapping.lab_sample_id }}<br>Replicate {{ row.replicate_number }}</td>
                     <td></td>
                     <td></td>
                     <td></td>
@@ -206,34 +203,35 @@
               <table class="gw-table">
                 <thead>
                   <tr>
-                    <th>S/N</th>
-                    <th>Container Label</th>
-                    <th>Laboratory Sample ID</th>
-                    <th>Parameter</th>
-                    <th>Weight</th>
-                    <th>Gold Recovered — 12 Hrs</th>
-                    <th>Gold Recovered — 24 Hrs</th>
-                    <th>Gold Recovered — 48 Hrs</th>
-                    <th>Remark</th>
+                    <th style="width:5%;">S/N</th>
+                    <th style="width:9%;">Container Label</th>
+                    <th style="width:18%;">Lab Sample ID</th>
+                    <th style="width:14%;">Parameter</th>
+                    <th style="width:9%;">Weight</th>
+                    <th style="width:12%;">Gold Recovered – 12 Hrs</th>
+                    <th style="width:12%;">Gold Recovered – 24 Hrs</th>
+                    <th style="width:12%;">Gold Recovered – 48 Hrs</th>
+                    <th style="width:9%;">Remark</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for row in worksheet.rows.all %}
                   <tr>
-                    <td>{{ forloop.counter }}</td>
-                    <td>{{ row.container_label }}</td>
+                    <td class="c">{{ forloop.counter }}</td>
+                    <td>{{ row.container_label|default:"" }}</td>
                     <td>{{ row.lab_sample_mapping.lab_sample_id }}</td>
-                    <td>{{ row.parameter }}</td>
+                    <td>{{ row.parameter|default:"" }}</td>
                     <td>{{ row.weight|default:"" }}</td>
                     <td></td>
                     <td></td>
                     <td></td>
-                    <td>{{ row.remarks }}</td>
+                    <td>{{ row.remarks|default:"" }}</td>
                   </tr>
                   {% endfor %}
                 </tbody>
               </table>
             {% endif %}
+            </div>
           </section>
           {% endfor %}
         {% else %}
