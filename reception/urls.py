@@ -75,12 +75,8 @@ urlpatterns = [
         views.coa_confirmation,
         name="coa_confirmation",
     ),
-    path("worksheets/new/", views.generate_worksheet, name="generate_worksheet"),
-    path(
-        "worksheets/<path:reference>/",
-        views.generate_worksheet_detail,
-        name="generate_worksheet_detail",
-    ),
+    path("worksheets/", views.worksheet_generation, name="worksheet_generation"),
+    path("worksheets/<path:reference>/pdf/", views.worksheet_pdf, name="worksheet_pdf"),
     path(
         "client-submission/",
         views.client_submission_form,

@@ -1,0 +1,387 @@
+{% extends "reception/base_reception.html" %}
+{% load static %}
+{% load worksheet_extras %}
+
+{% block title %}Laboratory Worksheets — LGS Reception{% endblock %}
+{% block page_title %}Laboratory Worksheets{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'reception/css/reception_dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'reception/css/generate_worksheet.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="gw-split{% if submission or not_found %} has-selection{% endif %}" data-ref="{{ submission.reference }}">
+
+  <aside class="dash-panel gw-list-panel">
+    <div class="dash-panel-head">
+      <h3><i class='bx bx-list-ul' aria-hidden="true"></i> Submissions</h3>
+      <span id="gw-count">{{ match_count }} found</span>
+    </div>
+
+    <form method="get" class="gw-search" id="gw-search-form" role="search">
+      <label for="gw-search-input" class="visually-hidden">Search submissions</label>
+      <div class="gw-search-field">
+        <i class='bx bx-search' aria-hidden="true"></i>
+        <input id="gw-search-input" type="search" name="q" value="{{ query }}" placeholder="Reference or client name" autocomplete="off">
+      </div>
+      <input type="hidden" name="ref" id="gw-ref-input" value="{{ submission.reference }}">
+    </form>
+
+    <div class="gw-list-wrap" id="gw-list-wrap">
+      {% if submissions %}
+      <ul class="gw-list" id="gw-list">
+        {% for item in submissions %}
+        <li>
+          <a href="?ref={{ item.reference|urlencode:'' }}{% if query %}&q={{ query|urlencode:'' }}{% endif %}" class="gw-item{% if submission and item.pk == submission.pk %} is-active{% endif %}"{% if submission and item.pk == submission.pk %} aria-current="true"{% endif %}>
+            <span class="gw-item-top">
+              <span class="gw-item-ref">{{ item.reference }}</span>
+              {% if item.worksheets.exists %}
+              <span class="gw-badge gw-badge-ready">Generated</span>
+              {% else %}
+              <span class="gw-badge gw-badge-pending">Pending</span>
+              {% endif %}
+            </span>
+            <span class="gw-item-client">{{ item.client.client_name }}</span>
+            <span class="gw-item-sub">{{ item.receiving_date|date:"d M Y" }} · {{ item.sample_count }} sample{{ item.sample_count|pluralize }}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% if match_count > list_limit %}
+      <p class="gw-list-note">Showing the latest {{ list_limit }}. Type in the search box to narrow down.</p>
+      {% endif %}
+      {% else %}
+      <div class="gw-empty gw-empty-small">
+        <p>No submitted submissions found.</p>
+      </div>
+      {% endif %}
+    </div>
+  </aside>
+
+  <section class="gw-detail" id="gw-detail">
+    {% if submission %}
+
+    <div class="gw-toolbar">
+      <div class="gw-toolbar-title">
+        <span class="gw-toolbar-label">Selected</span>
+        <strong>{{ submission.reference }}</strong>
+      </div>
+      <div class="gw-toolbar-actions">
+        <form method="post" class="no-print">
+          {% csrf_token %}
+          <input type="hidden" name="reference" value="{{ submission.reference }}">
+          <button type="submit" class="btn btn-primary">
+            <i class='bx bx-file-blank' aria-hidden="true"></i>
+            {% if worksheets %}Regenerate Worksheets{% else %}Generate Laboratory Worksheet{% endif %}
+          </button>
+        </form>
+        {% if worksheets %}
+        <a href="{% url 'reception:worksheet_pdf' submission.reference %}" target="_blank" rel="noopener" class="btn btn-outline">
+          <i class='bx bx-printer' aria-hidden="true"></i> Print / PDF
+        </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <article class="gw-sheet">
+
+      <header class="gw-header">
+        <div class="gw-header-text">
+          <h1>LGS Mineral Assay Laboratory</h1>
+          <span>Laboratory Worksheet — Internal Use Only</span>
+        </div>
+        <div class="gw-ref">
+          <span class="gw-ref-label">Submission Reference</span>
+          <span class="gw-ref-value">{{ submission.reference }}</span>
+        </div>
+      </header>
+
+      <div class="gw-stats">
+        <div class="gw-stat">
+          <span class="gw-label">Receiving Date</span>
+          <span class="gw-stat-value gw-stat-small">{{ submission.receiving_date|date:"d M Y" }}</span>
+        </div>
+        <div class="gw-stat">
+          <span class="gw-label">Receiving Time</span>
+          <span class="gw-stat-value gw-stat-small">{{ submission.receiving_time|time:"H:i" }}</span>
+        </div>
+        <div class="gw-stat">
+          <span class="gw-label">Worksheet Generated</span>
+          <span class="gw-stat-value gw-stat-small">{% now "d M Y, H:i" %}</span>
+        </div>
+        <div class="gw-stat">
+          <span class="gw-label">Total Samples</span>
+          <span class="gw-stat-value">{{ submission.sample_count|default:submission.total_samples }}</span>
+        </div>
+      </div>
+
+      <div class="gw-body">
+
+        <section class="gw-section">
+          <h2 class="gw-section-title"><i class='bx bx-test-tube' aria-hidden="true"></i> Sample &amp; Service Summary</h2>
+          <dl class="gw-stack">
+            <div class="gw-field">
+              <dt class="gw-label">Sample Type(s)</dt>
+              <dd class="gw-chips">{% for item in sample_types %}<span class="gw-chip">{{ item }}</span>{% empty %}<span class="gw-muted">—</span>{% endfor %}</dd>
+            </div>
+            <div class="gw-field">
+              <dt class="gw-label">Requested Service(s)</dt>
+              <dd class="gw-chips">{% for item in services %}<span class="gw-chip">{{ item }}</span>{% empty %}<span class="gw-muted">—</span>{% endfor %}</dd>
+            </div>
+            <div class="gw-field">
+              <dt class="gw-label">Method(s) of Analysis</dt>
+              <dd class="gw-chips">{% for item in methods %}<span class="gw-chip gw-chip-alt">{{ item }}</span>{% empty %}<span class="gw-muted">—</span>{% endfor %}</dd>
+            </div>
+          </dl>
+        </section>
+
+        {% if worksheets %}
+          {% for worksheet in worksheets %}
+          <section class="gw-section gw-worksheet-card">
+            <h2 class="gw-section-title"><i class='bx bx-spreadsheet' aria-hidden="true"></i> {{ worksheet.get_worksheet_type_display }}</h2>
+            <div class="gw-worksheet-meta">
+              {% if worksheet.elements %}<span>Elements: {{ worksheet.elements }}</span>{% endif %}
+              <span>Method: {{ worksheet.method_of_analysis }}</span>
+            </div>
+
+            {% if worksheet.worksheet_type == "MINERAL_ANALYSIS" %}
+              <table class="gw-table">
+                <thead>
+                  <tr>
+                    <th>S/N</th>
+                    <th>Beaker ID</th>
+                    <th>Laboratory Sample ID</th>
+                    <th>Weight</th>
+                    {% for el in worksheet.elements|split_elements %}<th>{{ el }}</th>{% endfor %}
+                    <th>Remarks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in worksheet.rows.all %}
+                  {% if row.row_type == "BLANK" %}
+                    <tr class="gw-blank-row"><td colspan="10">&nbsp;</td></tr>
+                  {% elif row.row_type == "CRM" %}
+                    <tr class="gw-crm-row"><td colspan="10">CRM</td></tr>
+                  {% else %}
+                    <tr>
+                      <td>{{ forloop.counter }}</td>
+                      <td>{{ row.beaker_id }}</td>
+                      <td>{{ row.lab_sample_mapping.lab_sample_id }} — Replicate {{ row.replicate_number }}</td>
+                      <td>{{ row.weight|default:"" }}</td>
+                      {% for el in worksheet.elements|split_elements %}<td></td>{% endfor %}
+                      <td>{{ row.remarks }}</td>
+                    </tr>
+                  {% endif %}
+                  {% endfor %}
+                </tbody>
+              </table>
+
+            {% elif worksheet.worksheet_type == "CARBON_ACTIVITY" %}
+              <table class="gw-table">
+                <thead>
+                  <tr>
+                    <th>S/N</th>
+                    <th>Laboratory Sample ID</th>
+                    <th>20 ppm Gold Standard</th>
+                    <th>Virgin Carbon</th>
+                    <th>Conc-1</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in worksheet.rows.all %}
+                  <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ row.lab_sample_mapping.lab_sample_id }} — Replicate {{ row.replicate_number }}</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+
+            {% else %}
+              <table class="gw-table">
+                <thead>
+                  <tr>
+                    <th>S/N</th>
+                    <th>Container Label</th>
+                    <th>Laboratory Sample ID</th>
+                    <th>Parameter</th>
+                    <th>Weight</th>
+                    <th>Gold Recovered — 12 Hrs</th>
+                    <th>Gold Recovered — 24 Hrs</th>
+                    <th>Gold Recovered — 48 Hrs</th>
+                    <th>Remark</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in worksheet.rows.all %}
+                  <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ row.container_label }}</td>
+                    <td>{{ row.lab_sample_mapping.lab_sample_id }}</td>
+                    <td>{{ row.parameter }}</td>
+                    <td>{{ row.weight|default:"" }}</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td>{{ row.remarks }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% endif %}
+          </section>
+          {% endfor %}
+        {% else %}
+          <div class="gw-empty">
+            <i class='bx bx-file-blank' aria-hidden="true"></i>
+            <p>No worksheets generated yet for this submission.</p>
+          </div>
+        {% endif %}
+
+      </div>
+
+      <footer class="gw-footer">
+        <span>LGS African Group Company Limited — Internal Laboratory Use Only</span>
+        <span>Generated {% now "d M Y, H:i" %}</span>
+      </footer>
+
+    </article>
+
+    {% elif not_found %}
+
+    <div class="dash-panel gw-block">
+      <div class="gw-alert" role="alert">
+        <p><strong>Submission not found</strong> for “{{ reference }}”.</p>
+        <p>Pick a submission from the list on the left.</p>
+      </div>
+    </div>
+
+    {% else %}
+
+    <div class="dash-panel gw-block">
+      <div class="gw-empty">
+        <span class="dash-empty-icon"><i class='bx bx-file' aria-hidden="true"></i></span>
+        <p>Select a submission from the list to view or generate its laboratory worksheet.</p>
+      </div>
+    </div>
+
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    var split = document.querySelector(".gw-split");
+    var searchForm = document.getElementById("gw-search-form");
+    var input = document.getElementById("gw-search-input");
+    var refInput = document.getElementById("gw-ref-input");
+    var listWrap = document.getElementById("gw-list-wrap");
+    var count = document.getElementById("gw-count");
+    var detail = document.getElementById("gw-detail");
+    if (!split || !searchForm || !input || !refInput || !listWrap || !count || !detail) return;
+
+    var timer;
+    var detailSerial = 0;
+    var listSerial = 0;
+    var headers = { "X-Requested-With": "XMLHttpRequest" };
+
+    function buildUrl(ref, q) {
+      var params = new URLSearchParams();
+      if (ref) params.set("ref", ref);
+      if (q) params.set("q", q);
+      var s = params.toString();
+      return location.pathname + (s ? "?" + s : "");
+    }
+
+    function applyList(doc) {
+      var current = document.getElementById("gw-list");
+      var top = current ? current.scrollTop : 0;
+      listWrap.innerHTML = doc.getElementById("gw-list-wrap").innerHTML;
+      count.textContent = doc.getElementById("gw-count").textContent;
+      var next = document.getElementById("gw-list");
+      if (next) next.scrollTop = top;
+    }
+
+    function applyDetail(doc, scroll) {
+      var nextSplit = doc.querySelector(".gw-split");
+      detail.innerHTML = doc.getElementById("gw-detail").innerHTML;
+      split.classList.toggle("has-selection", nextSplit.classList.contains("has-selection"));
+      refInput.value = nextSplit.getAttribute("data-ref") || "";
+      detail.scrollTop = 0;
+      if (scroll && window.innerWidth <= 900) {
+        detail.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+
+    function load(url, opts) {
+      var isDetail = !!opts.detail;
+      var id = isDetail ? ++detailSerial : ++listSerial;
+      if (isDetail) detail.classList.add("is-loading");
+
+      fetch(url, { headers: headers, credentials: "same-origin" })
+        .then(function (r) { return r.text(); })
+        .then(function (text) {
+          var doc = new DOMParser().parseFromString(text, "text/html");
+          if (!doc.getElementById("gw-list-wrap") || !doc.getElementById("gw-detail")) {
+            throw new Error("Unexpected response");
+          }
+          if (isDetail) {
+            if (id !== detailSerial) return;
+            applyList(doc);
+            applyDetail(doc, opts.scroll);
+            detail.classList.remove("is-loading");
+            if (opts.history === "push") history.pushState(null, "", url);
+          } else {
+            if (id !== listSerial || opts.ref !== refInput.value) return;
+            applyList(doc);
+            if (opts.history === "replace") history.replaceState(null, "", url);
+          }
+        })
+        .catch(function () {
+          if (!isDetail) return;
+          if (id !== detailSerial) return;
+          detail.classList.remove("is-loading");
+          location.href = url;
+        });
+    }
+
+    function runSearch() {
+      var ref = refInput.value;
+      load(buildUrl(ref, input.value.trim()), { history: "replace", ref: ref });
+    }
+
+    input.addEventListener("input", function () {
+      clearTimeout(timer);
+      timer = setTimeout(runSearch, 300);
+    });
+
+    searchForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      clearTimeout(timer);
+      runSearch();
+    });
+
+    listWrap.addEventListener("click", function (e) {
+      var a = e.target.closest("a.gw-item");
+      if (!a) return;
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      if (a.classList.contains("is-active")) return;
+      load(a.href, { detail: true, history: "push", scroll: true });
+    });
+
+    window.addEventListener("popstate", function () {
+      input.value = new URLSearchParams(location.search).get("q") || "";
+      load(location.pathname + location.search, { detail: true });
+    });
+  })();
+</script>
+{% endblock %}

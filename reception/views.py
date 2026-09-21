@@ -30,7 +30,7 @@ from expences.forms import ExpenseForm
 from expences.models import Expense
 from payments.models import Payment, PaymentAccount
 from payments.views import payment_detail, payment_list
-from reception.pdf import render_client_submission_form_pdf
+from reception.pdf import render_client_submission_form_pdf, render_worksheet_pdf
 from samples.forms import SampleForm
 from samples.models import Sample
 from submissions.models import Submission
@@ -1102,48 +1102,109 @@ def client_submission_form_pdf(request, reference):
 
 
 @reception_required
-def generate_worksheet(request):
+def worksheet_generation(request):
     submissions = (
         Submission.objects.filter(is_submitted=True)
         .select_related("client")
         .annotate(sample_count=Count("samples", distinct=True))
         .order_by("-created_at")
     )
+
     query = request.GET.get("q", "").strip()
     if query:
         submissions = submissions.filter(
             Q(reference__icontains=query) | Q(client__client_name__icontains=query)
         )
 
-    return render(
-        request,
-        "reception/worksheet_list.html",
-        {"submissions": submissions, "query": query},
-    )
+    list_limit = 40
+    match_count = submissions.count()
+    submissions = submissions[:list_limit]
+
+    reference = request.GET.get("ref", "").strip()
+    submission = None
+    not_found = False
+
+    if reference:
+        submission = (
+            Submission.objects.filter(reference=reference, is_submitted=True)
+            .select_related("client")
+            .first()
+        )
+        if submission is None:
+            not_found = True
+
+    if request.method == "POST":
+        submission = get_object_or_404(
+            Submission, reference=request.POST.get("reference"), is_submitted=True
+        )
+        submission.worksheets.all().delete()
+        generate_worksheets_for_submission(submission, request.user)
+        messages.success(request, f"Worksheets generated for {submission.reference}.")
+        return redirect(f"{request.path}?ref={submission.reference}")
+
+    worksheets = None
+    if submission is not None:
+        samples = submission.samples.all()
+        sample_types = sorted(set(s.get_sample_type_display() for s in samples))
+        services, methods = _services_and_methods(submission)
+        worksheets = submission.worksheets.prefetch_related(
+            "rows", "rows__lab_sample_mapping"
+        ).all()
+    else:
+      sample_types, services, methods = [], [], []
+
+    context = {
+        "submissions": submissions,
+        "match_count": match_count,
+        "list_limit": list_limit,
+        "query": query,
+        "submission": submission,
+        "sample_types": sample_types,
+        "services": services,
+        "methods": methods,
+        "worksheets": worksheets,
+        "not_found": not_found,
+        "reference": reference,
+    }
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return render(request, "reception/worksheet_generation.html", context)
+
+    return render(request, "reception/worksheet_generation.html", context)
 
 
 @reception_required
-def generate_worksheet_detail(request, reference):
+def worksheet_pdf(request, reference):
     submission = get_object_or_404(
         Submission.objects.select_related("client"),
         reference=reference,
         is_submitted=True,
     )
-
-    if request.method == "POST":
-        submission.worksheets.all().delete()
-        generate_worksheets_for_submission(submission, request.user)
-        messages.success(request, f"Worksheets generated for {submission.reference}.")
-        return redirect("reception:generate_worksheet_detail", reference=reference)
-
     worksheets = submission.worksheets.prefetch_related(
         "rows", "rows__lab_sample_mapping"
     ).all()
-    return render(
-        request,
-        "reception/generate_worksheet.html",
-        {"submission": submission, "worksheets": worksheets},
+
+    services, methods = _services_and_methods(submission)
+    sample_types = sorted(
+        set(s.get_sample_type_display() for s in submission.samples.all())
     )
+
+    context = {
+        "submission": submission,
+        "worksheets": worksheets,
+        "sample_types": sample_types,
+        "services": services,
+        "methods": methods,
+        "total_samples": submission.total_samples,
+        "generated_at": timezone.now().strftime("d M Y, H:i"),
+    }
+
+    pdf_bytes = render_worksheet_pdf(context)
+
+    filename = f"LGS_Worksheet_{submission.reference.replace('/', '-')}.pdf"
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = f'inline; filename="{filename}"'
+    return response
 
 
 @reception_required
