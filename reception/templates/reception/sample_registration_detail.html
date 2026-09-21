@@ -64,7 +64,7 @@
     <a href="{% url 'reception:worksheet_pdf' submission.reference %}" class="btn btn-outline rc-page-action" rel="noopener">
       <i class='bx bx-printer'></i> Print Worksheet
     </a>
-    <a href="{% url 'reception:client_submission_form_detail' submission.reference %}" class="btn btn-outline rc-page-action" rel="noopener">
+    <a href="{% url 'reception:client_submission_form_pdf' submission.reference %}?view=1" class="btn btn-outline rc-page-action" rel="noopener">
       <i class='bx bx-file'></i> Client Submission Form
     </a>
     <a href="{% url 'reception:coa_reporting_preference' submission.reference %}" class="btn btn-outline rc-page-action">
