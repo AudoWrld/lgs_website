@@ -1,7 +1,7 @@
 {% extends "reception/base_reception.html" %}
 {% load static %}
 
-{% block title %}COA Preference Confirmed — {{ submission.reference }}{% endblock %}
+{% block title %}COA Preference {% if preference.is_finalized %}Saved{% else %}Review{% endif %} — {{ submission.reference }}{% endblock %}
 {% block page_title %}COA Reporting Preference{% endblock %}
 
 {% block extra_css %}
@@ -25,17 +25,27 @@
   {% include "reception/partials/coa_steps.html" with step=4 %}
 
   <section class="coa-panel coa-confirmation">
-    <span class="coa-success-mark">
-      <svg viewBox="0 0 52 52" aria-hidden="true"><circle class="coa-success-ring" cx="26" cy="26" r="24"></circle><path class="coa-success-tick" d="M15 27l8 8 14-16"></path></svg>
-    </span>
-    <h2>{{ preference.get_preference_type_display }} {% if preference.is_finalized %}saved{% else %}ready to save{% endif %}</h2>
-    {% if preference.preference_type == "INDIVIDUAL" and submission.total_samples == 1 %}
-      <p>Individual COA &mdash; assigned automatically.</p>
-    {% elif not preference.is_finalized %}
-      <p>Review this selection, then save the reporting preference.</p>
-    {% else %}
-      <p>Reporting preference saved for {{ submission.reference }}.</p>
-    {% endif %}
+    <div class="coa-result {% if preference.is_finalized %}is-saved{% endif %}">
+      {% if preference.is_finalized %}
+        <span class="coa-success-mark">
+          <svg viewBox="0 0 52 52" aria-hidden="true"><circle class="coa-success-ring" cx="26" cy="26" r="24"></circle><path class="coa-success-tick" d="M15 27l8 8 14-16"></path></svg>
+        </span>
+      {% else %}
+        <span class="coa-result-icon">
+          <i class='bx bx-time-five' aria-hidden="true"></i>
+        </span>
+      {% endif %}
+      <div class="coa-result-text">
+        <h2>{{ preference.get_preference_type_display }} {% if preference.is_finalized %}saved{% else %}ready to save{% endif %}</h2>
+        {% if preference.preference_type == "INDIVIDUAL" and submission.total_samples == 1 %}
+          <p>Individual COA &mdash; assigned automatically.</p>
+        {% elif not preference.is_finalized %}
+          <p>Review this selection, then save the reporting preference.</p>
+        {% else %}
+          <p>Reporting preference saved for {{ submission.reference }}.</p>
+        {% endif %}
+      </div>
+    </div>
 
     <dl class="coa-summary">
       <div><dt>Preference</dt><dd>{{ preference.get_preference_type_display }}</dd></div>
@@ -53,16 +63,20 @@
       </div>
     {% endif %}
 
-    {% if not preference.is_finalized %}
-      <form method="post" class="coa-finalize-form">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-primary"><i class='bx bx-check' aria-hidden="true"></i> Save Reporting Preference</button>
-      </form>
-    {% elif can_edit %}
-      <a href="{% url 'reception:coa_reporting_preference' submission.reference %}?change=1" class="btn btn-outline"><i class='bx bx-edit' aria-hidden="true"></i> Edit Selection</a>
-    {% else %}
-      <p class="coa-locked-note"><i class='bx bx-lock-alt' aria-hidden="true"></i> Locked because COA generation has started.</p>
-    {% endif %}
+    <div class="coa-confirm-actions">
+      {% if not preference.is_finalized %}
+        {% if submission.total_samples > 1 %}
+          <a href="{% url 'reception:coa_reporting_preference' submission.reference %}?change=1" class="btn btn-outline"><i class='bx bx-edit' aria-hidden="true"></i> Edit Selection</a>
+        {% endif %}
+        <form method="post" class="coa-finalize-form">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary"><i class='bx bx-check' aria-hidden="true"></i> Save Reporting Preference</button>
+        </form>
+      {% else %}
+        <p class="coa-locked-note"><i class='bx bx-lock-alt' aria-hidden="true"></i> Saved and locked.</p>
+        <a href="{% url 'reception:sample_registration_detail' submission.slug %}" class="btn btn-primary"><i class='bx bx-left-arrow-alt' aria-hidden="true"></i> Back to Submission</a>
+      {% endif %}
+    </div>
   </section>
 </div>
 {% endblock %}

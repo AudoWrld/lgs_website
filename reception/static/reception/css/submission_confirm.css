@@ -12,7 +12,7 @@
   margin-bottom: 1rem;
   background: var(--line);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 0;
   overflow: hidden;
 }
 
@@ -85,7 +85,7 @@
   align-items: center;
   gap: 0.45rem;
   padding: 0.2rem 0.6rem;
-  border-radius: 3px;
+  border-radius: 0;
   background: rgba(243, 154, 43, 0.14);
   color: #a5620a;
   font-size: 0.75rem;
@@ -97,7 +97,7 @@
   content: "";
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: 0;
   background: currentColor;
   animation: cf-pulse 2s ease-in-out infinite;
 }
@@ -106,7 +106,7 @@
   background: var(--white);
   border: 1px solid var(--line);
   border-top: 3px solid var(--navy);
-  border-radius: 6px;
+  border-radius: 0;
   overflow: hidden;
 }
 
@@ -231,7 +231,7 @@
   top: 0.62rem;
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: 0;
   background: var(--navy);
 }
 
@@ -263,7 +263,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 .cf-btn i {

@@ -1,4 +1,3 @@
-
 {% extends "reception/base_reception.html" %}
 {% load static %}
 
@@ -13,55 +12,55 @@
 {% block content %}
 <div class="cs-page">
 
-  <section class="cs-summary">
-    <div class="cs-summary-item cs-summary-main">
-      <span class="cs-summary-label">Client</span>
-      <span class="cs-summary-name">{{ client.client_name }}</span>
-      <span class="cs-type">{{ client.get_client_type_display }}</span>
+  <header class="cs-head">
+    <div class="cs-head-text">
+      <h2 class="cs-head-title">Client Submissions</h2>
+      <p class="cs-head-sub">Every submission received from this client, newest first.</p>
+    </div>
+    <div class="cs-head-actions">
+      <a href="{% url 'reception:client_search' %}" class="btn btn-outline cs-btn">
+        <i class='bx bx-left-arrow-alt'></i> Back to Search
+      </a>
+      <a href="{% url 'reception:client_new_submission' client.slug %}" class="btn btn-primary cs-btn">
+        <i class='bx bx-plus'></i> Start New Submission
+      </a>
+    </div>
+  </header>
+
+  <section class="cs-client">
+    <div class="cs-client-id">
+      <span class="cs-avatar">{{ client.client_name|slice:":1"|upper }}</span>
+      <div class="cs-client-name-wrap">
+        <h3 class="cs-client-name">{{ client.client_name }}</h3>
+        <span class="cs-type">{{ client.get_client_type_display }}</span>
+      </div>
     </div>
 
-    <div class="cs-summary-item">
-      <span class="cs-summary-label">Contact Person</span>
-      {% if client.contact_person %}
-        <span class="cs-summary-value">{{ client.contact_person }}</span>
-      {% else %}
-        <span class="cs-summary-note">Not provided</span>
-      {% endif %}
-    </div>
+    <dl class="cs-client-details">
+      <div class="cs-detail">
+        <dt><i class='bx bx-user'></i> Contact Person</dt>
+        <dd>{% if client.contact_person %}{{ client.contact_person }}{% else %}<span class="cs-muted">Not provided</span>{% endif %}</dd>
+      </div>
+      <div class="cs-detail">
+        <dt><i class='bx bx-envelope'></i> Email</dt>
+        <dd>{% if client.email %}{{ client.email }}{% else %}<span class="cs-muted">Not provided</span>{% endif %}</dd>
+      </div>
+      <div class="cs-detail">
+        <dt><i class='bx bxl-whatsapp'></i> WhatsApp</dt>
+        <dd>{% if client.whatsapp_number %}{{ client.whatsapp_number }}{% else %}<span class="cs-muted">Not provided</span>{% endif %}</dd>
+      </div>
+    </dl>
 
-    <div class="cs-summary-item">
-      <span class="cs-summary-label">Contact</span>
-      {% if client.email %}
-        <span class="cs-summary-value cs-summary-small">{{ client.email }}</span>
-      {% endif %}
-      {% if client.whatsapp_number %}
-        <span class="cs-summary-note">{{ client.whatsapp_number }}</span>
-      {% endif %}
-      {% if not client.email and not client.whatsapp_number %}
-        <span class="cs-summary-note">No contact details</span>
-      {% endif %}
-    </div>
-
-    <div class="cs-summary-item cs-summary-count">
-      <span class="cs-summary-label">Submissions</span>
-      <span class="cs-summary-count-value">{{ submissions|length }}</span>
+    <div class="cs-client-count">
+      <span class="cs-client-count-value">{{ paginator.count }}</span>
+      <span class="cs-client-count-label">Submission{{ paginator.count|pluralize }}</span>
     </div>
   </section>
 
-  <div class="cs-card">
+  <section class="cs-card">
     <div class="cs-card-head">
-      <div>
-        <h3>Submission References</h3>
-        <p>{{ submissions|length }} submission{{ submissions|length|pluralize }} for this client</p>
-      </div>
-      <div class="cs-head-actions">
-        <a href="{% url 'reception:client_search' %}" class="btn btn-outline cs-btn">
-          <i class='bx bx-left-arrow-alt'></i> Back to Search
-        </a>
-        <a href="{% url 'reception:client_new_submission' client.slug %}" class="btn btn-primary cs-btn">
-          <i class='bx bx-plus'></i> Start New Submission
-        </a>
-      </div>
+      <h3>Submission References</h3>
+      <span class="cs-count">{{ paginator.count }} total</span>
     </div>
 
     {% if submissions %}
@@ -79,15 +78,15 @@
           <tbody>
             {% for submission in submissions %}
             <tr>
-              <td class="cs-cell-ref">{{ submission.reference }}</td>
-              <td>
+              <td data-label="Reference" class="cs-cell-ref">{{ submission.reference }}</td>
+              <td data-label="Received">
                 <span class="cs-cell-main">{{ submission.created_at|date:"d M Y" }}</span>
                 <span class="cs-cell-note">{{ submission.created_at|date:"H:i" }}</span>
               </td>
-              <td>
-                <span class="cs-cell-main">{{ submission.total_samples }}</span>
+              <td data-label="Samples">
+                <span class="cs-samples"><i class='bx bx-vial'></i> {{ submission.total_samples }}</span>
               </td>
-              <td>
+              <td data-label="Status">
                 <span class="cs-badge {% if submission.is_submitted %}cs-badge--submitted{% else %}cs-badge--progress{% endif %}">
                   {% if submission.is_submitted %}Submitted{% else %}In Progress{% endif %}
                 </span>
@@ -107,16 +106,49 @@
           </tbody>
         </table>
       </div>
+
+      <nav class="cs-pager" aria-label="Pagination">
+        <span class="cs-pager-info">
+          Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ paginator.count }}
+        </span>
+
+        {% if page_obj.has_other_pages %}
+          <ul class="cs-pager-list">
+            {% if page_obj.has_previous %}
+              <li><a class="cs-page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous page"><i class='bx bx-chevron-left'></i></a></li>
+            {% else %}
+              <li><span class="cs-page-link is-disabled"><i class='bx bx-chevron-left'></i></span></li>
+            {% endif %}
+
+            {% for num in page_range %}
+              {% if num == paginator.ellipsis %}
+                <li><span class="cs-page-link is-gap">{{ num }}</span></li>
+              {% elif num == page_obj.number %}
+                <li><span class="cs-page-link is-current" aria-current="page">{{ num }}</span></li>
+              {% else %}
+                <li><a class="cs-page-link" href="?page={{ num }}">{{ num }}</a></li>
+              {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+              <li><a class="cs-page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next page"><i class='bx bx-chevron-right'></i></a></li>
+            {% else %}
+              <li><span class="cs-page-link is-disabled"><i class='bx bx-chevron-right'></i></span></li>
+            {% endif %}
+          </ul>
+        {% endif %}
+      </nav>
     {% else %}
       <div class="cs-empty">
-        <i class='bx bx-file'></i>
-        <p>No submissions exist for this client yet.</p>
+        <span class="cs-empty-icon"><i class='bx bx-file'></i></span>
+        <h3>No submissions yet</h3>
+        <p>This client has no submissions. Start one to begin registering samples.</p>
         <a href="{% url 'reception:client_new_submission' client.slug %}" class="btn btn-primary cs-btn">
           <i class='bx bx-plus'></i> Start New Submission
         </a>
       </div>
     {% endif %}
-  </div>
+  </section>
 
 </div>
 {% endblock %}

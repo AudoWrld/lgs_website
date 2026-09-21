@@ -8,7 +8,7 @@
 .cr-card {
   background: var(--white);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 0;
   overflow: hidden;
 }
 
@@ -64,7 +64,7 @@
   color: var(--charcoal);
   background: var(--white);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 .cr-field input::placeholder {
@@ -106,7 +106,7 @@
   gap: 0.4rem;
   height: 42px;
   padding: 0 1.25rem;
-  border-radius: 4px;
+  border-radius: 0;
   white-space: nowrap;
 }
 
@@ -214,7 +214,7 @@
   color: #a5620a;
   background: rgba(243, 154, 43, 0.14);
   padding: 0.15rem 0.5rem;
-  border-radius: 3px;
+  border-radius: 0;
 }
 
 .cr-action {
@@ -223,7 +223,7 @@
   gap: 0.3rem;
   height: 34px;
   padding: 0 0.85rem;
-  border-radius: 4px;
+  border-radius: 0;
   font-size: 0.8125rem;
 }
 
