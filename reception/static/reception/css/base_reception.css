@@ -25,7 +25,7 @@
   --fs-h3: 1.0625rem;
   --sidebar-width: 260px;
   --topbar-height: 64px;
-  --radius: 4px;
+  --radius: 0;
 }
 
 * {
@@ -112,7 +112,7 @@ img {
   background: var(--navy-dark);
   color: var(--white);
   padding: 0.6rem 1rem;
-  border-radius: var(--radius);
+  border-radius: 0;
   font-size: var(--fs-small);
   font-weight: 600;
 }
@@ -138,7 +138,7 @@ img {
   font-weight: 600;
   line-height: 1.4;
   padding: 0.6rem 1.2rem;
-  border-radius: var(--radius);
+  border-radius: 0;
   border: 1px solid transparent;
   cursor: pointer;
   text-decoration: none;
@@ -310,7 +310,7 @@ img {
   font-size: 0.875rem;
   font-weight: 500;
   padding: 0.65rem 0.75rem;
-  border-radius: var(--radius);
+  border-radius: 0;
   border-left: 3px solid transparent;
   text-decoration: none;
 }
@@ -345,7 +345,7 @@ img {
   gap: 0.6rem;
   background: rgba(247, 244, 238, 0.06);
   border: 1px solid rgba(247, 244, 238, 0.35);
-  border-radius: var(--radius);
+  border-radius: 0;
   color: var(--white);
   font-family: var(--font-body);
   font-size: 0.875rem;
@@ -432,13 +432,13 @@ img {
   color: var(--orange-dark);
   background: rgba(243, 154, 43, 0.14);
   padding: 0.15rem 0.55rem;
-  border-radius: 999px;
+  border-radius: 0;
 }
 
 .app-topbar-avatar {
   width: 34px;
   height: 34px;
-  border-radius: 50%;
+  border-radius: 0;
   background: var(--navy);
   color: var(--white);
   display: flex;
@@ -455,7 +455,7 @@ img {
   flex: 1;
   width: 100%;
   margin: 0 auto;
-  padding: 15px;
+  padding: 15px 15px 20px;
 }
 
 .messages {
@@ -467,7 +467,7 @@ img {
   max-width: 400px;
   z-index: 9999;
   padding: 10px 30px;
-  border-radius: 4px;
+  border-radius: 0;
   text-align: center;
   list-style: none;
   margin: 0;
@@ -476,7 +476,7 @@ img {
 .message {
   padding: 10px 15px;
   margin-bottom: 5px;
-  border-radius: 4px;
+  border-radius: 0;
   font-size: 14px;
 }
 
@@ -512,7 +512,7 @@ img {
 .card {
   background: var(--white);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 1.25rem;
   margin-bottom: 1rem;
 }
@@ -576,7 +576,7 @@ textarea {
   color: var(--charcoal);
   background: var(--white);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 0.55rem 0.75rem;
   line-height: 1.4;
 }
@@ -622,7 +622,7 @@ textarea:disabled {
   overflow-x: auto;
   background: var(--white);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 0;
 }
 
 .table {
@@ -659,7 +659,7 @@ textarea:disabled {
   font-size: 0.75rem;
   font-weight: 600;
   padding: 0.15rem 0.55rem;
-  border-radius: 999px;
+  border-radius: 0;
   background: var(--info-bg);
   color: var(--info-text);
 }
@@ -728,7 +728,7 @@ textarea:disabled {
 
 @media (max-width: 560px) {
   .app-content {
-    padding: 15px;
+    padding: 15px 15px 20px;
   }
 
   .app-topbar {
