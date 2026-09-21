@@ -39,11 +39,18 @@
   .doc-name { font-size: 10pt; font-weight: bold; margin-top: 2px; }
   .doc-sub  { font-size: 8pt; font-weight: bold; margin-top: 5px; }
 
-  /* ---------- Details block ---------- */
-  .info-table { margin-top: 6px; margin-bottom: 6px; }
-  .info-table td { padding: 1px 0; vertical-align: top; font-size: 9.5pt; }
-  .info-label { font-weight: bold; width: 22%; }
-  .info-value { width: 28%; }
+  /* ---------- Details block (bordered table) ---------- */
+  .info-table { margin-top: 8px; margin-bottom: 6px; }
+  .info-table th, .info-table td {
+    border: 1px solid #000000;
+    padding: 4px 5px;
+    font-size: 9.5pt;
+    text-align: left;
+    vertical-align: top;
+    word-wrap: break-word;
+  }
+  .info-table th { width: 18%; background-color: #f2f2f2; font-weight: bold; }
+  .info-table td { width: 32%; }
 
   /* ---------- Worksheet heading ---------- */
   .ws-title {
@@ -107,42 +114,36 @@
     <p class="doc-sub">INTERNAL LABORATORY USE ONLY</p>
   </div>
 
-  <!-- General header -->
+  <!-- General header (bordered table) -->
   <table class="info-table">
     <tr>
-      <td class="info-label">Submission Reference:</td>
-      <td class="info-value">{{ submission.reference }}</td>
-      <td class="info-label">Total Samples:</td>
-      <td class="info-value">{{ submission.sample_count|default:submission.total_samples }}</td>
+      <th>Submission Reference</th>
+      <td>{{ submission.reference }}</td>
+      <th>Total Samples</th>
+      <td>{{ submission.sample_count|default:submission.total_samples }}</td>
     </tr>
     <tr>
-      <td class="info-label">Receiving Date:</td>
-      <td class="info-value">{{ submission.receiving_date|date:"d M Y" }}</td>
-      <td class="info-label">Receiving Time:</td>
-      <td class="info-value">{{ submission.receiving_time|time:"H:i" }}</td>
+      <th>Receiving Date</th>
+      <td>{{ submission.receiving_date|date:"d M Y" }}</td>
+      <th>Receiving Time</th>
+      <td>{{ submission.receiving_time|time:"H:i" }}</td>
     </tr>
     <tr>
-      <td class="info-label">Worksheet Generated:</td>
-      <td class="info-value" colspan="3">{{ generated_at|default:"—" }}</td>
+      <th>Worksheet Generated</th>
+      <td colspan="3">{{ generated_at|default:"—" }}</td>
     </tr>
-    {% if sample_types %}
     <tr>
-      <td class="info-label">Sample Type(s):</td>
-      <td colspan="3">{% for item in sample_types %}{{ item }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+      <th>Sample Type(s)</th>
+      <td colspan="3">{% for item in sample_types %}{{ item }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
     </tr>
-    {% endif %}
-    {% if services %}
     <tr>
-      <td class="info-label">Requested Service(s):</td>
-      <td colspan="3">{% for item in services %}{{ item }}{% if not forloop.last %} &nbsp;|&nbsp; {% endif %}{% endfor %}</td>
+      <th>Requested Service(s)</th>
+      <td colspan="3">{% for item in services %}{{ item }}{% if not forloop.last %} &nbsp;|&nbsp; {% endif %}{% empty %}—{% endfor %}</td>
     </tr>
-    {% endif %}
-    {% if methods %}
     <tr>
-      <td class="info-label">Method(s) of Analysis:</td>
-      <td colspan="3">{% for item in methods %}{{ item }}{% if not forloop.last %} &nbsp;|&nbsp; {% endif %}{% endfor %}</td>
+      <th>Method(s) of Analysis</th>
+      <td colspan="3">{% for item in methods %}{{ item }}{% if not forloop.last %} &nbsp;|&nbsp; {% endif %}{% empty %}—{% endfor %}</td>
     </tr>
-    {% endif %}
   </table>
 
   {% if worksheets %}
