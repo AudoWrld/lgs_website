@@ -6,250 +6,250 @@
 <style>
   @page {
     size: A4;
-    margin: 1.1cm 1.4cm 1.3cm 1.4cm;
+    margin: 1.2cm 1.4cm 1.2cm 1.4cm;
     @frame main_frame {
       -pdf-frame-content: main_content;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
+      left: 1.4cm;
+      top: 1.2cm;
+      width: 18.2cm;
+      height: 26.2cm;
+    }
+    @frame footer_frame {
+      -pdf-frame-content: footer_content;
+      left: 1.4cm;
+      top: 27.6cm;
+      width: 18.2cm;
+      height: 1.3cm;
     }
   }
 
   body {
-    font-family: Helvetica, Arial, sans-serif;
-    font-size: 8.4pt;
-    color: #1f2933;
-    line-height: 1.3;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 10pt;
+    color: #000000;
+    line-height: 1.25;
   }
   p { margin: 0; padding: 0; }
   table { width: 100%; border-collapse: collapse; }
 
-  .doc-header {
-    border-bottom: 3px solid #123f78;
-    padding-bottom: 8px;
-    margin-bottom: 14px;
-  }
-  .doc-header-left { display: inline-block; }
-  .org-name { font-size: 14pt; font-weight: bold; color: #123f78; }
-  .doc-name { font-size: 9pt; color: #e08a1e; text-transform: uppercase; margin-top: 1px; letter-spacing: 0.05em; }
-  .doc-header-right { display: inline-block; float: right; text-align: right; }
-  .ref-label { font-size: 6.5pt; color: #6b7785; text-transform: uppercase; }
-  .ref-value { font-size: 12pt; font-weight: bold; color: #123f78; }
+  /* ---------- Header with logo ---------- */
+  .header-block { text-align: center; margin-bottom: 6px; }
+  .header-logo { text-align: center; margin-bottom: 4px; }
+  .org-name { font-size: 13pt; font-weight: bold; }
+  .doc-name { font-size: 10pt; font-weight: bold; margin-top: 2px; }
+  .doc-sub  { font-size: 8pt; font-weight: bold; margin-top: 5px; }
 
-  .stats-table { margin-top: 10px; margin-bottom: 14px; }
-  .stats-table td { padding: 5px 8px; border: 1px solid #d5dde6; background: #f7f9fc; vertical-align: middle; }
-  .stats-table td.stat-label { width: 30%; color: #6b7785; font-size: 7pt; text-transform: uppercase; }
-  .stats-table td.stat-value { font-weight: bold; color: #123f78; font-size: 9pt; }
+  /* ---------- Details block ---------- */
+  .info-table { margin-top: 6px; margin-bottom: 6px; }
+  .info-table td { padding: 1px 0; vertical-align: top; font-size: 9.5pt; }
+  .info-label { font-weight: bold; width: 22%; }
+  .info-value { width: 28%; }
 
-  .section { margin-top: 14px; border: 1px solid #d5dde6; }
-  .section-title {
-    padding: 4px 8px;
-    font-size: 7.5pt;
+  /* ---------- Worksheet heading ---------- */
+  .ws-title {
+    margin-top: 30px;
+    font-size: 10.5pt;
     font-weight: bold;
-    color: #123f78;
-    text-transform: uppercase;
-    border-bottom: 1px solid #d5dde6;
-    background: #f7f9fc;
+    text-decoration: underline;
   }
-  .section-body { padding: 6px 8px; }
+  .ws-meta { font-size: 9pt; margin-top: 2px; margin-bottom: 5px; }
 
-  .chip-row { padding: 2px 0; }
-  .chip { display: inline-block; padding: 1px 6px; background: rgba(18,62,91,0.07); border: 1px solid rgba(18,62,91,0.14); color: #123f78; font-size: 7.8pt; font-weight: 600; margin-right: 3px; }
-
-  .gw-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
-  .gw-table th { background: #eef3f9; color: #123f78; font-size: 7pt; text-transform: uppercase; padding: 4px 5px; border-bottom: 1px solid #c9d3de; text-align: left; }
-  .gw-table td { padding: 3px 5px; border-bottom: 1px solid #e8edf2; vertical-align: top; font-size: 7.8pt; }
-  .gw-table tr.blank-row td, .gw-table tr.crm-row td { color: #6b7785; font-weight: bold; text-align: center; }
-
-  .type-badge { font-weight: bold; color: #123f78; font-size: 8pt; }
-  .elements-info { font-size: 7.5pt; color: #6b7785; }
-  .method-info { font-size: 7.5pt; color: #1f2933; }
-
-  .doc-footer {
-    margin-top: 20px;
-    border-top: 1px solid #c9d3de;
-    padding-top: 6px;
-    display: flex;
-    justify-content: space-between;
-    font-size: 7pt;
-    color: #6b7785;
+  /* ---------- Data tables ---------- */
+  .gw-table { margin-top: 3px; }
+  .gw-table th {
+    border: 1px solid #000000;
+    padding: 3px 3px;
+    font-size: 9pt;
+    font-weight: bold;
+    text-align: left;
+    vertical-align: top;
+    word-wrap: break-word;
   }
-
-  .page-footer {
-    margin-top: 8px;
-    text-align: center;
-    font-size: 7pt;
-    color: #8a97a1;
+  .gw-table td {
+    border: 1px solid #000000;
+    padding: 3px 3px;
+    font-size: 9pt;
+    vertical-align: middle;
+    word-wrap: break-word;
   }
+  .gw-table td.center { text-align: center; }
+  .gw-table tr.blank-row td { height: 14px; }
+  .gw-table tr.crm-row td { text-align: center; font-weight: bold; }
+
+  .empty-note { margin-top: 12px; font-size: 9pt; }
+
+  /* ---------- Footer ---------- */
+  .footer-line { border-top: 1px solid #000000; margin-top: 2px; padding-top: 3px; }
+  .footer-table td { font-size: 8pt; font-weight: bold; }
+  .footer-right { text-align: right; }
 </style>
 </head>
 <body>
 
+<div id="footer_content">
+  <div class="footer-line">
+    <table class="footer-table">
+      <tr>
+        <td>LGS African Group Company Limited — Internal Laboratory Use Only</td>
+        <td class="footer-right">Page <pdf:pagenumber> of <pdf:pagecount></td>
+      </tr>
+    </table>
+  </div>
+</div>
+
 <div id="main_content">
 
-  <div class="doc-header">
-    <div class="doc-header-left">
-      <p class="org-name">LGS Mineral Assay Laboratory</p>
-      <p class="doc-name">Laboratory Worksheet</p>
-    </div>
-    <div class="doc-header-right">
-      <p class="ref-label">Submission Reference</p>
-      <p class="ref-value">{{ submission.reference }}</p>
-    </div>
+  <!-- Header: logo + title -->
+  <div class="header-block">
+    {% if logo_path %}<p class="header-logo"><img src="{{ logo_path }}" width="60" /></p>{% endif %}
+    <p class="org-name">LGS MINERAL ASSAY LABORATORY</p>
+    <p class="doc-name">LABORATORY WORKSHEET</p>
+    <p class="doc-sub">INTERNAL LABORATORY USE ONLY</p>
   </div>
 
-  <table class="stats-table">
+  <!-- General header -->
+  <table class="info-table">
     <tr>
-      <td class="stat-label">Receiving Date</td>
-      <td class="stat-value">{{ submission.receiving_date|date:"d M Y" }}</td>
-      <td class="stat-label">Receiving Time</td>
-      <td class="stat-value">{{ submission.receiving_time|time:"H:i" }}</td>
+      <td class="info-label">Submission Reference:</td>
+      <td class="info-value">{{ submission.reference }}</td>
+      <td class="info-label">Total Samples:</td>
+      <td class="info-value">{{ submission.sample_count|default:submission.total_samples }}</td>
     </tr>
     <tr>
-      <td class="stat-label">Total Samples</td>
-      <td class="stat-value">{{ submission.sample_count|default:submission.total_samples }}</td>
-      <td class="stat-label">Generated</td>
-      <td class="stat-value">{{ generated_at|default:"—" }}</td>
+      <td class="info-label">Receiving Date:</td>
+      <td class="info-value">{{ submission.receiving_date|date:"d M Y" }}</td>
+      <td class="info-label">Receiving Time:</td>
+      <td class="info-value">{{ submission.receiving_time|time:"H:i" }}</td>
     </tr>
+    <tr>
+      <td class="info-label">Worksheet Generated:</td>
+      <td class="info-value" colspan="3">{{ generated_at|default:"—" }}</td>
+    </tr>
+    {% if sample_types %}
+    <tr>
+      <td class="info-label">Sample Type(s):</td>
+      <td colspan="3">{% for item in sample_types %}{{ item }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+    </tr>
+    {% endif %}
+    {% if services %}
+    <tr>
+      <td class="info-label">Requested Service(s):</td>
+      <td colspan="3">{% for item in services %}{{ item }}{% if not forloop.last %} &nbsp;|&nbsp; {% endif %}{% endfor %}</td>
+    </tr>
+    {% endif %}
+    {% if methods %}
+    <tr>
+      <td class="info-label">Method(s) of Analysis:</td>
+      <td colspan="3">{% for item in methods %}{{ item }}{% if not forloop.last %} &nbsp;|&nbsp; {% endif %}{% endfor %}</td>
+    </tr>
+    {% endif %}
   </table>
-
-  {% if sample_types or services or methods %}
-  <div class="section">
-    <div class="section-title">Sample &amp; Service Summary</div>
-    <div class="section-body">
-      {% if sample_types %}
-      <div class="chip-row">
-        <span style="color:#6b7785;font-size:7pt;text-transform:uppercase;">Sample Type(s)</span><br/>
-        {% for item in sample_types %}<span class="chip">{{ item }}</span>{% empty %}<span style="color:#9aa5ac;">—</span>{% endfor %}
-      </div>
-      {% endif %}
-      {% if services %}
-      <div class="chip-row">
-        <span style="color:#6b7785;font-size:7pt;text-transform:uppercase;">Requested Service(s)</span><br/>
-        {% for item in services %}<span class="chip">{{ item }}</span>{% empty %}<span style="color:#9aa5ac;">—</span>{% endfor %}
-      </div>
-      {% endif %}
-      {% if methods %}
-      <div class="chip-row">
-        <span style="color:#6b7785;font-size:7pt;text-transform:uppercase;">Method(s) of Analysis</span><br/>
-        {% for item in methods %}<span class="chip chip-alt" style="background:#fdf3e1;border-color:#f1d9a9;color:#8a5a10;">{{ item }}</span>{% empty %}<span style="color:#9aa5ac;">—</span>{% endfor %}
-      </div>
-      {% endif %}
-    </div>
-  </div>
-  {% endif %}
 
   {% if worksheets %}
     {% for worksheet in worksheets %}
-    <div class="section">
-      <div class="section-title">{{ worksheet.get_worksheet_type_display }}</div>
-      <div class="section-body">
-        <div class="chip-row" style="margin-bottom:4px;">
-          {% if worksheet.elements %}<span class="elements-info">Elements: {{ worksheet.elements }}</span>{% endif %}
-          {% if worksheet.elements and worksheet.method_of_analysis %} · {% endif %}
-          {% if worksheet.method_of_analysis %}<span class="method-info">Method: {{ worksheet.method_of_analysis }}</span>{% endif %}
-        </div>
 
-        {% if worksheet.worksheet_type == "MINERAL_ANALYSIS" %}
-        <table class="gw-table">
-          <thead>
-            <tr>
-              <th>S/N</th>
-              <th>Beaker ID</th>
-              <th>Lab Sample ID</th>
-              <th>Weight</th>
-              {% for el in worksheet.elements|split_elements %}<th>{{ el }}</th>{% endfor %}
-              <th>Remarks</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in worksheet.rows.all %}
-            {% if row.row_type == "BLANK" %}
-              <tr class="blank-row"><td colspan="10">&nbsp;</td></tr>
-            {% elif row.row_type == "CRM" %}
-              <tr class="crm-row"><td colspan="10">CRM</td></tr>
-            {% else %}
-              <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ row.beaker_id|default:"—" }}</td>
-                <td>{{ row.lab_sample_mapping.lab_sample_id|default:"—" }} — Replicate {{ row.replicate_number|default:"—" }}</td>
-                <td>{{ row.weight|default:"—" }}</td>
-                {% for el in worksheet.elements|split_elements %}<td></td>{% endfor %}
-                <td>{{ row.remarks|default:"" }}</td>
-              </tr>
-            {% endif %}
-            {% endfor %}
-          </tbody>
-        </table>
+    <p class="ws-title">{{ worksheet.get_worksheet_type_display|upper }}</p>
+    <p class="ws-meta">
+      {% if worksheet.elements %}<b>Elements:</b> {{ worksheet.elements }}{% endif %}
+      {% if worksheet.elements and worksheet.method_of_analysis %}&nbsp;&nbsp;&nbsp;{% endif %}
+      {% if worksheet.method_of_analysis %}<b>Method:</b> {{ worksheet.method_of_analysis }}{% endif %}
+    </p>
 
-        {% elif worksheet.worksheet_type == "CARBON_ACTIVITY" %}
-        <table class="gw-table">
-          <thead>
+    {% if worksheet.worksheet_type == "MINERAL_ANALYSIS" %}
+    {% with els=worksheet.elements|split_elements %}
+    <table class="gw-table" repeat="1">
+      <thead>
+        <tr>
+          <th style="width:6%;">S/N</th>
+          <th style="width:12%;">Beaker ID</th>
+          <th style="width:22%;">Lab Sample ID</th>
+          <th style="width:10%;">Weight</th>
+          {% for el in els %}<th>{{ el }}</th>{% endfor %}
+          <th style="width:14%;">Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in worksheet.rows.all %}
+          {% if row.row_type == "BLANK" %}
+            <tr class="blank-row"><td colspan="{{ els|length|add:5 }}">&nbsp;</td></tr>
+          {% elif row.row_type == "CRM" %}
+            <tr class="crm-row"><td colspan="{{ els|length|add:5 }}">CRM</td></tr>
+          {% else %}
             <tr>
-              <th>S/N</th>
-              <th>Lab Sample ID</th>
-              <th>20 ppm Gold Standard</th>
-              <th>Virgin Carbon</th>
-              <th>Conc-1</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in worksheet.rows.all %}
-            <tr>
-              <td>{{ forloop.counter }}</td>
-              <td>{{ row.lab_sample_mapping.lab_sample_id|default:"—" }} — Replicate {{ row.replicate_number|default:"—" }}</td>
-              <td></td><td></td> <td></td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-
-        {% else %}
-        <table class="gw-table">
-          <thead>
-            <tr>
-              <th>S/N</th>
-              <th>Container Label</th>
-              <th>Lab Sample ID</th>
-              <th>Parameter</th>
-              <th>Weight</th>
-              <th>Gold Recovered — 12 Hrs</th>
-              <th>Gold Recovered — 24 Hrs</th>
-              <th>Gold Recovered — 48 Hrs</th>
-              <th>Remark</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in worksheet.rows.all %}
-            <tr>
-              <td>{{ forloop.counter }}</td>
-              <td>{{ row.container_label|default:"—" }}</td>
-              <td>{{ row.lab_sample_mapping.lab_sample_id|default:"—" }}</td>
-              <td>{{ row.parameter|default:"—" }}</td>
-              <td>{{ row.weight|default:"—" }}</td>
-              <td></td><td></td><td></td>
+              <td class="center">{{ forloop.counter }}</td>
+              <td>{{ row.beaker_id|default:"" }}</td>
+              <td>{{ row.lab_sample_mapping.lab_sample_id|default:"" }}<br/>Replicate {{ row.replicate_number|default:"" }}</td>
+              <td>{{ row.weight|default:"" }}</td>
+              {% for el in els %}<td>&nbsp;</td>{% endfor %}
               <td>{{ row.remarks|default:"" }}</td>
             </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        {% endif %}
-      </div>
-    </div>
+          {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endwith %}
+
+    {% elif worksheet.worksheet_type == "CARBON_ACTIVITY" %}
+    <table class="gw-table" repeat="1">
+      <thead>
+        <tr>
+          <th style="width:7%;">S/N</th>
+          <th style="width:30%;">Lab Sample ID</th>
+          <th style="width:21%;">20 ppm Gold Standard</th>
+          <th style="width:21%;">Virgin Carbon</th>
+          <th style="width:21%;">Conc-1</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in worksheet.rows.all %}
+        <tr>
+          <td class="center">{{ forloop.counter }}</td>
+          <td>{{ row.lab_sample_mapping.lab_sample_id|default:"" }}<br/>Replicate {{ row.replicate_number|default:"" }}</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% else %}
+    <table class="gw-table" repeat="1">
+      <thead>
+        <tr>
+          <th style="width:5%;">S/N</th>
+          <th style="width:9%;">Container Label</th>
+          <th style="width:18%;">Lab Sample ID</th>
+          <th style="width:14%;">Parameter</th>
+          <th style="width:9%;">Weight</th>
+          <th style="width:12%;">Gold Recovered – 12 Hrs</th>
+          <th style="width:12%;">Gold Recovered – 24 Hrs</th>
+          <th style="width:12%;">Gold Recovered – 48 Hrs</th>
+          <th style="width:9%;">Remark</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in worksheet.rows.all %}
+        <tr>
+          <td class="center">{{ forloop.counter }}</td>
+          <td>{{ row.container_label|default:"" }}</td>
+          <td>{{ row.lab_sample_mapping.lab_sample_id|default:"" }}</td>
+          <td>{{ row.parameter|default:"" }}</td>
+          <td>{{ row.weight|default:"" }}</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>{{ row.remarks|default:"" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
     {% endfor %}
   {% else %}
-    <p style="color:#9aa5ac;padding:10px 0;">No worksheets generated yet.</p>
+    <p class="empty-note">No worksheets generated yet.</p>
   {% endif %}
-
-  <div class="page-footer">
-    Page <pdf:pagenumber> of <pdf:pagecount>
-  </div>
-
-  <div class="doc-footer">
-    <span>LGS African Group Company Limited — Internal Laboratory Use Only</span>
-    <span>Generated {{ generated_at|default:"—" }}</span>
-  </div>
 
 </div>
 

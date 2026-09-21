@@ -6,6 +6,7 @@ from io import BytesIO
 import qrcode
 from django.conf import settings
 from django.template.loader import render_to_string
+from django.utils import timezone
 from PIL import Image, ImageDraw, ImageFont
 from xhtml2pdf import pisa
 
@@ -99,6 +100,13 @@ def render_client_submission_form_pdf(context):
 
 
 def render_worksheet_pdf(context):
+    context = {
+        **context,
+        "logo_path": os.path.join(STATIC_IMG, "lgs-logo.png"),
+        # strftime needs % codes; local time so it matches Nairobi (TIME_ZONE)
+        "generated_at": timezone.localtime().strftime("%d %b %Y, %H:%M"),
+    }
+
     html_string = render_to_string(
         "reception/pdf/worksheet_form.html", context
     )
