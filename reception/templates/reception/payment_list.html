@@ -1,5 +1,6 @@
 {% extends "reception/base_reception.html" %}
 {% load static %}
+{% load l10n %}
 
 {% block title %}Payment Details — LGS Reception{% endblock %}
 {% block page_title %}Payment Details{% endblock %}
@@ -11,53 +12,64 @@
 {% endblock %}
 
 {% block content %}
-<div class="ps-split{% if submission or not_found %} has-selection{% endif %}">
+<div class="ps-split{% if submission or not_found %} has-selection{% endif %}" data-ref="{{ submission.reference }}">
 
   <aside class="dash-panel ps-list-panel">
     <div class="dash-panel-head">
       <h3><i class='bx bx-list-ul' aria-hidden="true"></i> Submissions</h3>
-      <span>{{ match_count }} found</span>
+      <span id="ps-count">{{ match_count }} found</span>
     </div>
 
     <form method="get" class="ps-search" id="ps-search-form" role="search">
       <label for="ps-search-input" class="visually-hidden">Search submissions</label>
       <div class="ps-search-field">
         <i class='bx bx-search' aria-hidden="true"></i>
-        <input id="ps-search-input" type="search" name="q" value="{{ query }}" placeholder="Reference or client name" autocomplete="off"{% if query %} data-refocus{% endif %}>
+        <input id="ps-search-input" type="search" name="q" value="{{ query }}" placeholder="Reference or client name" autocomplete="off">
       </div>
-      {% if submission %}<input type="hidden" name="ref" value="{{ submission.reference }}">{% endif %}
+      <input type="hidden" name="ref" id="ps-ref-input" value="{{ submission.reference }}">
     </form>
 
-    {% if submissions %}
-    <ul class="ps-list" id="ps-list">
-      {% for item in submissions %}
-      <li>
-        <a href="?ref={{ item.reference|urlencode:'' }}{% if query %}&q={{ query|urlencode:'' }}{% endif %}" class="ps-item{% if submission and item.pk == submission.pk %} is-active{% endif %}"{% if submission and item.pk == submission.pk %} aria-current="true"{% endif %}>
-          <span class="ps-item-top">
-            <span class="ps-item-ref">{{ item.reference }}</span>
-            {% if item.payment %}
-            <span class="ps-badge ps-status-{{ item.payment.payment_status|lower }}">{{ item.payment.get_payment_status_display }}</span>
-            {% else %}
-            <span class="ps-badge ps-status-not_started">Not Started</span>
-            {% endif %}
-          </span>
-          <span class="ps-item-client">{{ item.client.client_name }}</span>
-          <span class="ps-item-sub">{{ item.receiving_date|date:"d M Y" }} · {{ item.sample_count }} sample{{ item.sample_count|pluralize }}</span>
-        </a>
-      </li>
-      {% endfor %}
-    </ul>
-    {% if match_count > list_limit %}
-    <p class="ps-list-note">Showing the latest {{ list_limit }}. Type in the search box to narrow down.</p>
-    {% endif %}
-    {% else %}
-    <div class="ps-empty ps-empty-small">
-      <p>No submissions match your search.</p>
+    <div class="ps-list-wrap" id="ps-list-wrap">
+      {% if submissions %}
+      <ul class="ps-list" id="ps-list">
+        {% for item in submissions %}
+        <li>
+          <a href="?ref={{ item.reference|urlencode:'' }}{% if query %}&q={{ query|urlencode:'' }}{% endif %}" class="ps-item{% if submission and item.pk == submission.pk %} is-active{% endif %}"{% if submission and item.pk == submission.pk %} aria-current="true"{% endif %}>
+            <span class="ps-item-top">
+              <span class="ps-item-ref">{{ item.reference }}</span>
+              {% if item.payment %}
+              <span class="ps-badge ps-status-{{ item.payment.payment_status|lower }}">{{ item.payment.get_payment_status_display }}</span>
+              {% else %}
+              <span class="ps-badge ps-status-not_started">Not Started</span>
+              {% endif %}
+            </span>
+            <span class="ps-item-client">{{ item.client.client_name }}</span>
+            <span class="ps-item-sub">{{ item.receiving_date|date:"d M Y" }} · {{ item.sample_count }} sample{{ item.sample_count|pluralize }}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% if match_count > list_limit %}
+      <p class="ps-list-note">Showing the latest {{ list_limit }}. Type in the search box to narrow down.</p>
+      {% endif %}
+      {% else %}
+      <div class="ps-empty ps-empty-small">
+        <p>No submissions match your search.</p>
+      </div>
+      {% endif %}
     </div>
-    {% endif %}
   </aside>
 
-  <section class="ps-detail">
+  <section class="ps-detail" id="ps-detail">
+    {% if flash %}
+    <div class="dash-panel ps-block">
+      <div class="ps-notice" role="status">
+        <i class='bx bx-check-circle' aria-hidden="true"></i>
+        <span>{{ flash }}</span>
+      </div>
+    </div>
+    {% endif %}
+
     {% if submission and payment %}
 
     <div class="dash-panel ps-block">
@@ -118,60 +130,62 @@
         <span>New payment is added to the total paid</span>
       </div>
 
-      <form method="post" class="ps-form" novalidate>
+      <form method="post" class="ps-form" novalidate data-gross="{{ payment.gross_amount|unlocalize }}" data-paid="{{ payment.total_amount_paid|unlocalize }}">
         {% csrf_token %}
 
         <div class="ps-form-body">
-            {% if update_form.non_field_errors %}
-            <div class="ps-alert" role="alert">
+          {% if update_form.non_field_errors %}
+          <div class="ps-alert" role="alert">
             {% for error in update_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
-            </div>
-            {% endif %}
+          </div>
+          {% endif %}
 
-            <div class="ps-row">
+          <p class="ps-live-check" id="ps-live-check" role="status" hidden></p>
+
+          <div class="ps-row">
             <div class="ps-field{% if update_form.additional_amount_paid.errors %} has-error{% endif %}">
-                <label for="{{ update_form.additional_amount_paid.id_for_label }}">Additional amount paid{% if update_form.additional_amount_paid.field.required %}<span class="ps-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
-                {{ update_form.additional_amount_paid }}
-                {% if update_form.additional_amount_paid.errors %}<span class="ps-error">{{ update_form.additional_amount_paid.errors.0 }}</span>{% endif %}
+              <label for="{{ update_form.additional_amount_paid.id_for_label }}">Additional amount paid{% if update_form.additional_amount_paid.field.required %}<span class="ps-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
+              {{ update_form.additional_amount_paid }}
+              {% if update_form.additional_amount_paid.errors %}<span class="ps-error">{{ update_form.additional_amount_paid.errors.0 }}</span>{% endif %}
             </div>
             <div class="ps-field{% if update_form.discount.errors %} has-error{% endif %}">
-                <label for="{{ update_form.discount.id_for_label }}">Discount{% if update_form.discount.field.required %}<span class="ps-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
-                {{ update_form.discount }}
-                {% if update_form.discount.errors %}<span class="ps-error">{{ update_form.discount.errors.0 }}</span>{% endif %}
+              <label for="{{ update_form.discount.id_for_label }}">Discount{% if update_form.discount.field.required %}<span class="ps-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
+              {{ update_form.discount }}
+              {% if update_form.discount.errors %}<span class="ps-error">{{ update_form.discount.errors.0 }}</span>{% endif %}
             </div>
-            </div>
+          </div>
 
-            <div class="ps-row" id="ps-method-row">
+          <div class="ps-row" id="ps-method-row">
             <div class="ps-field{% if update_form.payment_method.errors %} has-error{% endif %}">
-                <label for="{{ update_form.payment_method.id_for_label }}">Payment method{% if update_form.payment_method.field.required %}<span class="ps-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
-                {{ update_form.payment_method }}
-                {% if update_form.payment_method.errors %}<span class="ps-error">{{ update_form.payment_method.errors.0 }}</span>{% endif %}
+              <label for="{{ update_form.payment_method.id_for_label }}">Payment method{% if update_form.payment_method.field.required %}<span class="ps-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
+              {{ update_form.payment_method }}
+              {% if update_form.payment_method.errors %}<span class="ps-error">{{ update_form.payment_method.errors.0 }}</span>{% endif %}
             </div>
 
             <div class="ps-field{% if update_form.transaction_reference.errors %} has-error{% endif %}" id="transaction-reference-field">
-                <label for="{{ update_form.transaction_reference.id_for_label }}">Transaction reference<span class="ps-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
-                {{ update_form.transaction_reference }}
-                {% if update_form.transaction_reference.errors %}<span class="ps-error">{{ update_form.transaction_reference.errors.0 }}</span>{% endif %}
+              <label for="{{ update_form.transaction_reference.id_for_label }}">Transaction reference<span class="ps-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+              {{ update_form.transaction_reference }}
+              {% if update_form.transaction_reference.errors %}<span class="ps-error">{{ update_form.transaction_reference.errors.0 }}</span>{% endif %}
             </div>
 
             <div class="ps-field ps-field-status{% if update_form.payment_status.errors %} has-error{% endif %}">
-                <label for="{{ update_form.payment_status.id_for_label }}">Payment status{% if update_form.payment_status.field.required %}<span class="ps-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
-                {{ update_form.payment_status }}
-                {% if update_form.payment_status.errors %}<span class="ps-error">{{ update_form.payment_status.errors.0 }}</span>{% endif %}
+              <label for="{{ update_form.payment_status.id_for_label }}">Payment status{% if update_form.payment_status.field.required %}<span class="ps-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
+              {{ update_form.payment_status }}
+              {% if update_form.payment_status.errors %}<span class="ps-error">{{ update_form.payment_status.errors.0 }}</span>{% endif %}
             </div>
-            </div>
+          </div>
 
-            <div class="ps-field{% if update_form.remarks.errors %} has-error{% endif %}">
+          <div class="ps-field{% if update_form.remarks.errors %} has-error{% endif %}">
             <label for="{{ update_form.remarks.id_for_label }}">Payment remarks{% if update_form.remarks.field.required %}<span class="ps-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
             {{ update_form.remarks }}
             {% if update_form.remarks.errors %}<span class="ps-error">{{ update_form.remarks.errors.0 }}</span>{% endif %}
-            </div>
+          </div>
         </div>
 
         <div class="ps-actions">
-            <button type="submit" class="btn btn-primary"><i class='bx bx-save' aria-hidden="true"></i> Save Update</button>
+          <button type="submit" class="btn btn-primary"><i class='bx bx-save' aria-hidden="true"></i> Save Update</button>
         </div>
-        </form>
+      </form>
     </div>
     {% endif %}
 
@@ -202,60 +216,213 @@
 {% block extra_js %}
 <script>
   (function () {
-    var form = document.getElementById("ps-search-form");
+    var split = document.querySelector(".ps-split");
+    var searchForm = document.getElementById("ps-search-form");
     var input = document.getElementById("ps-search-input");
-    if (form && input) {
-      var timer;
-      input.addEventListener("input", function () {
-        clearTimeout(timer);
-        timer = setTimeout(function () { form.submit(); }, 450);
-      });
-      if (input.hasAttribute("data-refocus")) {
-        input.focus();
-        var end = input.value.length;
-        input.setSelectionRange(end, end);
+    var refInput = document.getElementById("ps-ref-input");
+    var listWrap = document.getElementById("ps-list-wrap");
+    var count = document.getElementById("ps-count");
+    var detail = document.getElementById("ps-detail");
+    if (!split || !searchForm || !input || !refInput || !listWrap || !count || !detail) return;
+
+    var timer;
+    var detailSerial = 0;
+    var listSerial = 0;
+    var headers = { "X-Requested-With": "XMLHttpRequest" };
+
+    function buildUrl(ref, q) {
+      var params = new URLSearchParams();
+      if (ref) params.set("ref", ref);
+      if (q) params.set("q", q);
+      var s = params.toString();
+      return location.pathname + (s ? "?" + s : "");
+    }
+
+    function centerActive() {
+      var list = document.getElementById("ps-list");
+      var active = list && list.querySelector(".ps-item.is-active");
+      if (!active) return;
+      var listBox = list.getBoundingClientRect();
+      var activeBox = active.getBoundingClientRect();
+      if (activeBox.top < listBox.top || activeBox.bottom > listBox.bottom) {
+        list.scrollTop += (activeBox.top - listBox.top) - (listBox.height - activeBox.height) / 2;
       }
     }
 
-    var list = document.getElementById("ps-list");
-    if (list) {
-      var saved = null;
-      try {
-        saved = sessionStorage.getItem("ps-list-scroll");
-        sessionStorage.removeItem("ps-list-scroll");
-      } catch (e) {}
-      if (saved !== null) list.scrollTop = parseInt(saved, 10) || 0;
+    function showError(text) {
+      var box = document.createElement("div");
+      var p = document.createElement("p");
+      box.className = "ps-alert";
+      box.setAttribute("role", "alert");
+      p.textContent = text;
+      box.appendChild(p);
+      detail.insertBefore(box, detail.firstChild);
+    }
 
-      var active = list.querySelector(".ps-item.is-active");
-      if (active) {
-        var listBox = list.getBoundingClientRect();
-        var activeBox = active.getBoundingClientRect();
-        if (activeBox.top < listBox.top || activeBox.bottom > listBox.bottom) {
-          list.scrollTop += (activeBox.top - listBox.top) - (listBox.height - activeBox.height) / 2;
-        }
+    function cents(v) {
+      return Math.round((parseFloat(String(v || "").replace(/,/g, "")) || 0) * 100);
+    }
+
+    function initDetail() {
+      var f = detail.querySelector(".ps-form");
+      if (!f) return;
+
+      var method = f.elements.payment_method;
+      var reference = f.elements.transaction_reference;
+      var add = f.elements.additional_amount_paid;
+      var disc = f.elements.discount;
+      var status = f.elements.payment_status;
+      var referenceField = document.getElementById("transaction-reference-field");
+      var methodRow = document.getElementById("ps-method-row");
+      var live = document.getElementById("ps-live-check");
+
+      if (method && reference && referenceField && methodRow) {
+        var sync = function () {
+          var needed = ["MPESA", "BANK", "LIPA_NUMBER"].indexOf(method.value) !== -1;
+          referenceField.hidden = !needed;
+          reference.required = needed;
+          reference.disabled = !needed;
+          if (!needed) reference.value = "";
+          methodRow.classList.toggle("has-reference", needed);
+        };
+        method.addEventListener("change", sync);
+        sync();
       }
 
-      list.addEventListener("click", function () {
-        try { sessionStorage.setItem("ps-list-scroll", String(list.scrollTop)); } catch (e) {}
-      });
+      if (add && disc && status && live) {
+        var check = function () {
+          var gross = cents(f.getAttribute("data-gross"));
+          var paid = cents(f.getAttribute("data-paid"));
+          var net = gross - cents(disc.value);
+          var total = paid + cents(add.value);
+          var balance = net - total;
+          var s = status.value;
+          var msg = "";
+
+          if (cents(disc.value) > gross) msg = "Discount cannot be more than the Gross Amount.";
+          else if (balance < 0) msg = "Overpayment: total paid is more than the Net Amount Payable.";
+          else if (s === "PAID" && balance !== 0) msg = "Status is Paid but a balance of TZS " + (balance / 100).toLocaleString() + " remains.";
+          else if (s === "PARTIALLY_PAID" && (total === 0 || balance === 0)) msg = "Status does not match the payment amount.";
+          else if ((s === "UNPAID" || s === "CREDIT") && total > 0) msg = "Status does not match the payment amount.";
+
+          live.textContent = msg;
+          live.hidden = !msg;
+        };
+        [add, disc, status].forEach(function (el) {
+          el.addEventListener("input", check);
+          el.addEventListener("change", check);
+        });
+        check();
+      }
     }
 
-    var method = document.getElementById("{{ update_form.payment_method.id_for_label }}");
-    var reference = document.getElementById("{{ update_form.transaction_reference.id_for_label }}");
-    var referenceField = document.getElementById("transaction-reference-field");
-    var methodRow = document.getElementById("ps-method-row");
-    if (method && reference && referenceField && methodRow) {
-      var sync = function () {
-        var needed = ["MPESA", "BANK", "LIPA_NUMBER"].indexOf(method.value) !== -1;
-        referenceField.hidden = !needed;
-        reference.required = needed;
-        reference.disabled = !needed;
-        if (!needed) reference.value = "";
-        methodRow.classList.toggle("has-reference", needed);
-      };
-      method.addEventListener("change", sync);
-      sync();
+    function applyList(doc) {
+      var current = document.getElementById("ps-list");
+      var top = current ? current.scrollTop : 0;
+      listWrap.innerHTML = doc.getElementById("ps-list-wrap").innerHTML;
+      count.textContent = doc.getElementById("ps-count").textContent;
+      var next = document.getElementById("ps-list");
+      if (next) next.scrollTop = top;
     }
+
+    function applyDetail(doc, scroll) {
+      var nextSplit = doc.querySelector(".ps-split");
+      detail.innerHTML = doc.getElementById("ps-detail").innerHTML;
+      split.classList.toggle("has-selection", nextSplit.classList.contains("has-selection"));
+      refInput.value = nextSplit.getAttribute("data-ref") || "";
+      detail.scrollTop = 0;
+      if (scroll && window.innerWidth <= 900) {
+        detail.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      initDetail();
+      centerActive();
+    }
+
+    function load(url, opts) {
+      var isDetail = !!opts.detail;
+      var id = isDetail ? ++detailSerial : ++listSerial;
+      var init = { headers: headers, credentials: "same-origin" };
+      if (opts.body) {
+        init.method = "POST";
+        init.body = opts.body;
+      }
+      if (isDetail) detail.classList.add("is-loading");
+
+      fetch(url, init)
+        .then(function (r) { return r.text(); })
+        .then(function (text) {
+          var doc = new DOMParser().parseFromString(text, "text/html");
+          if (!doc.getElementById("ps-list-wrap") || !doc.getElementById("ps-detail")) {
+            throw new Error("Unexpected response");
+          }
+          if (isDetail) {
+            if (id !== detailSerial) return;
+            applyList(doc);
+            applyDetail(doc, opts.scroll);
+            detail.classList.remove("is-loading");
+            if (opts.history === "push") history.pushState(null, "", url);
+            else if (opts.history === "replace") history.replaceState(null, "", url);
+          } else {
+            if (id !== listSerial || opts.ref !== refInput.value) return;
+            applyList(doc);
+            if (opts.history === "replace") history.replaceState(null, "", url);
+          }
+        })
+        .catch(function () {
+          if (!isDetail) return;
+          if (id !== detailSerial) return;
+          detail.classList.remove("is-loading");
+          if (opts.body) {
+            var btn = detail.querySelector(".ps-actions button");
+            if (btn) btn.disabled = false;
+            showError("The update could not be saved. Check your connection and try again.");
+          } else {
+            location.href = url;
+          }
+        });
+    }
+
+    function runSearch() {
+      var ref = refInput.value;
+      load(buildUrl(ref, input.value.trim()), { history: "replace", ref: ref });
+    }
+
+    input.addEventListener("input", function () {
+      clearTimeout(timer);
+      timer = setTimeout(runSearch, 300);
+    });
+
+    searchForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      clearTimeout(timer);
+      runSearch();
+    });
+
+    listWrap.addEventListener("click", function (e) {
+      var a = e.target.closest("a.ps-item");
+      if (!a) return;
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      if (a.classList.contains("is-active")) return;
+      load(a.href, { detail: true, history: "push", scroll: true });
+    });
+
+    detail.addEventListener("submit", function (e) {
+      var f = e.target;
+      if (!f.classList || !f.classList.contains("ps-form")) return;
+      e.preventDefault();
+      var btn = f.querySelector("button[type=submit]");
+      if (btn) btn.disabled = true;
+      load(location.pathname + location.search, { detail: true, body: new FormData(f) });
+    });
+
+    window.addEventListener("popstate", function () {
+      input.value = new URLSearchParams(location.search).get("q") || "";
+      load(location.pathname + location.search, { detail: true });
+    });
+
+    initDetail();
+    centerActive();
   })();
 </script>
 {% endblock %}

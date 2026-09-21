@@ -1,7 +1,9 @@
+from decimal import Decimal
 from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.models import Count, Q
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -29,10 +31,12 @@ def _split_url(reference="", query=""):
 def payment_list(request):
     query = request.GET.get("q", "").strip()
     reference = request.GET.get("ref", "").strip()
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
     submission = None
     payment = None
     update_form = None
+    flash = ""
 
     if reference:
         submission = (
@@ -44,51 +48,65 @@ def payment_list(request):
     if submission:
         payment, _ = Payment.objects.get_or_create(submission=submission)
         payment.recalculate_gross_amount()
-        payment.save(update_fields=["gross_amount"])
+        if payment.payment_status == Payment.PAID and payment.outstanding_balance > 0:
+            payment.payment_status = (
+                Payment.PARTIALLY_PAID
+                if payment.total_amount_paid > 0
+                else Payment.UNPAID
+            )
+        payment.save(update_fields=["gross_amount", "payment_status"])
 
         if request.method == "POST":
             if payment.payment_status == Payment.PAID:
-                messages.info(request, "This payment is already marked as Paid.")
-                return redirect(_split_url(submission.reference, query))
-
-            update_form = PaymentUpdateForm(request.POST)
-            if update_form.is_valid():
-                cleaned = update_form.cleaned_data
-                additional_paid = cleaned["additional_amount_paid"] or 0
-                if cleaned.get("discount") is not None:
-                    payment.discount = cleaned["discount"]
-                payment.total_amount_paid += additional_paid
-                payment.payment_method = cleaned["payment_method"]
-                payment.transaction_reference = cleaned["transaction_reference"]
-                payment.payment_status = cleaned["payment_status"]
-                payment.remarks = cleaned["remarks"]
-
-                try:
-                    payment.full_clean()
-                except ValidationError as exc:
-                    for message in exc.messages:
-                        update_form.add_error(None, message)
-                else:
-                    payment.save()
-                    PaymentTransaction.objects.create(
-                        payment=payment,
-                        amount=additional_paid,
-                        payment_method=payment.payment_method,
-                        transaction_reference=payment.transaction_reference,
-                        remarks=payment.remarks,
-                        resulting_status=payment.payment_status,
-                        resulting_total_paid=payment.total_amount_paid,
-                        resulting_outstanding=payment.outstanding_balance,
-                        recorded_by=request.user,
-                    )
-                    messages.success(
-                        request,
-                        f"Payment updated for {submission.reference} — "
-                        f"Total Paid: TZS {payment.total_amount_paid:,.2f}, "
-                        f"Status: {payment.get_payment_status_display()}.",
-                    )
+                if not is_ajax:
+                    messages.info(request, "This payment is already marked as Paid.")
                     return redirect(_split_url(submission.reference, query))
-        else:
+            else:
+                update_form = PaymentUpdateForm(request.POST)
+                if update_form.is_valid():
+                    cleaned = update_form.cleaned_data
+                    additional_paid = cleaned["additional_amount_paid"] or Decimal("0")
+                    if cleaned.get("discount") is not None:
+                        payment.discount = cleaned["discount"]
+                    payment.total_amount_paid += additional_paid
+                    payment.payment_method = cleaned["payment_method"]
+                    payment.transaction_reference = cleaned["transaction_reference"]
+                    payment.payment_status = cleaned["payment_status"]
+                    payment.remarks = cleaned["remarks"]
+
+                    try:
+                        payment.full_clean()
+                    except ValidationError as exc:
+                        for message in exc.messages:
+                            update_form.add_error(None, message)
+                        payment.refresh_from_db()
+                    else:
+                        with transaction.atomic():
+                            payment.save()
+                            PaymentTransaction.objects.create(
+                                payment=payment,
+                                amount=additional_paid,
+                                payment_method=payment.payment_method,
+                                transaction_reference=payment.transaction_reference,
+                                remarks=payment.remarks,
+                                resulting_status=payment.payment_status,
+                                resulting_total_paid=payment.total_amount_paid,
+                                resulting_outstanding=payment.outstanding_balance,
+                                recorded_by=request.user,
+                            )
+                        text = (
+                            f"Payment updated for {submission.reference} — "
+                            f"Total Paid: TZS {payment.total_amount_paid:,.2f}, "
+                            f"Status: {payment.get_payment_status_display()}."
+                        )
+                        if is_ajax:
+                            flash = text
+                            update_form = None
+                        else:
+                            messages.success(request, text)
+                            return redirect(_split_url(submission.reference, query))
+
+        if update_form is None:
             update_form = PaymentUpdateForm(
                 initial={
                     "discount": payment.discount,
@@ -123,6 +141,7 @@ def payment_list(request):
             "submission": submission,
             "payment": payment,
             "update_form": update_form,
+            "flash": flash,
             "not_found": bool(reference) and submission is None,
         },
     )

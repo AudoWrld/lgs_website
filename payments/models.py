@@ -85,11 +85,16 @@ class Payment(models.Model):
             return None
         if self.total_amount_paid < self.net_amount_payable:
             return self.PARTIALLY_PAID
-        if self.total_amount_paid >= self.net_amount_payable:
-            return self.PAID
-        return None
+        return self.PAID
 
     def clean(self):
+        super().clean()
+
+        gross = self.gross_amount or Decimal("0")
+        discount = self.discount or Decimal("0")
+        paid = self.total_amount_paid or Decimal("0")
+        net = gross - discount
+
         if (
             self.payment_method in self.METHODS_REQUIRING_REFERENCE
             and not self.transaction_reference
@@ -98,23 +103,26 @@ class Payment(models.Model):
                 f"Transaction Reference is required for {self.get_payment_method_display()}."
             )
 
-        if self.total_amount_paid <= 0 and self.payment_status not in (
-            self.UNPAID,
-            self.CREDIT,
-        ):
-            raise ValidationError("PAYMENT STATUS DOES NOT MATCH THE PAYMENT AMOUNT")
+        if discount < 0:
+            raise ValidationError("Discount cannot be negative.")
+        if discount > gross:
+            raise ValidationError("Discount cannot be more than the Gross Amount.")
+        if paid < 0:
+            raise ValidationError("Amount paid cannot be negative.")
+        if paid > net:
+            raise ValidationError(
+                f"Overpayment: total paid (TZS {paid:,.2f}) is more than the "
+                f"Net Amount Payable (TZS {net:,.2f})."
+            )
 
-        if (
-            0 < self.total_amount_paid < self.net_amount_payable
-            and self.payment_status != self.PARTIALLY_PAID
-        ):
-            raise ValidationError("PAYMENT STATUS DOES NOT MATCH THE PAYMENT AMOUNT")
+        if paid == 0:
+            valid = {self.UNPAID, self.CREDIT}
+        elif paid < net:
+            valid = {self.PARTIALLY_PAID}
+        else:
+            valid = {self.PAID}
 
-        if (
-            self.total_amount_paid >= self.net_amount_payable
-            and self.total_amount_paid > 0
-            and self.payment_status != self.PAID
-        ):
+        if self.payment_status not in valid:
             raise ValidationError("PAYMENT STATUS DOES NOT MATCH THE PAYMENT AMOUNT")
 
 
@@ -178,8 +186,6 @@ class PaymentAccount(models.Model):
 
     def clean(self):
         if self.account_type == self.BANK and not self.bank_name:
-            from django.core.exceptions import ValidationError
-
             raise ValidationError(
                 {"bank_name": "Bank Name is required for a Bank account."}
             )
