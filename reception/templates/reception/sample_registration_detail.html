@@ -61,7 +61,7 @@
     <a href="{% url 'reception:payment_detail' submission.reference %}" class="btn btn-outline rc-page-action">
       <i class='bx bx-check-circle'></i> Check Payment Status
     </a>
-    <a href="{% url 'reception:generate_worksheet_detail' submission.reference %}" class="btn btn-outline rc-page-action" rel="noopener">
+    <a href="{% url 'reception:worksheet_pdf' submission.reference %}" class="btn btn-outline rc-page-action" rel="noopener">
       <i class='bx bx-printer'></i> Print Worksheet
     </a>
     <a href="{% url 'reception:client_submission_form_detail' submission.reference %}" class="btn btn-outline rc-page-action" rel="noopener">

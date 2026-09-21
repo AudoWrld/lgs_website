@@ -30,14 +30,14 @@
       {% for submission in submissions %}
         <article class="gw-submission-card">
           <div>
-            <a href="{% url 'reception:generate_worksheet_detail' submission.reference %}" class="gw-list-reference">{{ submission.reference }}</a>
+            <a href="{% url 'reception:worksheet_pdf' submission.reference %}" class="gw-list-reference">{{ submission.reference }}</a>
             <div class="gw-list-meta">
               <span><i class='bx bx-user'></i> {{ submission.client.client_name }}</span>
               <span><i class='bx bx-calendar'></i> {{ submission.receiving_date|date:"d M Y" }}</span>
               <span><i class='bx bx-test-tube'></i> {{ submission.sample_count }} sample{{ submission.sample_count|pluralize }}</span>
             </div>
           </div>
-          <a href="{% url 'reception:generate_worksheet_detail' submission.reference %}" class="btn btn-outline">
+          <a href="{% url 'reception:worksheet_pdf' submission.reference %}" class="btn btn-outline">
             <i class='bx bx-show'></i> View Details
           </a>
         </article>
