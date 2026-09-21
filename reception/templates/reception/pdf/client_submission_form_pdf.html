@@ -5,85 +5,69 @@
 <style>
   @page {
     size: A4;
-    margin: 1.2cm 1.6cm 1.2cm 1.6cm;
+    margin: 1cm 1.5cm 1cm 1.5cm;
   }
 
   body {
     font-family: "Times New Roman", Times, serif;
-    font-size: 10pt;
+    font-size: 9.5pt;
     color: #000000;
-    line-height: 1.25;
+    line-height: 1.2;
   }
   p { margin: 0; padding: 0; }
   img { border: 0; }
   table { width: 100%; border-collapse: collapse; }
 
   /* ---------- Header (logo on top, centered) ---------- */
-  .header-block { text-align: center; margin-bottom: 40px; }
-  .header-logo { text-align: center; margin-bottom: 4px; }
+  .header-block { text-align: center; margin-bottom: 14px; }
+  .header-logo { text-align: center; margin-bottom: 3px; }
   .org-name { font-size: 13pt; font-weight: bold; }
-  .doc-name { font-size: 10pt; font-weight: bold; margin-top: 2px; }
-
-  .ref-line { text-align: center; margin-top: 6px; margin-bottom: 20px; font-size: 10pt; }
-  .ref-line b { font-size: 11pt; }
+  .doc-name { font-size: 10pt; font-weight: bold; margin-top: 1px; }
+  .ref-line { text-align: center; margin-top: 4px; font-size: 9.5pt; }
+  .ref-line b { font-size: 10.5pt; }
 
   /* ---------- Section titles ---------- */
   .sec-title {
-    margin-top: 16px;
-    margin-bottom: 4px;
-    font-size: 10.5pt;
+    margin-top: 11px;
+    margin-bottom: 3px;
+    font-size: 10pt;
     font-weight: bold;
     text-decoration: underline;
     text-transform: uppercase;
   }
 
-  /* ---------- Label / value rows ---------- */
-  table.rows td { padding: 2px 0; vertical-align: top; font-size: 9.5pt; }
-  td.k { width: 36%; font-weight: bold; }
-  td.v { width: 64%; }
-
-  td.col { width: 48%; vertical-align: top; }
-  td.col-gap { width: 4%; }
-
-  /* ---------- Bordered table ---------- */
-  table.grid { margin-top: 3px; }
-  table.grid th {
+  /* ---------- Bordered tables ---------- */
+  .info-table th, .info-table td,
+  .grid th, .grid td {
     border: 1px solid #000000;
-    padding: 3px 4px;
+    padding: 3px 5px;
     font-size: 9pt;
-    font-weight: bold;
     text-align: left;
-    vertical-align: top;
-  }
-  table.grid td {
-    border: 1px solid #000000;
-    padding: 3px 4px;
-    font-size: 9pt;
     vertical-align: top;
     word-wrap: break-word;
   }
+  .info-table th { width: 18%; background-color: #f2f2f2; font-weight: bold; }
+  .info-table td { width: 32%; }
+  .grid th { background-color: #f2f2f2; font-weight: bold; }
+  .grid { margin-top: 0; }
   td.center { text-align: center; }
 
-  /* ---------- Payment ---------- */
   .status { font-weight: bold; }
-  .amount { font-weight: bold; font-size: 11pt; }
-  .acct-intro { font-size: 9pt; padding: 6px 0 4px 0; }
-  td.acct-cell { border: 1px solid #000000; padding: 5px 6px; vertical-align: top; font-size: 9pt; }
-  td.acct-gap { width: 0.3cm; }
-  .acct-name { font-weight: bold; }
-  .no-accounts { font-size: 9pt; padding-top: 5px; }
+  .amount { font-weight: bold; }
+  .table-caption { font-size: 9pt; font-weight: bold; margin-top: 6px; margin-bottom: 3px; }
+  .no-accounts { font-size: 9pt; padding-top: 4px; }
 
   .password { font-weight: bold; }
   .pw-missing { font-style: italic; }
-  .portal-note { font-size: 9pt; padding-top: 5px; }
+  .portal-note { font-size: 8.5pt; padding-top: 4px; }
 
   /* ---------- Thank-you footer ---------- */
-  table.thanks { margin-top: 18px; border-top: 1px solid #000000; }
-  td.thanks-text { padding: 6px 0 0 0; font-size: 10pt; font-weight: bold; vertical-align: middle; }
-  td.thanks-web { width: 6cm; padding: 6px 0 0 0; text-align: right; font-size: 9pt; font-weight: bold; vertical-align: middle; }
+  table.thanks { margin-top: 12px; border-top: 1px solid #000000; }
+  td.thanks-text { padding: 5px 0 0 0; font-size: 9.5pt; font-weight: bold; vertical-align: middle; }
+  td.thanks-web { width: 6cm; padding: 5px 0 0 0; text-align: right; font-size: 8.5pt; font-weight: bold; vertical-align: middle; }
   td.thanks-web a { color: #000000; text-decoration: none; }
-  td.thanks-sub { padding: 2px 0 0 0; font-size: 9pt; }
-  td.thanks-qr { width: 6cm; padding: 4px 0 0 0; text-align: right; vertical-align: top; }
+  td.thanks-sub { padding: 2px 0 0 0; font-size: 8.5pt; }
+  td.thanks-qr { width: 6cm; padding: 3px 0 0 0; text-align: right; vertical-align: top; }
 
   .watermark { position: absolute; top: 0; left: 0; width: 100%; }
   .watermark img { width: 100%; }
@@ -95,37 +79,52 @@
   <div class="watermark"><img src="{{ watermark }}" /></div>
   {% endif %}
 
+  <!-- Everything below is kept on ONE page: it shrinks slightly instead of spilling over -->
+  <div style="-pdf-keep-in-frame-mode: shrink;">
+
   <!-- Header -->
   <div class="header-block">
-    {% if logo_path %}<p class="header-logo"><img src="{{ logo_path }}" width="60" /></p>{% endif %}
+    {% if logo_path %}<p class="header-logo"><img src="{{ logo_path }}" width="50" /></p>{% endif %}
     <p class="org-name">LGS MINERAL ASSAY LABORATORY</p>
     <p class="doc-name">CLIENT SUBMISSION FORM</p>
     <p class="ref-line">Client Reference: <b>{{ submission.reference }}</b></p>
   </div>
 
-  <!-- Client details / Sample summary -->
-  <table>
+  <!-- Client details -->
+  <p class="sec-title">Client Details</p>
+  <table class="info-table">
     <tr>
-      <td class="col">
-        <p class="sec-title">Client Details</p>
-        <table class="rows">
-          <tr><td class="k">Client Type:</td><td class="v">{{ client.get_client_type_display|default:"—" }}</td></tr>
-          <tr><td class="k">Client Name:</td><td class="v">{{ client.client_name|default:"—" }}</td></tr>
-          <tr><td class="k">Contact Person:</td><td class="v">{{ client.contact_person|default:"—" }}</td></tr>
-          <tr><td class="k">Email:</td><td class="v">{{ client.email|default:"—" }}</td></tr>
-          <tr><td class="k">WhatsApp:</td><td class="v">{{ client.whatsapp_number|default:"—" }}</td></tr>
-        </table>
-      </td>
-      <td class="col-gap">&nbsp;</td>
-      <td class="col">
-        <p class="sec-title">Sample Summary</p>
-        <table class="rows">
-          <tr><td class="k">No. of Samples:</td><td class="v">{{ total_samples }}</td></tr>
-          <tr><td class="k">Sample Type(s):</td><td class="v">{% for item in sample_types %}{{ item }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td></tr>
-          <tr><td class="k">Date Received:</td><td class="v">{{ submission.receiving_date|date:"d M Y" }}</td></tr>
-          <tr><td class="k">Form Issued:</td><td class="v">{% now "d M Y" %}</td></tr>
-        </table>
-      </td>
+      <th>Client Type</th>
+      <td>{{ client.get_client_type_display|default:"—" }}</td>
+      <th>Client Name</th>
+      <td>{{ client.client_name|default:"—" }}</td>
+    </tr>
+    <tr>
+      <th>Contact Person</th>
+      <td>{{ client.contact_person|default:"—" }}</td>
+      <th>Email</th>
+      <td>{{ client.email|default:"—" }}</td>
+    </tr>
+    <tr>
+      <th>WhatsApp</th>
+      <td colspan="3">{{ client.whatsapp_number|default:"—" }}</td>
+    </tr>
+  </table>
+
+  <!-- Sample details -->
+  <p class="sec-title">Sample Details</p>
+  <table class="info-table">
+    <tr>
+      <th>No. of Samples</th>
+      <td>{{ total_samples }}</td>
+      <th>Date Received</th>
+      <td>{{ submission.receiving_date|date:"d M Y" }}</td>
+    </tr>
+    <tr>
+      <th>Sample Type(s)</th>
+      <td>{% for item in sample_types %}{{ item }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+      <th>Form Issued</th>
+      <td>{% now "d M Y" %}</td>
     </tr>
   </table>
 
@@ -158,39 +157,38 @@
 
   <!-- Payment -->
   <p class="sec-title">Payment</p>
-  <table class="rows">
+  <table class="info-table">
     <tr>
-      <td class="k">Payment Status:</td>
-      <td class="v"><span class="status">{{ payment.get_payment_status_display|upper }}</span></td>
+      <th>Payment Status</th>
+      <td{% if not has_outstanding %} colspan="3"{% endif %}><span class="status">{{ payment.get_payment_status_display|upper }}</span></td>
+      {% if has_outstanding %}
+      <th>Amount to be Paid</th>
+      <td><span class="amount">TZS {{ payment.outstanding_balance|floatformat:"2g" }}</span></td>
+      {% endif %}
     </tr>
-    {% if has_outstanding %}
-    <tr>
-      <td class="k">Amount to be Paid:</td>
-      <td class="v"><span class="amount">TZS {{ payment.outstanding_balance|floatformat:"2g" }}</span></td>
-    </tr>
-    {% endif %}
   </table>
 
   {% if has_outstanding and payment_accounts %}
-  <p class="acct-intro">Please use one of the following LGS payment accounts.</p>
-  <table>
-    <tr>
+  <p class="table-caption">Please use one of the following LGS payment accounts:</p>
+  <table class="grid">
+    <thead>
+      <tr>
+        <th style="width:22%;">Type</th>
+        <th style="width:26%;">Bank Name</th>
+        <th style="width:26%;">Account Name</th>
+        <th style="width:26%;">Account / Number</th>
+      </tr>
+    </thead>
+    <tbody>
       {% for account in payment_accounts %}
-      <td class="acct-cell" style="width: {% widthratio 100 payment_accounts|length 1 %}%;">
-        {% if account.account_type == "BANK" %}
-          <p class="acct-name">Bank</p>
-          <p>{{ account.bank_name }}<br />
-            Account name: {{ account.account_name }}<br />
-            Account number: {{ account.account_number }}</p>
-        {% else %}
-          <p class="acct-name">Mobile / Lipa Number</p>
-          <p>Account name: {{ account.account_name }}<br />
-            Number: {{ account.account_number }}</p>
-        {% endif %}
-      </td>
-      {% if not forloop.last %}<td class="acct-gap">&nbsp;</td>{% endif %}
+      <tr>
+        <td>{% if account.account_type == "BANK" %}Bank{% else %}Mobile / Lipa Number{% endif %}</td>
+        <td>{% if account.account_type == "BANK" %}{{ account.bank_name }}{% else %}—{% endif %}</td>
+        <td>{{ account.account_name }}</td>
+        <td>{{ account.account_number }}</td>
+      </tr>
       {% endfor %}
-    </tr>
+    </tbody>
   </table>
   {% elif has_outstanding %}
   <p class="no-accounts">Please contact LGS to receive our payment details.</p>
@@ -198,11 +196,12 @@
 
   <!-- Portal -->
   <p class="sec-title">Client Portal Login</p>
-  <table class="rows">
-    <tr><td class="k">Username:</td><td class="v">{{ portal_username|default:"—" }}</td></tr>
+  <table class="info-table">
     <tr>
-      <td class="k">Temporary Password:</td>
-      <td class="v">{% if temp_password %}<span class="password">{{ temp_password }}</span>{% else %}<span class="pw-missing">Already issued to the client.</span>{% endif %}</td>
+      <th>Username</th>
+      <td>{{ portal_username|default:"—" }}</td>
+      <th>Temporary Password</th>
+      <td>{% if temp_password %}<span class="password">{{ temp_password }}</span>{% else %}<span class="pw-missing">Already issued to the client.</span>{% endif %}</td>
     </tr>
   </table>
   <p class="portal-note">Use these login details to access the LGS Client Portal and download your completed and officially released Certificates of Analysis.</p>
@@ -222,6 +221,8 @@
       </td>
     </tr>
   </table>
+
+  </div>
 
 </body>
 </html>
