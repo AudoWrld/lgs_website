@@ -67,13 +67,20 @@
       </span>
     </a>
 
-    <input type="checkbox" id="nav-toggle" class="nav-toggle-checkbox">
-    <label for="nav-toggle" class="nav-toggle-label" aria-label="Toggle menu">
+    <input type="checkbox" id="nav-toggle" class="nav-toggle-checkbox" aria-label="Toggle navigation menu">
+    <label for="nav-toggle" class="nav-toggle-label" aria-label="Open menu">
       <i class='bx bx-menu'></i>
-      <i class='bx bx-x'></i>
     </label>
 
-    <nav class="main-nav">
+    <!-- Desktop: inline menu. Phone: slide-in sidebar with every link + login -->
+    <nav class="main-nav" aria-label="Main navigation">
+      <div class="drawer-head">
+        <span class="drawer-title">Menu</span>
+        <label for="nav-toggle" class="drawer-close" aria-label="Close menu">
+          <i class='bx bx-x'></i>
+        </label>
+      </div>
+
       <ul class="nav-links">
         <li><a href="{% url 'homepage' %}" class="{% if request.resolver_match.url_name == 'homepage' %}active{% endif %}">Home</a></li>
         <li><a href="{% url 'services' %}" class="{% if request.resolver_match.url_name == 'services' %}active{% endif %}">Services</a></li>
@@ -81,7 +88,21 @@
         <li><a href="{% url 'contact' %}" class="{% if request.resolver_match.url_name == 'contact' %}active{% endif %}">Contact Us</a></li>
         <li><a href="{% url 'pricing' %}" class="nav-cta">Request a Quote</a></li>
       </ul>
+
+      <div class="drawer-login">
+        {% if user.is_authenticated %}
+          <a href="{% url 'accounts:post_login_redirect' %}" class="nav-login">
+            <i class='bx bx-user-circle'></i> My Account
+          </a>
+        {% else %}
+          <a href="{% url 'accounts:login' %}" class="nav-login">
+            <i class='bx bx-log-in'></i> Login
+          </a>
+        {% endif %}
+      </div>
     </nav>
+
+    <label for="nav-toggle" class="nav-backdrop" aria-hidden="true"></label>
 
     <div class="nav-login-wrap">
       {% if user.is_authenticated %}
@@ -143,6 +164,19 @@
 
 <script>
   document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+  // Close the phone sidebar after tapping a link (helps same-page/anchor links)
+  (function () {
+    var toggle = document.getElementById('nav-toggle');
+    var nav = document.querySelector('.main-nav');
+    if (!toggle || !nav) return;
+    nav.addEventListener('click', function (e) {
+      if (e.target.closest('a')) toggle.checked = false;
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') toggle.checked = false;
+    });
+  })();
 </script>
 {% block extra_js %}{% endblock %}
 </body>
