@@ -1,163 +1,438 @@
 {% extends "reception/base_reception.html" %}
 {% load static %}
 
-{% block title %}Client Submission Form — {{ submission.reference }}{% endblock %}
-{% block page_title %}Client Submission Form{% endblock %}
+{% block title %}Client Submission Forms — LGS Reception{% endblock %}
+{% block page_title %}Client Submission Forms{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'reception/css/reception_dashboard.css' %}">
 <link rel="stylesheet" href="{% static 'reception/css/client_submission_form.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="csf-toolbar">
-  <a href="{% url 'reception:payment_detail' submission.reference %}" class="pd-back-link">
-    <i class='bx bx-chevron-left'></i> Back
-  </a>
+<div class="cs-split{% if submission or not_found %} has-selection{% endif %}" data-ref="{{ submission.reference }}">
 
-  <div class="csf-toolbar-actions">
-    <a href="{% url 'reception:client_submission_form_pdf' submission.reference %}?view=1"
-       target="_blank" rel="noopener" class="btn btn-outline">
-      <i class='bx bx-printer'></i> Print
-    </a>
-    <a href="{% url 'reception:client_submission_form_pdf' submission.reference %}" class="btn btn-primary">
-      <i class='bx bx-download'></i> Download PDF
-    </a>
-  </div>
-</div>
-
-<div class="csf-sheet">
-
-  <div class="csf-header">
-    <img src="{% static 'core/img/lgs-logo.png' %}" alt="LGS Mineral Assay Laboratory" class="csf-logo">
-    <div>
-      <h1>LGS MINERAL ASSAY LABORATORY</h1>
-      <span class="csf-subtitle">Client Submission Form</span>
+  <aside class="dash-panel cs-list-panel">
+    <div class="dash-panel-head">
+      <h3><i class='bx bx-list-ul' aria-hidden="true"></i> Submissions</h3>
+      <span id="cs-count">{{ match_count }} found</span>
     </div>
-  </div>
 
-  <div class="csf-reference">
-    <span class="csf-reference-label">Client Reference</span>
-    <span class="csf-reference-value">{{ submission.reference }}</span>
-  </div>
+    <form method="get" class="cs-search" id="cs-search-form" role="search">
+      <label for="cs-search-input" class="visually-hidden">Search submissions</label>
+      <div class="cs-search-field">
+        <i class='bx bx-search' aria-hidden="true"></i>
+        <input id="cs-search-input" type="search" name="q" value="{{ query }}" placeholder="Reference or client name" autocomplete="off">
+      </div>
+      <input type="hidden" name="ref" id="cs-ref-input" value="{{ submission.reference }}">
+    </form>
 
-  <section class="csf-box">
-    <h2 class="csf-box-title">Client Details</h2>
-    <div class="csf-grid">
-      <div class="csf-field">
-        <span class="csf-label">Client Type</span>
-        <span class="csf-value">{{ client.get_client_type_display|default:"—" }}</span>
-      </div>
-      <div class="csf-field">
-        <span class="csf-label">Client Name</span>
-        <span class="csf-value">{{ client.client_name|default:"—" }}</span>
-      </div>
-      <div class="csf-field">
-        <span class="csf-label">Contact Person</span>
-        <span class="csf-value">{{ client.contact_person|default:"—" }}</span>
-      </div>
-      <div class="csf-field">
-        <span class="csf-label">Email</span>
-        <span class="csf-value">{{ client.email|default:"—" }}</span>
-      </div>
-      <div class="csf-field">
-        <span class="csf-label">WhatsApp</span>
-        <span class="csf-value">{{ client.whatsapp_number|default:"—" }}</span>
-      </div>
-    </div>
-  </section>
-
-  <section class="csf-box">
-    <h2 class="csf-box-title">Sample Details</h2>
-    <div class="csf-grid">
-      <div class="csf-field">
-        <span class="csf-label">Number of Samples</span>
-        <span class="csf-value csf-value-strong">{{ total_samples }}</span>
-      </div>
-      <div class="csf-field">
-        <span class="csf-label">Sample Type(s)</span>
-        <span class="csf-value">{{ sample_types|join:", "|default:"—" }}</span>
-      </div>
-      <div class="csf-field">
-        <span class="csf-label">Requested Service(s)</span>
-        <span class="csf-value">{{ services|join:", "|default:"—" }}</span>
-      </div>
-      <div class="csf-field">
-        <span class="csf-label">Method(s) of Analysis</span>
-        <span class="csf-value">{{ methods|join:", "|default:"—" }}</span>
-      </div>
-    </div>
-  </section>
-
-  <section class="csf-box">
-    <h2 class="csf-box-title">Payment</h2>
-    <div class="csf-grid">
-      <div class="csf-field">
-        <span class="csf-label">Payment Status</span>
-        <span class="csf-status csf-status-{{ payment.payment_status|lower }}">{{ payment.get_payment_status_display|upper }}</span>
-      </div>
-      {% if has_outstanding %}
-      <div class="csf-field">
-        <span class="csf-label">Amount to be Paid</span>
-        <span class="csf-value csf-value-strong">TZS {{ payment.outstanding_balance|floatformat:2 }}</span>
+    <div class="cs-list-wrap" id="cs-list-wrap">
+      {% if submissions %}
+      <ul class="cs-list" id="cs-list">
+        {% for item in submissions %}
+        <li>
+          <a href="?ref={{ item.reference|urlencode:'' }}{% if query %}&q={{ query|urlencode:'' }}{% endif %}" class="cs-item{% if submission and item.pk == submission.pk %} is-active{% endif %}"{% if submission and item.pk == submission.pk %} aria-current="true"{% endif %}>
+            <span class="cs-item-top">
+              <span class="cs-item-ref">{{ item.reference }}</span>
+              {% if item.payment %}
+              <span class="cs-badge cs-status-{{ item.payment.payment_status|lower }}">{{ item.payment.get_payment_status_display }}</span>
+              {% else %}
+              <span class="cs-badge cs-status-not_started">Not Started</span>
+              {% endif %}
+            </span>
+            <span class="cs-item-client">{{ item.client.client_name }}</span>
+            <span class="cs-item-sub">{{ item.receiving_date|date:"d M Y" }} · {{ item.sample_count }} sample{{ item.sample_count|pluralize }}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% if match_count > list_limit %}
+      <p class="cs-list-note">Showing the latest {{ list_limit }}. Type in the search box to narrow down.</p>
+      {% endif %}
+      {% else %}
+      <div class="cs-empty cs-empty-small">
+        <p>No submitted submissions found.</p>
       </div>
       {% endif %}
     </div>
+  </aside>
 
-    {% if has_outstanding and payment_accounts %}
-    <div class="csf-accounts">
-      <span class="csf-label">LGS Payment Accounts</span>
-      <div class="csf-account-grid">
-        {% for account in payment_accounts %}
-        <div class="csf-account">
-          {% if account.account_type == "BANK" %}
-            <span class="csf-account-type">Bank</span>
-            <dl class="csf-account-dl">
-              <div><dt>Bank Name</dt><dd>{{ account.bank_name }}</dd></div>
-              <div><dt>Account Name</dt><dd>{{ account.account_name }}</dd></div>
-              <div><dt>Account Number</dt><dd>{{ account.account_number }}</dd></div>
-            </dl>
-          {% else %}
-            <span class="csf-account-type">Mobile / Lipa Number</span>
-            <dl class="csf-account-dl">
-              <div><dt>Account Name</dt><dd>{{ account.account_name }}</dd></div>
-              <div><dt>Number</dt><dd>{{ account.account_number }}</dd></div>
-            </dl>
-          {% endif %}
-        </div>
-        {% endfor %}
+  <section class="cs-detail" id="cs-detail">
+    {% if submission and payment %}
+
+    <div class="cs-toolbar">
+      <div class="cs-toolbar-title">
+        <span class="cs-toolbar-label">Selected</span>
+        <strong>{{ submission.reference }}</strong>
+      </div>
+      <div class="cs-toolbar-actions">
+        <a href="{% url 'reception:payment_details' %}?ref={{ submission.reference|urlencode:'' }}" class="btn btn-outline">
+          <i class='bx bx-wallet' aria-hidden="true"></i> Payment
+        </a>
+        <a href="{% url 'reception:client_submission_form_pdf' submission.reference %}?view=1" target="_blank" rel="noopener" class="btn btn-outline">
+          <i class='bx bx-printer' aria-hidden="true"></i> Print
+        </a>
+        <a href="{% url 'reception:client_submission_form_pdf' submission.reference %}" class="btn btn-primary">
+          <i class='bx bx-download' aria-hidden="true"></i> Download PDF
+        </a>
       </div>
     </div>
-    {% elif has_outstanding %}
-    <p class="csf-no-accounts">No active payment accounts configured — contact management.</p>
+
+    <article class="cs-sheet">
+
+      <header class="cs-header">
+        <img src="{% static 'core/img/lgs-logo.png' %}" alt="LGS Mineral Assay Laboratory" class="cs-logo">
+        <div class="cs-header-text">
+          <h1>LGS Mineral Assay Laboratory</h1>
+          <span>Client Submission Form</span>
+        </div>
+        <div class="cs-ref">
+          <span class="cs-ref-label">Client Reference</span>
+          <span class="cs-ref-value">{{ submission.reference }}</span>
+        </div>
+      </header>
+
+      <div class="cs-stats">
+        <div class="cs-stat">
+          <span class="cs-label">Samples</span>
+          <span class="cs-stat-value">{{ total_samples }}</span>
+        </div>
+        <div class="cs-stat">
+          <span class="cs-label">Received</span>
+          <span class="cs-stat-value cs-stat-small">{{ submission.receiving_date|date:"d M Y" }}</span>
+        </div>
+        <div class="cs-stat">
+          <span class="cs-label">Payment</span>
+          <span class="cs-badge cs-badge-lg cs-status-{{ payment.payment_status|lower }}">{{ payment.get_payment_status_display }}</span>
+        </div>
+        <div class="cs-stat{% if has_outstanding %} cs-stat-due{% endif %}">
+          <span class="cs-label">Outstanding</span>
+          <span class="cs-stat-value cs-stat-small">TZS {{ payment.outstanding_balance|floatformat:"2g" }}</span>
+        </div>
+      </div>
+
+      <div class="cs-body">
+
+        <section class="cs-section">
+          <h2 class="cs-section-title"><i class='bx bx-user' aria-hidden="true"></i> Client Details</h2>
+          <dl class="cs-grid">
+            <div class="cs-field">
+              <dt class="cs-label">Client Type</dt>
+              <dd class="cs-value">{{ client.get_client_type_display|default:"—" }}</dd>
+            </div>
+            <div class="cs-field">
+              <dt class="cs-label">Client Name</dt>
+              <dd class="cs-value cs-value-strong">{{ client.client_name|default:"—" }}</dd>
+            </div>
+            <div class="cs-field">
+              <dt class="cs-label">Contact Person</dt>
+              <dd class="cs-value">{{ client.contact_person|default:"—" }}</dd>
+            </div>
+            <div class="cs-field">
+              <dt class="cs-label">Email</dt>
+              <dd class="cs-value">{{ client.email|default:"—" }}</dd>
+            </div>
+            <div class="cs-field">
+              <dt class="cs-label">WhatsApp</dt>
+              <dd class="cs-value">{{ client.whatsapp_number|default:"—" }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="cs-section">
+          <h2 class="cs-section-title"><i class='bx bx-test-tube' aria-hidden="true"></i> Sample Details</h2>
+          <dl class="cs-stack">
+            <div class="cs-field">
+              <dt class="cs-label">Sample Type(s)</dt>
+              <dd class="cs-chips">{% for item in sample_types %}<span class="cs-chip">{{ item }}</span>{% empty %}<span class="cs-muted">—</span>{% endfor %}</dd>
+            </div>
+            <div class="cs-field">
+              <dt class="cs-label">Requested Service(s)</dt>
+              <dd class="cs-chips">{% for item in services %}<span class="cs-chip">{{ item }}</span>{% empty %}<span class="cs-muted">—</span>{% endfor %}</dd>
+            </div>
+            <div class="cs-field">
+              <dt class="cs-label">Method(s) of Analysis</dt>
+              <dd class="cs-chips">{% for item in methods %}<span class="cs-chip cs-chip-alt">{{ item }}</span>{% empty %}<span class="cs-muted">—</span>{% endfor %}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="cs-section">
+          <h2 class="cs-section-title"><i class='bx bx-wallet' aria-hidden="true"></i> Payment</h2>
+
+          <div class="cs-progress" role="img" aria-label="{{ paid_percent }} percent paid">
+            <div class="cs-progress-bar" style="width: {{ paid_percent }}%"></div>
+          </div>
+          <div class="cs-progress-meta">
+            <span>{{ paid_percent }}% paid</span>
+            <span>All amounts in TZS</span>
+          </div>
+
+          <div class="cs-figures">
+            <div class="cs-figure">
+              <span class="cs-label">Gross</span>
+              <span class="cs-figure-value">{{ payment.gross_amount|floatformat:"2g" }}</span>
+            </div>
+            <div class="cs-figure">
+              <span class="cs-label">Discount</span>
+              <span class="cs-figure-value">{{ payment.discount|floatformat:"2g" }}</span>
+            </div>
+            <div class="cs-figure">
+              <span class="cs-label">Net payable</span>
+              <span class="cs-figure-value">{{ payment.net_amount_payable|floatformat:"2g" }}</span>
+            </div>
+            <div class="cs-figure">
+              <span class="cs-label">Paid</span>
+              <span class="cs-figure-value">{{ payment.total_amount_paid|floatformat:"2g" }}</span>
+            </div>
+            <div class="cs-figure{% if has_outstanding %} cs-figure-due{% endif %}">
+              <span class="cs-label">Amount to be paid</span>
+              <span class="cs-figure-value">{{ payment.outstanding_balance|floatformat:"2g" }}</span>
+            </div>
+          </div>
+
+          {% if has_outstanding and payment_accounts %}
+          <div class="cs-accounts">
+            <span class="cs-label">LGS Payment Accounts</span>
+            <div class="cs-account-grid">
+              {% for account in payment_accounts %}
+              <div class="cs-account">
+                {% if account.account_type == "BANK" %}
+                <span class="cs-account-type"><i class='bx bxs-bank' aria-hidden="true"></i> Bank</span>
+                <dl class="cs-account-dl">
+                  <div><dt>Bank Name</dt><dd>{{ account.bank_name }}</dd></div>
+                  <div><dt>Account Name</dt><dd>{{ account.account_name }}</dd></div>
+                  <div><dt>Account Number</dt><dd>{{ account.account_number }}</dd></div>
+                </dl>
+                {% else %}
+                <span class="cs-account-type"><i class='bx bx-mobile-alt' aria-hidden="true"></i> Mobile / Lipa Number</span>
+                <dl class="cs-account-dl">
+                  <div><dt>Account Name</dt><dd>{{ account.account_name }}</dd></div>
+                  <div><dt>Number</dt><dd>{{ account.account_number }}</dd></div>
+                </dl>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% elif has_outstanding %}
+          <p class="cs-no-accounts">No active payment accounts configured — contact management.</p>
+          {% endif %}
+        </section>
+
+        <section class="cs-section">
+          <h2 class="cs-section-title"><i class='bx bx-lock-alt' aria-hidden="true"></i> Client Portal Login</h2>
+          <dl class="cs-grid">
+            <div class="cs-field">
+              <dt class="cs-label">Username</dt>
+              <dd class="cs-credential">
+                <span class="cs-value cs-value-strong">{{ portal_username|default:"—" }}</span>
+                {% if portal_username %}
+                <button type="button" class="cs-copy no-print" data-copy="{{ portal_username }}" aria-label="Copy username"><i class='bx bx-copy' aria-hidden="true"></i></button>
+                {% endif %}
+              </dd>
+            </div>
+            <div class="cs-field">
+              <dt class="cs-label">Temporary Password</dt>
+              <dd class="cs-credential">
+                {% if temp_password %}
+                <span class="cs-temp-password">{{ temp_password }}</span>
+                <button type="button" class="cs-copy no-print" data-copy="{{ temp_password }}" aria-label="Copy password"><i class='bx bx-copy' aria-hidden="true"></i></button>
+                {% else %}
+                <span class="cs-password-unavailable">Already issued to the client.</span>
+                {% endif %}
+              </dd>
+            </div>
+          </dl>
+          <p class="cs-portal-note">
+            Use these login details to access the LGS Client Portal and download your completed and officially released Certificates of Analysis.
+          </p>
+        </section>
+
+      </div>
+
+      <footer class="cs-footer">
+        <span>LGS African Group Company Limited</span>
+        <span>Generated {% now "d M Y, H:i" %}</span>
+      </footer>
+
+    </article>
+
+    {% elif not_found %}
+
+    <div class="dash-panel cs-block">
+      <div class="cs-alert" role="alert">
+        <p><strong>Submission not found</strong> for “{{ reference }}”.</p>
+        <p>Pick a submission from the list on the left.</p>
+      </div>
+    </div>
+
+    {% else %}
+
+    <div class="dash-panel cs-block">
+      <div class="cs-empty">
+        <span class="dash-empty-icon"><i class='bx bx-file' aria-hidden="true"></i></span>
+        <p>Select a submission from the list to view its client submission form.</p>
+      </div>
+    </div>
+
     {% endif %}
   </section>
 
-  <section class="csf-box">
-    <h2 class="csf-box-title">Client Portal Login</h2>
-    <div class="csf-grid">
-      <div class="csf-field">
-        <span class="csf-label">Username</span>
-        <span class="csf-value csf-value-strong">{{ portal_username|default:"—" }}</span>
-      </div>
-      <div class="csf-field">
-        <span class="csf-label">Temporary Password</span>
-        {% if temp_password %}
-          <span class="csf-temp-password">{{ temp_password }}</span>
-        {% else %}
-          <span class="csf-password-unavailable">Already issued to the client.</span>
-        {% endif %}
-      </div>
-    </div>
-    <p class="csf-portal-note">
-      Use these login details to access the LGS Client Portal and download your completed and officially released Certificates of Analysis.
-    </p>
-  </section>
-
-  <div class="csf-footer">
-    <span>LGS African Group Company Limited</span>
-    <span>Generated {% now "d M Y, H:i" %}</span>
-  </div>
-
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    var split = document.querySelector(".cs-split");
+    var searchForm = document.getElementById("cs-search-form");
+    var input = document.getElementById("cs-search-input");
+    var refInput = document.getElementById("cs-ref-input");
+    var listWrap = document.getElementById("cs-list-wrap");
+    var count = document.getElementById("cs-count");
+    var detail = document.getElementById("cs-detail");
+    if (!split || !searchForm || !input || !refInput || !listWrap || !count || !detail) return;
+
+    var timer;
+    var detailSerial = 0;
+    var listSerial = 0;
+    var headers = { "X-Requested-With": "XMLHttpRequest" };
+
+    function buildUrl(ref, q) {
+      var params = new URLSearchParams();
+      if (ref) params.set("ref", ref);
+      if (q) params.set("q", q);
+      var s = params.toString();
+      return location.pathname + (s ? "?" + s : "");
+    }
+
+    function centerActive() {
+      var list = document.getElementById("cs-list");
+      var active = list && list.querySelector(".cs-item.is-active");
+      if (!active) return;
+      var listBox = list.getBoundingClientRect();
+      var activeBox = active.getBoundingClientRect();
+      if (activeBox.top < listBox.top || activeBox.bottom > listBox.bottom) {
+        list.scrollTop += (activeBox.top - listBox.top) - (listBox.height - activeBox.height) / 2;
+      }
+    }
+
+    function applyList(doc) {
+      var current = document.getElementById("cs-list");
+      var top = current ? current.scrollTop : 0;
+      listWrap.innerHTML = doc.getElementById("cs-list-wrap").innerHTML;
+      count.textContent = doc.getElementById("cs-count").textContent;
+      var next = document.getElementById("cs-list");
+      if (next) next.scrollTop = top;
+    }
+
+    function applyDetail(doc, scroll) {
+      var nextSplit = doc.querySelector(".cs-split");
+      detail.innerHTML = doc.getElementById("cs-detail").innerHTML;
+      split.classList.toggle("has-selection", nextSplit.classList.contains("has-selection"));
+      refInput.value = nextSplit.getAttribute("data-ref") || "";
+      detail.scrollTop = 0;
+      if (scroll && window.innerWidth <= 900) {
+        detail.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      centerActive();
+    }
+
+    function load(url, opts) {
+      var isDetail = !!opts.detail;
+      var id = isDetail ? ++detailSerial : ++listSerial;
+      if (isDetail) detail.classList.add("is-loading");
+
+      fetch(url, { headers: headers, credentials: "same-origin" })
+        .then(function (r) { return r.text(); })
+        .then(function (text) {
+          var doc = new DOMParser().parseFromString(text, "text/html");
+          if (!doc.getElementById("cs-list-wrap") || !doc.getElementById("cs-detail")) {
+            throw new Error("Unexpected response");
+          }
+          if (isDetail) {
+            if (id !== detailSerial) return;
+            applyList(doc);
+            applyDetail(doc, opts.scroll);
+            detail.classList.remove("is-loading");
+            if (opts.history === "push") history.pushState(null, "", url);
+          } else {
+            if (id !== listSerial || opts.ref !== refInput.value) return;
+            applyList(doc);
+            if (opts.history === "replace") history.replaceState(null, "", url);
+          }
+        })
+        .catch(function () {
+          if (!isDetail) return;
+          if (id !== detailSerial) return;
+          detail.classList.remove("is-loading");
+          location.href = url;
+        });
+    }
+
+    function runSearch() {
+      var ref = refInput.value;
+      load(buildUrl(ref, input.value.trim()), { history: "replace", ref: ref });
+    }
+
+    input.addEventListener("input", function () {
+      clearTimeout(timer);
+      timer = setTimeout(runSearch, 300);
+    });
+
+    searchForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      clearTimeout(timer);
+      runSearch();
+    });
+
+    listWrap.addEventListener("click", function (e) {
+      var a = e.target.closest("a.cs-item");
+      if (!a) return;
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      if (a.classList.contains("is-active")) return;
+      load(a.href, { detail: true, history: "push", scroll: true });
+    });
+
+    detail.addEventListener("click", function (e) {
+      var btn = e.target.closest(".cs-copy");
+      if (!btn) return;
+      var value = btn.getAttribute("data-copy") || "";
+
+      function done() {
+        btn.classList.add("is-copied");
+        var icon = btn.querySelector("i");
+        if (icon) icon.className = "bx bx-check";
+        setTimeout(function () {
+          btn.classList.remove("is-copied");
+          if (icon) icon.className = "bx bx-copy";
+        }, 1400);
+      }
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(done, function () {});
+      } else {
+        var area = document.createElement("textarea");
+        area.value = value;
+        area.style.position = "fixed";
+        area.style.opacity = "0";
+        document.body.appendChild(area);
+        area.select();
+        try { document.execCommand("copy"); done(); } catch (err) {}
+        document.body.removeChild(area);
+      }
+    });
+
+    window.addEventListener("popstate", function () {
+      input.value = new URLSearchParams(location.search).get("q") || "";
+      load(location.pathname + location.search, { detail: true });
+    });
+
+    centerActive();
+  })();
+</script>
 {% endblock %}
