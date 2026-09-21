@@ -69,9 +69,7 @@ def reception_dashboard(request):
         pk__in=submissions_with_worksheets
     ).count()
 
-    todays_expenses_count = Expense.reception_visible.filter(
-        created_at__date=today
-    ).count()
+    todays_expenses_count = Expense.objects.filter(created_at__date=today).count()
 
     days = [today - timedelta(days=offset) for offset in range(6, -1, -1)]
     per_day = dict(
@@ -580,6 +578,7 @@ def _coa_generation_started(submission):
         ).exists()
         or COA.objects.filter(submission=submission).exists()
     )
+
 
 def _log_coa_change(
     preference, user, action, previous_type="", new_type="", group_number=None
