@@ -3,168 +3,109 @@
 <head>
 <meta charset="UTF-8">
 <style>
-  /* A4 page. NOTE: xhtml2pdf ignores padding on <div>, so all spacing is done with
-     table-cell padding. */
   @page {
     size: A4;
-    margin: 0.8cm 1.5cm 1.2cm 1.5cm;
+    margin: 1.1cm 1.6cm 1cm 1.6cm;
   }
 
   body {
     font-family: Helvetica, Arial, sans-serif;
-    font-size: 8.4pt;
-    color: #1d2b3c;
-    line-height: 1.25;
+    font-size: 8.6pt;
+    color: #1f2933;
+    line-height: 1.3;
   }
   p { margin: 0; padding: 0; }
   img { border: 0; vertical-align: middle; }
-  table { width: 100%; }
+  table { width: 100%; border-collapse: collapse; }
 
-  /* ---------------- Header ---------------- */
-  table.header { border-bottom: 1.5px solid #1c4f8f; }
-  td.header-logo { width: 73%; padding: 0 0 3.5px 0; vertical-align: middle; }
-  td.header-tagline {
-    width: 27%;
-    padding: 3px 0 7px 10px;
-    border-left: 1px solid #d9b262;
-    font-size: 10pt;
-    font-style: italic;
-    color: #123f78;
-    line-height: 1.35;
-    vertical-align: middle;
-  }
+  table.header { border-bottom: 3px solid #123f78; }
+  td.header-logo { width: 2.3cm; padding: 0 0 9px 0; vertical-align: middle; }
+  td.header-title { padding: 0 0 9px 6px; vertical-align: middle; }
+  .org-name { font-size: 15pt; font-weight: bold; color: #123f78; }
+  .doc-name { font-size: 9.5pt; color: #e08a1e; margin-top: 2px; text-transform: uppercase; }
+  td.header-ref { width: 5.2cm; padding: 0 0 9px 0; vertical-align: middle; }
+  table.ref-box { background-color: #eef3f9; width: 100%; }
+  td.ref-cell { padding: 6px 10px 7px 10px; text-align: right; }
+  .label { font-size: 7pt; color: #6b7785; text-transform: uppercase; }
+  .ref-value { font-size: 13pt; font-weight: bold; color: #123f78; margin-top: 1px; }
 
-  /* ---------------- Title banner ---------------- */
-  table.banner { background-color: #003468; margin-top: 9px; }
-  td.banner-icon { width: 1.8cm; padding: 4px 0 9px 14px; vertical-align: middle; }
-  td.banner-title { padding: 9px 6px 9px 4px; vertical-align: middle; }
-  .banner-h1 { font-size: 18pt; font-weight: bold; color: #ffffff; }
-  .banner-sub { font-size: 7.6pt; color: #dfe9f6; margin-top: 3px; }
-  td.banner-ref { width: 4.4cm; padding: 9px 12px 9px 0; vertical-align: middle; }
-  table.ref-box { background-color: #d9e8f5; }
-  td.ref-box-cell { padding: 6px 8px 7px 9px; vertical-align: middle; }
-  .ref-label { font-size: 8.4pt; color: #12305c; }
-  .ref-value { font-size: 12.5pt; font-weight: bold; color: #0b3a75; }
-
-  /* ---------------- Section head bars ---------------- */
-  table.head-table { background-color: #16588d; }
-  td.head-icon { width: 1.3cm; padding: 3px 0 7px 10px; vertical-align: middle; }
-  td.head-text {
-    padding: 7px 6px 7px 0;
-    font-size: 10.2pt;
+  table.section { margin-top: 16px; }
+  td.section-title {
+    padding: 0 0 4px 0;
+    font-size: 8pt;
     font-weight: bold;
-    color: #ffffff;
+    color: #123f78;
     text-transform: uppercase;
-    vertical-align: middle;
+    border-bottom: 1px solid #c9d3de;
   }
 
-  /* ---------------- 1 + 2 : side-by-side cards ---------------- */
-  table.two-col { margin-top: 9px; }
-  td.card-head-cell { width: 49.3%; padding: 0; border: 1px solid #c3dbef; border-bottom: 0; vertical-align: top; }
-  td.card-body-cell {
-    width: 49.3%;
-    padding: 2px 10px 4px 10px;
-    border: 1px solid #c3dbef;
-    border-top: 0;
-    background-color: #eef6fc;
-    vertical-align: top;
-  }
-  td.col-gap { width: 1.4%; padding: 0; }
+  table.two { margin-top: 16px; }
+  td.col { width: 48.5%; vertical-align: top; }
+  td.col-gap { width: 3%; }
 
-  table.rows td { padding: 4px 3px 4px 0; border-bottom: 1px solid #d3e5f4; vertical-align: top; }
+  table.rows td { padding: 4px 4px 4px 0; border-bottom: 1px solid #e8edf2; vertical-align: top; }
   table.rows tr.last td { border-bottom: 0; }
-  td.k { width: 3.5cm; font-weight: bold; color: #12284c; font-size: 8.2pt; }
-  td.sep { width: 0.4cm; color: #7d90aa; }
-  td.v { color: #1d2b3c; }
-  td.v-blue { color: #1f6fb5; }
+  td.k { width: 3.2cm; color: #6b7785; }
+  td.v { color: #1f2933; font-weight: bold; }
 
-  /* ---------------- 3 / 4 : full-width boxes ---------------- */
-  table.box { margin-top: 8px; }
-  td.bx-head { padding: 0; border: 1px solid #c3dbef; border-bottom: 0; }
-  td.bx-body { padding: 8px 10px 9px 10px; border: 1px solid #c3dbef; border-top: 0; background-color: #eef6fc; vertical-align: top; }
+  table.services { margin-top: 5px; }
+  table.services td { padding: 4px 6px 4px 0; border-bottom: 1px solid #e8edf2; vertical-align: top; }
+  table.services td.th { padding: 0 6px 3px 0; font-size: 7pt; color: #6b7785; text-transform: uppercase; border-bottom: 1px solid #c9d3de; }
+  td.c-n { width: 5%; color: #6b7785; }
+  td.c-s { width: 30%; color: #1f2933; }
+  td.c-m { width: 65%; color: #1f2933; }
 
-  /* status */
-  table.status-row { background-color: #e1f1e8; }
-  td.status-label { width: 4.2cm; padding: 6px 4px 6px 10px; font-weight: bold; font-size: 9.4pt; color: #12284c; vertical-align: middle; }
-  td.status-pill-cell { width: 4.9cm; padding: 5px 0 5px 0; vertical-align: middle; }
-  td.status-fill { padding: 0; }
-  table.pill { background-color: #04924c; }
-  table.pill-unpaid, table.pill-credit { background-color: #b8382c; }
-  td.pill-text { padding: 4px 6px 4px 6px; font-size: 10pt; font-weight: bold; color: #ffffff; text-align: center; vertical-align: middle; }
+  table.pay-top td { padding: 5px 0 5px 0; vertical-align: middle; }
+  td.pay-k { width: 4cm; color: #6b7785; }
+  .status { font-size: 12pt; font-weight: bold; }
+  .status-paid { color: #188038; }
+  .status-partially_paid { color: #b06000; }
+  .status-unpaid, .status-credit { color: #c5221f; }
+  .amount { font-size: 13pt; font-weight: bold; color: #123f78; }
 
-  table.amount-row { margin-top: 3px; }
-  td.amount-label { width: 4.2cm; padding: 5px 4px 5px 10px; font-weight: bold; font-size: 9.2pt; color: #12284c; vertical-align: middle; }
-  td.amount-sep { width: 0.6cm; padding: 0; color: #7d90aa; vertical-align: middle; }
-  td.amount-value { padding: 0; font-size: 12.5pt; font-weight: bold; color: #0b3a75; vertical-align: middle; }
+  .acct-intro { font-size: 8pt; color: #6b7785; padding: 6px 0 4px 0; }
+  table.accounts { margin-top: 2px; }
+  td.acct-cell { padding: 6px 8px 6px 8px; border: 1px solid #d5dde6; background-color: #f7f9fc; vertical-align: top; }
+  td.acct-gap { width: 0.25cm; }
+  .acct-name { font-size: 8.2pt; font-weight: bold; color: #123f78; }
+  .acct-line { font-size: 7.8pt; color: #3c4650; padding-top: 2px; line-height: 1.5; }
+  .no-accounts { font-size: 8pt; color: #6b7785; padding-top: 5px; }
 
-  table.divider { margin: 3px 0 7px 0; }
-  td.divider-line { border-top: 1px solid #c9dff0; padding: 0; font-size: 1pt; line-height: 1pt; }
+  .password { font-weight: bold; color: #123f78; }
+  .pw-missing { color: #6b7785; font-style: italic; }
+  .portal-note { font-size: 7.8pt; color: #6b7785; padding-top: 5px; line-height: 1.4; }
 
-  table.acct-title td { vertical-align: middle; padding: 0; }
-  table.acct-title td.acct-title-icon { padding: 0 0 3.5px 4px; }
-  td.acct-title-icon { width: 0.95cm; padding: 0 0 3.5px 4px; }
-  td.acct-title-text { font-size: 9.4pt; font-weight: bold; color: #0e3f78; text-transform: uppercase; }
-  .acct-sub { font-size: 8.2pt; color: #2a3b52; padding-left: 0.95cm; margin-top: 1px; }
+  table.thanks { margin-top: 16px; border-top: 1px solid #c9d3de; }
+  td.thanks-text { padding: 7px 0 0 0; font-size: 8.8pt; color: #123f78; vertical-align: middle; }
+  .thanks-h { font-size: 8.8pt; font-weight: bold; color: #123f78; }
+  td.thanks-web { width: 5cm; padding: 7px 0 0 0; text-align: right; font-size: 8pt; font-weight: bold; color: #123f78; vertical-align: middle; }
+  td.thanks-web a { color: #123f78; text-decoration: none; }
+  td.thanks-sub { padding: 2px 0 0 0; font-size: 8pt; color: #6b7785; line-height: 1.4; }
+  td.thanks-qr { width: 5cm; padding: 6px 0 0 0; text-align: right; vertical-align: top; }
 
-  table.acct-row { background-color: #e0eef9; margin-top: 8px; }
-  td.acct-cell { vertical-align: top; padding: 8px 6px 8px 10px; border-left: 1px solid #c6dbee; }
-  td.acct-cell-first { border-left: 0; }
-  table.acct-head td { padding: 0; vertical-align: middle; }
-  table.acct-head td.acct-icon { padding: 0 0 3.5px 0; }
-  td.acct-icon { width: 0.85cm; padding: 0 0 3.5px 0; }
-  td.acct-name { font-size: 9.2pt; font-weight: bold; color: #1e5fa3; }
-  .acct-line { font-size: 7.2pt; color: #1d2b3c; padding: 3px 0 0 0.85cm; line-height: 1.6; }
-
-  .no-accounts { font-size: 8.5pt; color: #a4342a; margin-top: 6px; }
-
-  /* portal */
-  table.portal-rows { background-color: #e7f2fb; }
-  table.portal-rows td { padding: 6px 4px 6px 0; vertical-align: middle; }
-  td.p-k { width: 4.2cm; padding-left: 10px; font-weight: bold; color: #12284c; font-size: 9pt; }
-  td.p-sep { width: 0.6cm; color: #7d90aa; }
-  td.p-v { font-size: 9.4pt; color: #0f4a86; }
-  .pw-missing { font-size: 8.6pt; color: #6b7c92; font-style: italic; }
-
-  table.info-box { background-color: #e3f1fb; border: 1px solid #bcd8ee; margin-top: 5px; }
-  td.info-icon { width: 1.0cm; padding: 2px 0 6px 8px; vertical-align: middle; }
-  td.info-text { padding: 6px 8px 6px 4px; font-size: 8.4pt; font-style: italic; color: #1c5b9c; line-height: 1.35; vertical-align: middle; }
-
-  /* ---------------- Thank you ---------------- */
-  table.thanks { margin-top: 9px; border-top: 1px solid #cfe0ef; }
-  table.thanks td { vertical-align: middle; }
-  td.thanks-icon { width: 1.7cm; padding: 5px 0 0 3px; }
-  td.thanks-text { padding: 9px 0 0 4px; font-size: 8.2pt; color: #2a3b52; line-height: 1.45; }
-  .thanks-h { font-size: 9.4pt; font-weight: bold; color: #0e2f5c; }
-  td.thanks-qr-cell { width: 2.4cm; padding: 6px 0 0 14px; border-left: 1px solid #cfe0ef; }
-  td.thanks-scan { width: 3.4cm; padding: 9px 0 0 4px; font-size: 7pt; color: #1c4f8f; line-height: 1.4; }
-  .thanks-url { font-size: 7.4pt; font-weight: bold; color: #0f4a86; }
-
+  .watermark { position: absolute; top: 0; left: 0; width: 100%; }
+  .watermark img { width: 100%; }
 </style>
 </head>
 <body>
 
-  <!-- ============ HEADER ============ -->
+  {% if watermark %}
+  <div class="watermark"><img src="{{ watermark }}" /></div>
+  {% endif %}
+
   <table class="header">
     <tr>
-      <td class="header-logo"><img src="{{ logo_path }}" width="70" /></td>
-      <td class="header-tagline">Reliable Mineral Analysis<br />for a Sustainable Future</td>
-    </tr>
-  </table>
-
-  <!-- ============ TITLE BANNER ============ -->
-  <table class="banner">
-    <tr>
-      <td class="banner-icon"><img src="{{ img_dir }}/icon-doc-white.png" width="34" height="34" /></td>
-      <td class="banner-title">
-        <p class="banner-h1">CLIENT SUBMISSION FORM</p>
-        <p class="banner-sub">The Client Submission Form is generated per Client Submission Reference Number.</p>
+      <td class="header-logo"><img src="{{ logo_path }}" width="60" /></td>
+      <td class="header-title">
+        <p class="org-name">LGS Mineral Assay Laboratory</p>
+        <p class="doc-name">Client Submission Form</p>
       </td>
-      <td class="banner-ref">
+      <td class="header-ref">
         <table class="ref-box">
           <tr>
-            <td class="ref-box-cell">
-              <span class="ref-label">Client Reference:</span><br />
-              <span class="ref-value">{{ submission.reference }}</span>
+            <td class="ref-cell">
+              <p class="label">Client Reference</p>
+              <p class="ref-value">{{ submission.reference }}</p>
             </td>
           </tr>
         </table>
@@ -172,169 +113,144 @@
     </tr>
   </table>
 
-  <!-- ============ 1 + 2 : CLIENT & SAMPLE ============ -->
-  <table class="two-col">
+  <table class="two">
     <tr>
-      <td class="card-head-cell">
-        <table class="head-table"><tr>
-          <td class="head-icon"><img src="{{ img_dir }}/icon-user-white.png" width="17" height="17" /></td>
-          <td class="head-text">1. Client Details</td>
-        </tr></table>
-      </td>
-      <td class="col-gap"></td>
-      <td class="card-head-cell">
-        <table class="head-table"><tr>
-          <td class="head-icon"><img src="{{ img_dir }}/icon-flask-white.png" width="17" height="17" /></td>
-          <td class="head-text">2. Sample Details</td>
-        </tr></table>
-      </td>
-    </tr>
-    <tr>
-      <td class="card-body-cell">
-        <table class="rows">
-          <tr><td class="k">Client Type</td><td class="sep">:</td><td class="v">{{ client.get_client_type_display|default:"—" }}</td></tr>
-          <tr><td class="k">Client Name</td><td class="sep">:</td><td class="v">{{ client.client_name|default:"—" }}</td></tr>
-          <tr><td class="k">Contact Person</td><td class="sep">:</td><td class="v">{{ client.contact_person|default:"—" }}</td></tr>
-          <tr><td class="k">Email Address</td><td class="sep">:</td><td class="v">{{ client.email|default:"—" }}</td></tr>
-          <tr class="last"><td class="k">WhatsApp Number</td><td class="sep">:</td><td class="v">{{ client.whatsapp_number|default:"—" }}</td></tr>
+      <td class="col">
+        <table class="section" style="margin-top: 0;">
+          <tr><td class="section-title">Client details</td></tr>
+          <tr>
+            <td>
+              <table class="rows">
+                <tr><td class="k">Client type</td><td class="v">{{ client.get_client_type_display|default:"—" }}</td></tr>
+                <tr><td class="k">Client name</td><td class="v">{{ client.client_name|default:"—" }}</td></tr>
+                <tr><td class="k">Contact person</td><td class="v">{{ client.contact_person|default:"—" }}</td></tr>
+                <tr><td class="k">Email</td><td class="v">{{ client.email|default:"—" }}</td></tr>
+                <tr class="last"><td class="k">WhatsApp</td><td class="v">{{ client.whatsapp_number|default:"—" }}</td></tr>
+              </table>
+            </td>
+          </tr>
         </table>
       </td>
       <td class="col-gap"></td>
-      <td class="card-body-cell">
-        <table class="rows">
-          <tr><td class="k">Number of Samples</td><td class="sep">:</td><td class="v">{{ total_samples }}</td></tr>
-          <tr><td class="k">Sample Type(s)</td><td class="sep">:</td><td class="v">{{ sample_types|join:", "|default:"—" }}</td></tr>
-          <tr><td class="k">Requested Service(s)</td><td class="sep">:</td><td class="v">{{ services|join:", "|default:"—" }}</td></tr>
-          <tr class="last"><td class="k">Method(s) of Analysis</td><td class="sep">:</td><td class="v-blue">{{ methods|join:", "|default:"—" }}</td></tr>
+      <td class="col">
+        <table class="section" style="margin-top: 0;">
+          <tr><td class="section-title">Sample summary</td></tr>
+          <tr>
+            <td>
+              <table class="rows">
+                <tr><td class="k">Number of samples</td><td class="v">{{ total_samples }}</td></tr>
+                <tr><td class="k">Sample type(s)</td><td class="v">{% for item in sample_types %}{{ item }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td></tr>
+                <tr><td class="k">Date received</td><td class="v">{{ submission.receiving_date|date:"d M Y" }}</td></tr>
+                <tr class="last"><td class="k">Form issued</td><td class="v">{% now "d M Y" %}</td></tr>
+              </table>
+            </td>
+          </tr>
         </table>
       </td>
     </tr>
   </table>
 
-  <!-- ============ 3 : PAYMENT ============ -->
-  <table class="box">
+  <table class="section">
+    <tr><td class="section-title">Requested services and methods of analysis</td></tr>
     <tr>
-      <td class="bx-head">
-        <table class="head-table"><tr>
-          <td class="head-icon"><img src="{{ img_dir }}/icon-card-white.png" width="17" height="17" /></td>
-          <td class="head-text">3. Payment</td>
-        </tr></table>
+      <td>
+        <table class="services">
+          <tr>
+            <td class="th c-n">#</td>
+            <td class="th c-s">Requested service</td>
+            <td class="th c-m">Method of analysis</td>
+          </tr>
+          {% for row in service_rows %}
+          <tr>
+            <td class="c-n">{{ forloop.counter }}</td>
+            <td class="c-s">{{ row.name }}</td>
+            <td class="c-m">{{ row.method|default:"—" }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td class="c-n"></td>
+            <td class="c-s">—</td>
+            <td class="c-m">—</td>
+          </tr>
+          {% endfor %}
+        </table>
       </td>
     </tr>
+  </table>
+
+  <table class="section">
+    <tr><td class="section-title">Payment</td></tr>
     <tr>
-      <td class="bx-body">
-
-        <table class="status-row">
+      <td>
+        <table class="pay-top">
           <tr>
-            <td class="status-label">Payment Status</td>
-            <td class="status-pill-cell">
-              <table class="pill pill-{{ payment.payment_status|lower }}"><tr>
-                <td class="pill-text">{{ payment.get_payment_status_display|upper }}</td>
-              </tr></table>
-            </td>
-            <td class="status-fill"></td>
+            <td class="pay-k">Payment status</td>
+            <td><span class="status status-{{ payment.payment_status|lower }}">{{ payment.get_payment_status_display|upper }}</span></td>
           </tr>
-        </table>
-
-        {% if has_outstanding %}
-        <table class="amount-row">
+          {% if has_outstanding %}
           <tr>
-            <td class="amount-label">Amount to be Paid</td>
-            <td class="amount-sep">:</td>
-            <td class="amount-value">TZS {{ payment.outstanding_balance|floatformat:"-2g" }}</td>
+            <td class="pay-k">Amount to be paid</td>
+            <td><span class="amount">TZS {{ payment.outstanding_balance|floatformat:"2g" }}</span></td>
           </tr>
+          {% endif %}
         </table>
-        {% endif %}
 
         {% if has_outstanding and payment_accounts %}
-        <table class="divider"><tr><td class="divider-line">&nbsp;</td></tr></table>
-
-        <table class="acct-title">
-          <tr>
-            <td class="acct-title-icon"><img src="{{ img_dir }}/icon-bank-blue.png" width="18" height="18" /></td>
-            <td class="acct-title-text">LGS Payment Accounts</td>
-          </tr>
-        </table>
-        <p class="acct-sub">Please use the following payment details to complete your payment:</p>
-
-        <table class="acct-row">
+        <p class="acct-intro">Please use one of the following LGS payment accounts.</p>
+        <table class="accounts">
           <tr>
             {% for account in payment_accounts %}
-            <td class="acct-cell{% if forloop.first %} acct-cell-first{% endif %}" style="width: {% if payment_accounts|length == 3 %}{% if account.account_type == "BANK" %}36{% else %}32{% endif %}{% else %}{% widthratio 100 payment_accounts|length 1 %}{% endif %}%;">
+            <td class="acct-cell" style="width: {% widthratio 100 payment_accounts|length 1 %}%;">
               {% if account.account_type == "BANK" %}
-                <table class="acct-head"><tr>
-                  <td class="acct-icon"><img src="{{ img_dir }}/icon-bank-blue.png" width="16" height="16" /></td>
-                  <td class="acct-name">Bank Transfer</td>
-                </tr></table>
+                <p class="acct-name">Bank</p>
                 <p class="acct-line">{{ account.bank_name }}<br />
-                  Account Name: {{ account.account_name }}<br />
-                  Account Number: {{ account.account_number }}{% if account.swift_code %}<br />
-                  Swift Code: {{ account.swift_code }}{% endif %}</p>
+                  Account name: {{ account.account_name }}<br />
+                  Account number: {{ account.account_number }}</p>
               {% else %}
-                <table class="acct-head"><tr>
-                  <td class="acct-icon"><img src="{{ img_dir }}/icon-mobile-blue.png" width="16" height="16" /></td>
-                  <td class="acct-name">Mobile Money{% if account.provider %} ({{ account.provider }}){% endif %}</td>
-                </tr></table>
-                <p class="acct-line">{{ account.account_name }}<br />
-                  {% if account.account_type == "LIPA" %}Lipa Number{% else %}Mobile Number{% endif %}: {{ account.account_number }}</p>
+                <p class="acct-name">Mobile / Lipa number</p>
+                <p class="acct-line">Account name: {{ account.account_name }}<br />
+                  Number: {{ account.account_number }}</p>
               {% endif %}
             </td>
+            {% if not forloop.last %}<td class="acct-gap"></td>{% endif %}
             {% endfor %}
           </tr>
         </table>
         {% elif has_outstanding %}
-        <p class="no-accounts">No active payment accounts configured — contact management.</p>
+        <p class="no-accounts">Please contact LGS to receive our payment details.</p>
         {% endif %}
-
       </td>
     </tr>
   </table>
 
-  <!-- ============ 4 : PORTAL LOGIN ============ -->
-  <table class="box">
+  <table class="section">
+    <tr><td class="section-title">Client portal login</td></tr>
     <tr>
-      <td class="bx-head">
-        <table class="head-table"><tr>
-          <td class="head-icon"><img src="{{ img_dir }}/icon-portal-white.png" width="19" height="19" /></td>
-          <td class="head-text">4. Client Portal Login Details</td>
-        </tr></table>
-      </td>
-    </tr>
-    <tr>
-      <td class="bx-body">
-        <table class="portal-rows">
-          <tr>
-            <td class="p-k">Username</td>
-            <td class="p-sep">:</td>
-            <td class="p-v">{{ portal_username|default:"—" }}</td>
-          </tr>
-          <tr>
-            <td class="p-k">Temporary Password</td>
-            <td class="p-sep">:</td>
-            <td class="p-v">{% if temp_password %}{{ temp_password }}{% else %}<span class="pw-missing">Already issued to the client.</span>{% endif %}</td>
+      <td>
+        <table class="rows">
+          <tr><td class="k">Username</td><td class="v">{{ portal_username|default:"—" }}</td></tr>
+          <tr class="last">
+            <td class="k">Temporary password</td>
+            <td class="v">{% if temp_password %}<span class="password">{{ temp_password }}</span>{% else %}<span class="pw-missing">Already issued to the client.</span>{% endif %}</td>
           </tr>
         </table>
-
-        <table class="info-box">
-          <tr>
-            <td class="info-icon"><img src="{{ img_dir }}/icon-info-blue.png" width="16" height="16" /></td>
-            <td class="info-text">Use these login details to access the LGS Client Portal and download your completed<br />and officially released Certificates of Analysis.</td>
-          </tr>
-        </table>
+        <p class="portal-note">Use these login details to access the LGS Client Portal and download your completed and officially released Certificates of Analysis.</p>
       </td>
     </tr>
   </table>
 
-  <!-- ============ THANK YOU ============ -->
   <table class="thanks">
     <tr>
-      <td class="thanks-icon"><img src="{{ img_dir }}/icon-check-circle.png" width="36" height="36" /></td>
-      <td class="thanks-text">
-        <span class="thanks-h">Thank you for choosing LGS Mineral Assay Laboratory.</span><br />
-        Your samples are in good hands. We will keep you updated<br />on the progress of your analysis.
+      <td class="thanks-text"><span class="thanks-h">Thank you for choosing LGS Mineral Assay Laboratory.</span></td>
+      <td class="thanks-web"><a href="{{ site_url }}">{{ site_url }}</a></td>
+    </tr>
+    <tr>
+      <td class="thanks-sub">We will keep you updated on the progress of your analysis.</td>
+      <td class="thanks-qr">
+        {% if qr_code %}
+        <img src="{{ qr_code }}" width="42" height="42" />
+        {% endif %}
       </td>
-      <td class="thanks-qr-cell"><img src="{{ img_dir }}/qr-website.png" width="42" height="42" /></td>
-      <td class="thanks-scan">Scan to visit<br />our website<br /><span class="thanks-url">www.lgsassay.co.tz</span></td>
     </tr>
   </table>
 

@@ -931,6 +931,15 @@ def _services_and_methods(submission):
     return sorted(services), sorted(methods)
 
 
+def _service_rows(submission):
+    found = {}
+    for sample in submission.samples.all():
+        for sample_service in sample.sample_services.select_related("service").all():
+            service = sample_service.service
+            found.setdefault(service.name, service.method_of_analysis or "")
+    return [{"name": name, "method": method} for name, method in sorted(found.items())]
+
+
 def _portal_login(request, client, consume):
     username = client.portal_user.email if client.portal_user else None
     temp_password = None
@@ -980,6 +989,7 @@ def _form_context(request, submission, consume_password=True):
         "sample_types": sorted(set(s.get_sample_type_display() for s in samples)),
         "services": services,
         "methods": methods,
+        "service_rows": _service_rows(submission),
         "paid_percent": paid_percent,
         "has_outstanding": has_outstanding,
         "payment_accounts": (
@@ -990,6 +1000,7 @@ def _form_context(request, submission, consume_password=True):
         "can_reissue_password": bool(
             client.portal_user and client.portal_user.must_change_password
         ),
+        "site_url": request.build_absolute_uri("/"),
     }
 
 
