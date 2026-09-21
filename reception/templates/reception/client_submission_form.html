@@ -82,170 +82,154 @@
 
     <article class="cs-sheet">
 
+      <!-- Header: logo on top, centered -->
       <header class="cs-header">
         <img src="{% static 'core/img/lgs-logo.png' %}" alt="LGS Mineral Assay Laboratory" class="cs-logo">
-        <div class="cs-header-text">
-          <h1>LGS Mineral Assay Laboratory</h1>
-          <span>Client Submission Form</span>
-        </div>
-        <div class="cs-ref">
-          <span class="cs-ref-label">Client Reference</span>
-          <span class="cs-ref-value">{{ submission.reference }}</span>
-        </div>
+        <h1>LGS Mineral Assay Laboratory</h1>
+        <span class="cs-header-sub">Client Submission Form</span>
+        <span class="cs-header-ref">Client Reference: <strong>{{ submission.reference }}</strong></span>
       </header>
-
-      <div class="cs-stats">
-        <div class="cs-stat">
-          <span class="cs-label">Samples</span>
-          <span class="cs-stat-value">{{ total_samples }}</span>
-        </div>
-        <div class="cs-stat">
-          <span class="cs-label">Received</span>
-          <span class="cs-stat-value cs-stat-small">{{ submission.receiving_date|date:"d M Y" }}</span>
-        </div>
-        <div class="cs-stat">
-          <span class="cs-label">Payment</span>
-          <span class="cs-badge cs-badge-lg cs-status-{{ payment.payment_status|lower }}">{{ payment.get_payment_status_display }}</span>
-        </div>
-        <div class="cs-stat{% if has_outstanding %} cs-stat-due{% endif %}">
-          <span class="cs-label">Outstanding</span>
-          <span class="cs-stat-value cs-stat-small">TZS {{ payment.outstanding_balance|floatformat:"2g" }}</span>
-        </div>
-      </div>
 
       <div class="cs-body">
 
+        <!-- Client details -->
         <section class="cs-section">
-          <h2 class="cs-section-title"><i class='bx bx-user' aria-hidden="true"></i> Client Details</h2>
-          <dl class="cs-grid">
-            <div class="cs-field">
-              <dt class="cs-label">Client Type</dt>
-              <dd class="cs-value">{{ client.get_client_type_display|default:"—" }}</dd>
-            </div>
-            <div class="cs-field">
-              <dt class="cs-label">Client Name</dt>
-              <dd class="cs-value cs-value-strong">{{ client.client_name|default:"—" }}</dd>
-            </div>
-            <div class="cs-field">
-              <dt class="cs-label">Contact Person</dt>
-              <dd class="cs-value">{{ client.contact_person|default:"—" }}</dd>
-            </div>
-            <div class="cs-field">
-              <dt class="cs-label">Email</dt>
-              <dd class="cs-value">{{ client.email|default:"—" }}</dd>
-            </div>
-            <div class="cs-field">
-              <dt class="cs-label">WhatsApp</dt>
-              <dd class="cs-value">{{ client.whatsapp_number|default:"—" }}</dd>
-            </div>
-          </dl>
+          <h2 class="cs-section-title">Client Details</h2>
+          <table class="cs-info">
+            <tbody>
+              <tr>
+                <th>Client Type</th>
+                <td>{{ client.get_client_type_display|default:"—" }}</td>
+                <th>Client Name</th>
+                <td>{{ client.client_name|default:"—" }}</td>
+              </tr>
+              <tr>
+                <th>Contact Person</th>
+                <td>{{ client.contact_person|default:"—" }}</td>
+                <th>Email</th>
+                <td>{{ client.email|default:"—" }}</td>
+              </tr>
+              <tr>
+                <th>WhatsApp</th>
+                <td colspan="3">{{ client.whatsapp_number|default:"—" }}</td>
+              </tr>
+            </tbody>
+          </table>
         </section>
 
+        <!-- Sample details -->
         <section class="cs-section">
-          <h2 class="cs-section-title"><i class='bx bx-test-tube' aria-hidden="true"></i> Sample Details</h2>
-          <dl class="cs-stack">
-            <div class="cs-field">
-              <dt class="cs-label">Sample Type(s)</dt>
-              <dd class="cs-chips">{% for item in sample_types %}<span class="cs-chip">{{ item }}</span>{% empty %}<span class="cs-muted">—</span>{% endfor %}</dd>
-            </div>
-            <div class="cs-field">
-              <dt class="cs-label">Requested Service(s)</dt>
-              <dd class="cs-chips">{% for item in services %}<span class="cs-chip">{{ item }}</span>{% empty %}<span class="cs-muted">—</span>{% endfor %}</dd>
-            </div>
-            <div class="cs-field">
-              <dt class="cs-label">Method(s) of Analysis</dt>
-              <dd class="cs-chips">{% for item in methods %}<span class="cs-chip cs-chip-alt">{{ item }}</span>{% empty %}<span class="cs-muted">—</span>{% endfor %}</dd>
-            </div>
-          </dl>
+          <h2 class="cs-section-title">Sample Details</h2>
+          <table class="cs-info">
+            <tbody>
+              <tr>
+                <th>No. of Samples</th>
+                <td>{{ total_samples }}</td>
+                <th>Date Received</th>
+                <td>{{ submission.receiving_date|date:"d M Y" }}</td>
+              </tr>
+              <tr>
+                <th>Sample Type(s)</th>
+                <td colspan="3">{% for item in sample_types %}{{ item }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+              </tr>
+              <tr>
+                <th>Requested Service(s)</th>
+                <td colspan="3">{% for item in services %}{{ item }}{% if not forloop.last %} &nbsp;|&nbsp; {% endif %}{% empty %}—{% endfor %}</td>
+              </tr>
+              <tr>
+                <th>Method(s) of Analysis</th>
+                <td colspan="3">{% for item in methods %}{{ item }}{% if not forloop.last %} &nbsp;|&nbsp; {% endif %}{% empty %}—{% endfor %}</td>
+              </tr>
+            </tbody>
+          </table>
         </section>
 
+        <!-- Payment -->
         <section class="cs-section">
-          <h2 class="cs-section-title"><i class='bx bx-wallet' aria-hidden="true"></i> Payment</h2>
-
-          <div class="cs-progress" role="img" aria-label="{{ paid_percent }} percent paid">
-            <div class="cs-progress-bar" style="width: {{ paid_percent }}%"></div>
-          </div>
-          <div class="cs-progress-meta">
-            <span>{{ paid_percent }}% paid</span>
-            <span>All amounts in TZS</span>
-          </div>
-
-          <div class="cs-figures">
-            <div class="cs-figure">
-              <span class="cs-label">Gross</span>
-              <span class="cs-figure-value">{{ payment.gross_amount|floatformat:"2g" }}</span>
-            </div>
-            <div class="cs-figure">
-              <span class="cs-label">Discount</span>
-              <span class="cs-figure-value">{{ payment.discount|floatformat:"2g" }}</span>
-            </div>
-            <div class="cs-figure">
-              <span class="cs-label">Net payable</span>
-              <span class="cs-figure-value">{{ payment.net_amount_payable|floatformat:"2g" }}</span>
-            </div>
-            <div class="cs-figure">
-              <span class="cs-label">Paid</span>
-              <span class="cs-figure-value">{{ payment.total_amount_paid|floatformat:"2g" }}</span>
-            </div>
-            <div class="cs-figure{% if has_outstanding %} cs-figure-due{% endif %}">
-              <span class="cs-label">Amount to be paid</span>
-              <span class="cs-figure-value">{{ payment.outstanding_balance|floatformat:"2g" }}</span>
-            </div>
-          </div>
+          <h2 class="cs-section-title">Payment <span class="cs-title-note">(All amounts in TZS)</span></h2>
+          <table class="cs-info">
+            <tbody>
+              <tr>
+                <th>Payment Status</th>
+                <td><strong>{{ payment.get_payment_status_display|upper }}</strong></td>
+                <th>Paid</th>
+                <td>{{ paid_percent }}%</td>
+              </tr>
+              <tr>
+                <th>Gross Amount</th>
+                <td>{{ payment.gross_amount|floatformat:"2g" }}</td>
+                <th>Discount</th>
+                <td>{{ payment.discount|floatformat:"2g" }}</td>
+              </tr>
+              <tr>
+                <th>Net Payable</th>
+                <td>{{ payment.net_amount_payable|floatformat:"2g" }}</td>
+                <th>Total Paid</th>
+                <td>{{ payment.total_amount_paid|floatformat:"2g" }}</td>
+              </tr>
+              <tr class="{% if has_outstanding %}cs-row-due{% endif %}">
+                <th>Amount to be Paid</th>
+                <td colspan="3"><strong>TZS {{ payment.outstanding_balance|floatformat:"2g" }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
 
           {% if has_outstanding and payment_accounts %}
-          <div class="cs-accounts">
-            <span class="cs-label">LGS Payment Accounts</span>
-            <div class="cs-account-grid">
+          <p class="cs-table-caption">LGS Payment Accounts</p>
+          <table class="cs-data">
+            <thead>
+              <tr>
+                <th style="width:22%;">Type</th>
+                <th style="width:26%;">Bank Name</th>
+                <th style="width:26%;">Account Name</th>
+                <th style="width:26%;">Account / Number</th>
+              </tr>
+            </thead>
+            <tbody>
               {% for account in payment_accounts %}
-              <div class="cs-account">
-                {% if account.account_type == "BANK" %}
-                <span class="cs-account-type"><i class='bx bxs-bank' aria-hidden="true"></i> Bank</span>
-                <dl class="cs-account-dl">
-                  <div><dt>Bank Name</dt><dd>{{ account.bank_name }}</dd></div>
-                  <div><dt>Account Name</dt><dd>{{ account.account_name }}</dd></div>
-                  <div><dt>Account Number</dt><dd>{{ account.account_number }}</dd></div>
-                </dl>
-                {% else %}
-                <span class="cs-account-type"><i class='bx bx-mobile-alt' aria-hidden="true"></i> Mobile / Lipa Number</span>
-                <dl class="cs-account-dl">
-                  <div><dt>Account Name</dt><dd>{{ account.account_name }}</dd></div>
-                  <div><dt>Number</dt><dd>{{ account.account_number }}</dd></div>
-                </dl>
-                {% endif %}
-              </div>
+              <tr>
+                <td>{% if account.account_type == "BANK" %}Bank{% else %}Mobile / Lipa Number{% endif %}</td>
+                <td>{% if account.account_type == "BANK" %}{{ account.bank_name }}{% else %}—{% endif %}</td>
+                <td>{{ account.account_name }}</td>
+                <td>{{ account.account_number }}</td>
+              </tr>
               {% endfor %}
-            </div>
-          </div>
+            </tbody>
+          </table>
           {% elif has_outstanding %}
           <p class="cs-no-accounts">No active payment accounts configured — contact management.</p>
           {% endif %}
         </section>
 
+        <!-- Portal login -->
         <section class="cs-section">
-          <h2 class="cs-section-title"><i class='bx bx-lock-alt' aria-hidden="true"></i> Client Portal Login</h2>
-          <dl class="cs-grid">
-            <div class="cs-field">
-              <dt class="cs-label">Username</dt>
-              <dd class="cs-credential">
-                <span class="cs-value cs-value-strong">{{ portal_username|default:"—" }}</span>
-                {% if portal_username %}
-                <button type="button" class="cs-copy no-print" data-copy="{{ portal_username }}" aria-label="Copy username"><i class='bx bx-copy' aria-hidden="true"></i></button>
-                {% endif %}
-              </dd>
-            </div>
-            <div class="cs-field">
-              <dt class="cs-label">Temporary Password</dt>
-              <dd class="cs-credential">
-                {% if temp_password %}
-                <span class="cs-temp-password">{{ temp_password }}</span>
-                <button type="button" class="cs-copy no-print" data-copy="{{ temp_password }}" aria-label="Copy password"><i class='bx bx-copy' aria-hidden="true"></i></button>
-                {% else %}
-                <span class="cs-password-unavailable">Already issued to the client.</span>
-                {% endif %}
-              </dd>
-            </div>
-          </dl>
+          <h2 class="cs-section-title">Client Portal Login</h2>
+          <table class="cs-info">
+            <tbody>
+              <tr>
+                <th>Username</th>
+                <td>
+                  <span class="cs-credential">
+                    <span>{{ portal_username|default:"—" }}</span>
+                    {% if portal_username %}
+                    <button type="button" class="cs-copy no-print" data-copy="{{ portal_username }}" aria-label="Copy username"><i class='bx bx-copy' aria-hidden="true"></i></button>
+                    {% endif %}
+                  </span>
+                </td>
+                <th>Temporary Password</th>
+                <td>
+                  <span class="cs-credential">
+                    {% if temp_password %}
+                    <span class="cs-temp-password">{{ temp_password }}</span>
+                    <button type="button" class="cs-copy no-print" data-copy="{{ temp_password }}" aria-label="Copy password"><i class='bx bx-copy' aria-hidden="true"></i></button>
+                    {% else %}
+                    <span class="cs-password-unavailable">Already issued to the client.</span>
+                    {% endif %}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
           <p class="cs-portal-note">
             Use these login details to access the LGS Client Portal and download your completed and officially released Certificates of Analysis.
           </p>
