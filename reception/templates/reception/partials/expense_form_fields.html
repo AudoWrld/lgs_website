@@ -1,7 +1,6 @@
 <div class="expense-fields">
-  <p class="rc-required-note"><span class="rc-required" aria-hidden="true">*</span>Required field</p>
 
-  <div class="rc-field{% if form.category.errors %} has-error{% endif %}">
+  <div class="rc-field{% if form.category.errors %} has-error{% endif %}" style="grid-column: 1 / -1;">
     <label for="{{ form.category.id_for_label }}">Expense Category{% if form.category.field.required %}<span class="rc-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
     {{ form.category }}
     {% if form.category.errors %}
@@ -9,7 +8,7 @@
     {% endif %}
   </div>
 
-  <div class="rc-field{% if form.other_category.errors %} has-error{% endif %}" id="other-category-field"{% if form.category.value != "OTHER" %} hidden{% endif %}>
+  <div class="rc-field{% if form.other_category.errors %} has-error{% endif %}" id="other-category-field" style="grid-column: 1 / -1;"{% if form.category.value != "OTHER" %} hidden{% endif %}>
     <label for="{{ form.other_category.id_for_label }}">Specify Expense Category<span class="rc-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
     {{ form.other_category }}
     {% if form.other_category.errors %}
@@ -17,7 +16,7 @@
     {% endif %}
   </div>
 
-  <div class="rc-field{% if form.description.errors %} has-error{% endif %}">
+  <div class="rc-field cr-field--full{% if form.description.errors %} has-error{% endif %}" style="grid-column: 1 / -1;">
     <label for="{{ form.description.id_for_label }}">Description{% if form.description.field.required %}<span class="rc-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
     {{ form.description }}
     {% if form.description.errors %}

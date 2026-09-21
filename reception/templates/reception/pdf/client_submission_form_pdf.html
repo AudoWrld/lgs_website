@@ -1,353 +1,342 @@
-{% load static %}
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <style>
+  /* A4 page. NOTE: xhtml2pdf ignores padding on <div>, so all spacing is done with
+     table-cell padding. */
   @page {
     size: A4;
-    margin: 1.5cm 1.8cm;
+    margin: 0.8cm 1.5cm 1.2cm 1.5cm;
   }
+
   body {
     font-family: Helvetica, Arial, sans-serif;
-    font-size: 9pt;
-    color: #20272b;
-    line-height: 1.4;
+    font-size: 8.4pt;
+    color: #1d2b3c;
+    line-height: 1.25;
   }
+  p { margin: 0; padding: 0; }
+  img { border: 0; vertical-align: middle; }
+  table { width: 100%; }
 
-  /* ---------- header ---------- */
-  .header-table {
-    width: 100%;
-    border-bottom: 2.5px solid #f39a2b;
-    padding-bottom: 8px;
-    margin-bottom: 12px;
-  }
-  .header-table td {
+  /* ---------------- Header ---------------- */
+  table.header { border-bottom: 1.5px solid #1c4f8f; }
+  td.header-logo { width: 73%; padding: 0 0 3.5px 0; vertical-align: middle; }
+  td.header-tagline {
+    width: 27%;
+    padding: 3px 0 7px 10px;
+    border-left: 1px solid #d9b262;
+    font-size: 10pt;
+    font-style: italic;
+    color: #123f78;
+    line-height: 1.35;
     vertical-align: middle;
   }
-  .header-logo-cell {
-    width: 50px;
-  }
-  .header-logo-cell img {
-    width: 42px;
-  }
-  .company-name {
-    font-size: 13pt;
-    font-weight: bold;
-    color: #123e5b;
-    margin: 0;
-  }
-  .form-subtitle {
-    font-size: 8.5pt;
-    font-weight: bold;
-    color: #f39a2b;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
 
-  /* ---------- reference bar ---------- */
-  .reference-bar {
-    background-color: #123e5b;
+  /* ---------------- Title banner ---------------- */
+  table.banner { background-color: #003468; margin-top: 9px; }
+  td.banner-icon { width: 1.8cm; padding: 4px 0 9px 14px; vertical-align: middle; }
+  td.banner-title { padding: 9px 6px 9px 4px; vertical-align: middle; }
+  .banner-h1 { font-size: 18pt; font-weight: bold; color: #ffffff; }
+  .banner-sub { font-size: 7.6pt; color: #dfe9f6; margin-top: 3px; }
+  td.banner-ref { width: 4.4cm; padding: 9px 12px 9px 0; vertical-align: middle; }
+  table.ref-box { background-color: #d9e8f5; }
+  td.ref-box-cell { padding: 6px 8px 7px 9px; vertical-align: middle; }
+  .ref-label { font-size: 8.4pt; color: #12305c; }
+  .ref-value { font-size: 12.5pt; font-weight: bold; color: #0b3a75; }
+
+  /* ---------------- Section head bars ---------------- */
+  table.head-table { background-color: #16588d; }
+  td.head-icon { width: 1.3cm; padding: 3px 0 7px 10px; vertical-align: middle; }
+  td.head-text {
+    padding: 7px 6px 7px 0;
+    font-size: 10.2pt;
+    font-weight: bold;
     color: #ffffff;
-    padding: 7px 12px;
-    margin-bottom: 12px;
-  }
-  .reference-bar table {
-    width: 100%;
-  }
-  .reference-label {
-    font-size: 7.5pt;
-    color: #dcd6c9;
     text-transform: uppercase;
-  }
-  .reference-value {
-    font-size: 12pt;
-    font-weight: bold;
-    color: #f39a2b;
+    vertical-align: middle;
   }
 
-  /* ---------- section box ---------- */
-  .section-box {
-    border: 1px solid #dcd6c9;
-    margin-bottom: 9px;
-  }
-  .section-box-title {
-    background-color: #f7f4ee;
-    border-bottom: 1px solid #dcd6c9;
-    padding: 4px 10px;
-    font-size: 8pt;
-    font-weight: bold;
-    text-transform: uppercase;
-    color: #123e5b;
-    letter-spacing: 0.4px;
-  }
-  .section-box-body {
-    padding: 8px 10px;
-  }
-
-  /* ---------- field grid ---------- */
-  table.field-grid {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  table.field-grid td {
-    width: 50%;
-    padding: 2px 8px 5px 0;
+  /* ---------------- 1 + 2 : side-by-side cards ---------------- */
+  table.two-col { margin-top: 9px; }
+  td.card-head-cell { width: 49.3%; padding: 0; border: 1px solid #c3dbef; border-bottom: 0; vertical-align: top; }
+  td.card-body-cell {
+    width: 49.3%;
+    padding: 2px 10px 4px 10px;
+    border: 1px solid #c3dbef;
+    border-top: 0;
+    background-color: #eef6fc;
     vertical-align: top;
   }
-  .field-label {
-    display: block;
-    font-size: 7pt;
-    font-weight: bold;
-    color: #8a97a1;
-    text-transform: uppercase;
-    margin-bottom: 1px;
-  }
-  .field-value {
-    font-size: 9pt;
-    color: #20272b;
-  }
+  td.col-gap { width: 1.4%; padding: 0; }
 
-  /* ---------- item list (services / methods) ---------- */
-  ul.item-list {
-    margin: 2px 0 0 0;
-    padding-left: 14px;
-  }
-  ul.item-list li {
-    font-size: 9pt;
-    margin-bottom: 1.5px;
-  }
+  table.rows td { padding: 4px 3px 4px 0; border-bottom: 1px solid #d3e5f4; vertical-align: top; }
+  table.rows tr.last td { border-bottom: 0; }
+  td.k { width: 3.5cm; font-weight: bold; color: #12284c; font-size: 8.2pt; }
+  td.sep { width: 0.4cm; color: #7d90aa; }
+  td.v { color: #1d2b3c; }
+  td.v-blue { color: #1f6fb5; }
 
-  /* ---------- payment status ---------- */
-  .status-pill {
-    display: inline;
-    font-size: 8.5pt;
-    font-weight: bold;
-    padding: 2px 8px;
-  }
-  .status-paid { color: #1f7a45; }
-  .status-partially_paid { color: #b8791a; }
-  .status-unpaid, .status-credit { color: #a4342a; }
+  /* ---------------- 3 / 4 : full-width boxes ---------------- */
+  table.box { margin-top: 8px; }
+  td.bx-head { padding: 0; border: 1px solid #c3dbef; border-bottom: 0; }
+  td.bx-body { padding: 8px 10px 9px 10px; border: 1px solid #c3dbef; border-top: 0; background-color: #eef6fc; vertical-align: top; }
 
-  /* ---------- payment accounts ---------- */
-  .account-row {
-    width: 100%;
-  }
-  .account-cell {
-    width: 50%;
-    padding: 4px 8px 4px 0;
-    vertical-align: top;
-  }
-  .account-box {
-    border: 1px solid #dcd6c9;
-    background-color: #fbfaf7;
-    padding: 6px 9px;
-  }
-  .account-type-tag {
-    font-size: 7pt;
-    font-weight: bold;
-    color: #f39a2b;
-    text-transform: uppercase;
-  }
-  .account-line {
-    font-size: 8.5pt;
-    color: #20272b;
-  }
+  /* status */
+  table.status-row { background-color: #e1f1e8; }
+  td.status-label { width: 4.2cm; padding: 6px 4px 6px 10px; font-weight: bold; font-size: 9.4pt; color: #12284c; vertical-align: middle; }
+  td.status-pill-cell { width: 4.9cm; padding: 5px 0 5px 0; vertical-align: middle; }
+  td.status-fill { padding: 0; }
+  table.pill { background-color: #04924c; }
+  table.pill-unpaid, table.pill-credit { background-color: #b8382c; }
+  td.pill-text { padding: 4px 6px 4px 6px; font-size: 10pt; font-weight: bold; color: #ffffff; text-align: center; vertical-align: middle; }
 
-  /* ---------- portal login ---------- */
-  .password-box {
-    display: inline;
-    background-color: #fdf1de;
-    border: 1px solid #f3d9a8;
-    padding: 3px 10px;
-    font-family: Courier, monospace;
-    font-size: 10pt;
-    font-weight: bold;
-    color: #123e5b;
-  }
-  .password-unavailable {
-    font-size: 8pt;
-    color: #8a97a1;
-    font-style: italic;
-  }
-  .portal-note {
-    font-size: 7.5pt;
-    color: #6b7680;
-    margin-top: 6px;
-  }
+  table.amount-row { margin-top: 3px; }
+  td.amount-label { width: 4.2cm; padding: 5px 4px 5px 10px; font-weight: bold; font-size: 9.2pt; color: #12284c; vertical-align: middle; }
+  td.amount-sep { width: 0.6cm; padding: 0; color: #7d90aa; vertical-align: middle; }
+  td.amount-value { padding: 0; font-size: 12.5pt; font-weight: bold; color: #0b3a75; vertical-align: middle; }
 
-  /* ---------- footer ---------- */
-  .footer-bar {
-    border-top: 1px solid #dcd6c9;
-    padding-top: 6px;
-    margin-top: 10px;
-    font-size: 7pt;
-    color: #8a97a1;
-  }
-  .footer-bar table {
-    width: 100%;
-  }
+  table.divider { margin: 3px 0 7px 0; }
+  td.divider-line { border-top: 1px solid #c9dff0; padding: 0; font-size: 1pt; line-height: 1pt; }
+
+  table.acct-title td { vertical-align: middle; padding: 0; }
+  table.acct-title td.acct-title-icon { padding: 0 0 3.5px 4px; }
+  td.acct-title-icon { width: 0.95cm; padding: 0 0 3.5px 4px; }
+  td.acct-title-text { font-size: 9.4pt; font-weight: bold; color: #0e3f78; text-transform: uppercase; }
+  .acct-sub { font-size: 8.2pt; color: #2a3b52; padding-left: 0.95cm; margin-top: 1px; }
+
+  table.acct-row { background-color: #e0eef9; margin-top: 8px; }
+  td.acct-cell { vertical-align: top; padding: 8px 6px 8px 10px; border-left: 1px solid #c6dbee; }
+  td.acct-cell-first { border-left: 0; }
+  table.acct-head td { padding: 0; vertical-align: middle; }
+  table.acct-head td.acct-icon { padding: 0 0 3.5px 0; }
+  td.acct-icon { width: 0.85cm; padding: 0 0 3.5px 0; }
+  td.acct-name { font-size: 9.2pt; font-weight: bold; color: #1e5fa3; }
+  .acct-line { font-size: 7.2pt; color: #1d2b3c; padding: 3px 0 0 0.85cm; line-height: 1.6; }
+
+  .no-accounts { font-size: 8.5pt; color: #a4342a; margin-top: 6px; }
+
+  /* portal */
+  table.portal-rows { background-color: #e7f2fb; }
+  table.portal-rows td { padding: 6px 4px 6px 0; vertical-align: middle; }
+  td.p-k { width: 4.2cm; padding-left: 10px; font-weight: bold; color: #12284c; font-size: 9pt; }
+  td.p-sep { width: 0.6cm; color: #7d90aa; }
+  td.p-v { font-size: 9.4pt; color: #0f4a86; }
+  .pw-missing { font-size: 8.6pt; color: #6b7c92; font-style: italic; }
+
+  table.info-box { background-color: #e3f1fb; border: 1px solid #bcd8ee; margin-top: 5px; }
+  td.info-icon { width: 1.0cm; padding: 2px 0 6px 8px; vertical-align: middle; }
+  td.info-text { padding: 6px 8px 6px 4px; font-size: 8.4pt; font-style: italic; color: #1c5b9c; line-height: 1.35; vertical-align: middle; }
+
+  /* ---------------- Thank you ---------------- */
+  table.thanks { margin-top: 9px; border-top: 1px solid #cfe0ef; }
+  table.thanks td { vertical-align: middle; }
+  td.thanks-icon { width: 1.7cm; padding: 5px 0 0 3px; }
+  td.thanks-text { padding: 9px 0 0 4px; font-size: 8.2pt; color: #2a3b52; line-height: 1.45; }
+  .thanks-h { font-size: 9.4pt; font-weight: bold; color: #0e2f5c; }
+  td.thanks-qr-cell { width: 2.4cm; padding: 6px 0 0 14px; border-left: 1px solid #cfe0ef; }
+  td.thanks-scan { width: 3.4cm; padding: 9px 0 0 4px; font-size: 7pt; color: #1c4f8f; line-height: 1.4; }
+  .thanks-url { font-size: 7.4pt; font-weight: bold; color: #0f4a86; }
+
 </style>
 </head>
 <body>
 
-  <table class="header-table">
+  <!-- ============ HEADER ============ -->
+  <table class="header">
     <tr>
-      <td class="header-logo-cell"><img src="{{ logo_path }}" /></td>
-      <td>
-        <p class="company-name">LGS MINERAL ASSAY LABORATORY</p>
-        <span class="form-subtitle">Client Submission Form</span>
+      <td class="header-logo"><img src="{{ logo_path }}" width="70" /></td>
+      <td class="header-tagline">Reliable Mineral Analysis<br />for a Sustainable Future</td>
+    </tr>
+  </table>
+
+  <!-- ============ TITLE BANNER ============ -->
+  <table class="banner">
+    <tr>
+      <td class="banner-icon"><img src="{{ img_dir }}/icon-doc-white.png" width="34" height="34" /></td>
+      <td class="banner-title">
+        <p class="banner-h1">CLIENT SUBMISSION FORM</p>
+        <p class="banner-sub">The Client Submission Form is generated per Client Submission Reference Number.</p>
+      </td>
+      <td class="banner-ref">
+        <table class="ref-box">
+          <tr>
+            <td class="ref-box-cell">
+              <span class="ref-label">Client Reference:</span><br />
+              <span class="ref-value">{{ submission.reference }}</span>
+            </td>
+          </tr>
+        </table>
       </td>
     </tr>
   </table>
 
-  <div class="reference-bar">
-    <table>
-      <tr>
-        <td>
-          <span class="reference-label">Client Reference</span><br/>
-          <span class="reference-value">{{ submission.reference }}</span>
-        </td>
-      </tr>
-    </table>
-  </div>
+  <!-- ============ 1 + 2 : CLIENT & SAMPLE ============ -->
+  <table class="two-col">
+    <tr>
+      <td class="card-head-cell">
+        <table class="head-table"><tr>
+          <td class="head-icon"><img src="{{ img_dir }}/icon-user-white.png" width="17" height="17" /></td>
+          <td class="head-text">1. Client Details</td>
+        </tr></table>
+      </td>
+      <td class="col-gap"></td>
+      <td class="card-head-cell">
+        <table class="head-table"><tr>
+          <td class="head-icon"><img src="{{ img_dir }}/icon-flask-white.png" width="17" height="17" /></td>
+          <td class="head-text">2. Sample Details</td>
+        </tr></table>
+      </td>
+    </tr>
+    <tr>
+      <td class="card-body-cell">
+        <table class="rows">
+          <tr><td class="k">Client Type</td><td class="sep">:</td><td class="v">{{ client.get_client_type_display|default:"—" }}</td></tr>
+          <tr><td class="k">Client Name</td><td class="sep">:</td><td class="v">{{ client.client_name|default:"—" }}</td></tr>
+          <tr><td class="k">Contact Person</td><td class="sep">:</td><td class="v">{{ client.contact_person|default:"—" }}</td></tr>
+          <tr><td class="k">Email Address</td><td class="sep">:</td><td class="v">{{ client.email|default:"—" }}</td></tr>
+          <tr class="last"><td class="k">WhatsApp Number</td><td class="sep">:</td><td class="v">{{ client.whatsapp_number|default:"—" }}</td></tr>
+        </table>
+      </td>
+      <td class="col-gap"></td>
+      <td class="card-body-cell">
+        <table class="rows">
+          <tr><td class="k">Number of Samples</td><td class="sep">:</td><td class="v">{{ total_samples }}</td></tr>
+          <tr><td class="k">Sample Type(s)</td><td class="sep">:</td><td class="v">{{ sample_types|join:", "|default:"—" }}</td></tr>
+          <tr><td class="k">Requested Service(s)</td><td class="sep">:</td><td class="v">{{ services|join:", "|default:"—" }}</td></tr>
+          <tr class="last"><td class="k">Method(s) of Analysis</td><td class="sep">:</td><td class="v-blue">{{ methods|join:", "|default:"—" }}</td></tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 
-  <div class="section-box">
-    <div class="section-box-title">Client Details</div>
-    <div class="section-box-body">
-      <table class="field-grid">
-        <tr>
-          <td><span class="field-label">Client Type</span><span class="field-value">{{ client.get_client_type_display }}</span></td>
-          <td><span class="field-label">Client Name</span><span class="field-value">{{ client.client_name }}</span></td>
-        </tr>
-        <tr>
-          <td><span class="field-label">Contact Person</span><span class="field-value">{{ client.contact_person }}</span></td>
-          <td><span class="field-label">Email</span><span class="field-value">{{ client.email }}</span></td>
-        </tr>
-        <tr>
-          <td><span class="field-label">WhatsApp</span><span class="field-value">{{ client.whatsapp_number }}</span></td>
-          <td></td>
-        </tr>
-      </table>
-    </div>
-  </div>
+  <!-- ============ 3 : PAYMENT ============ -->
+  <table class="box">
+    <tr>
+      <td class="bx-head">
+        <table class="head-table"><tr>
+          <td class="head-icon"><img src="{{ img_dir }}/icon-card-white.png" width="17" height="17" /></td>
+          <td class="head-text">3. Payment</td>
+        </tr></table>
+      </td>
+    </tr>
+    <tr>
+      <td class="bx-body">
 
-  <div class="section-box">
-    <div class="section-box-title">Sample Details</div>
-    <div class="section-box-body">
-      <table class="field-grid">
-        <tr>
-          <td>
-            <span class="field-label">Number of Samples</span>
-            <span class="field-value">{{ total_samples }}</span>
-          </td>
-          <td>
-            <span class="field-label">Sample Type(s)</span>
-            <ul class="item-list">
-              {% for t in sample_types %}<li>{{ t }}</li>{% endfor %}
-            </ul>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <span class="field-label">Requested Service(s)</span>
-            <ul class="item-list">
-              {% for s in services %}<li>{{ s }}</li>{% endfor %}
-            </ul>
-          </td>
-          <td>
-            <span class="field-label">Method(s) of Analysis</span>
-            <ul class="item-list">
-              {% for m in methods %}<li>{{ m }}</li>{% endfor %}
-            </ul>
-          </td>
-        </tr>
-      </table>
-    </div>
-  </div>
+        <table class="status-row">
+          <tr>
+            <td class="status-label">Payment Status</td>
+            <td class="status-pill-cell">
+              <table class="pill pill-{{ payment.payment_status|lower }}"><tr>
+                <td class="pill-text">{{ payment.get_payment_status_display|upper }}</td>
+              </tr></table>
+            </td>
+            <td class="status-fill"></td>
+          </tr>
+        </table>
 
-  <div class="section-box">
-    <div class="section-box-title">Payment</div>
-    <div class="section-box-body">
-      <table class="field-grid">
-        <tr>
-          <td>
-            <span class="field-label">Payment Status</span>
-            <span class="status-pill status-{{ payment.payment_status|lower }}">{{ payment.get_payment_status_display|upper }}</span>
-          </td>
-          {% if has_outstanding %}
-          <td>
-            <span class="field-label">Amount to be Paid</span>
-            <span class="field-value">TZS {{ payment.outstanding_balance|floatformat:2 }}</span>
-          </td>
-          {% else %}
-          <td></td>
-          {% endif %}
-        </tr>
-      </table>
+        {% if has_outstanding %}
+        <table class="amount-row">
+          <tr>
+            <td class="amount-label">Amount to be Paid</td>
+            <td class="amount-sep">:</td>
+            <td class="amount-value">TZS {{ payment.outstanding_balance|floatformat:"-2g" }}</td>
+          </tr>
+        </table>
+        {% endif %}
 
-      {% if has_outstanding and payment_accounts %}
-      <br/>
-      <span class="field-label">LGS Payment Accounts</span>
-      <table class="account-row">
-        <tr>
-          {% for account in payment_accounts %}
-          <td class="account-cell">
-            <div class="account-box">
+        {% if has_outstanding and payment_accounts %}
+        <table class="divider"><tr><td class="divider-line">&nbsp;</td></tr></table>
+
+        <table class="acct-title">
+          <tr>
+            <td class="acct-title-icon"><img src="{{ img_dir }}/icon-bank-blue.png" width="18" height="18" /></td>
+            <td class="acct-title-text">LGS Payment Accounts</td>
+          </tr>
+        </table>
+        <p class="acct-sub">Please use the following payment details to complete your payment:</p>
+
+        <table class="acct-row">
+          <tr>
+            {% for account in payment_accounts %}
+            <td class="acct-cell{% if forloop.first %} acct-cell-first{% endif %}" style="width: {% if payment_accounts|length == 3 %}{% if account.account_type == "BANK" %}36{% else %}32{% endif %}{% else %}{% widthratio 100 payment_accounts|length 1 %}{% endif %}%;">
               {% if account.account_type == "BANK" %}
-                <span class="account-type-tag">Bank</span><br/>
-                <span class="account-line">{{ account.bank_name }}</span><br/>
-                <span class="account-line">{{ account.account_name }}</span><br/>
-                <span class="account-line">{{ account.account_number }}</span>
+                <table class="acct-head"><tr>
+                  <td class="acct-icon"><img src="{{ img_dir }}/icon-bank-blue.png" width="16" height="16" /></td>
+                  <td class="acct-name">Bank Transfer</td>
+                </tr></table>
+                <p class="acct-line">{{ account.bank_name }}<br />
+                  Account Name: {{ account.account_name }}<br />
+                  Account Number: {{ account.account_number }}{% if account.swift_code %}<br />
+                  Swift Code: {{ account.swift_code }}{% endif %}</p>
               {% else %}
-                <span class="account-type-tag">Mobile / Lipa Number</span><br/>
-                <span class="account-line">{{ account.account_name }}</span><br/>
-                <span class="account-line">{{ account.account_number }}</span>
+                <table class="acct-head"><tr>
+                  <td class="acct-icon"><img src="{{ img_dir }}/icon-mobile-blue.png" width="16" height="16" /></td>
+                  <td class="acct-name">Mobile Money{% if account.provider %} ({{ account.provider }}){% endif %}</td>
+                </tr></table>
+                <p class="acct-line">{{ account.account_name }}<br />
+                  {% if account.account_type == "LIPA" %}Lipa Number{% else %}Mobile Number{% endif %}: {{ account.account_number }}</p>
               {% endif %}
-            </div>
-          </td>
-          {% endfor %}
-        </tr>
-      </table>
-      {% endif %}
-    </div>
-  </div>
+            </td>
+            {% endfor %}
+          </tr>
+        </table>
+        {% elif has_outstanding %}
+        <p class="no-accounts">No active payment accounts configured — contact management.</p>
+        {% endif %}
 
-  <div class="section-box">
-    <div class="section-box-title">Client Portal Login</div>
-    <div class="section-box-body">
-      <table class="field-grid">
-        <tr>
-          <td>
-            <span class="field-label">Username</span>
-            <span class="field-value">{{ portal_username|default:"—" }}</span>
-          </td>
-          <td>
-            <span class="field-label">Temporary Password</span>
-            {% if temp_password %}
-              <span class="password-box">{{ temp_password }}</span>
-            {% else %}
-              <span class="password-unavailable">
-                Already issued on first registration — ask Reception to reissue if needed.
-              </span>
-            {% endif %}
-          </td>
-        </tr>
-      </table>
-      <p class="portal-note">
-        Use these login details to access the LGS Client Portal and download your completed and officially released Certificates of Analysis.
-      </p>
-    </div>
-  </div>
+      </td>
+    </tr>
+  </table>
 
-  <div class="footer-bar">
-    <table>
-      <tr>
-        <td>LGS African Group Company Limited</td>
-        <td style="text-align: right;">Generated {{ generated_at|date:"d M Y, H:i" }}</td>
-      </tr>
-    </table>
-  </div>
+  <!-- ============ 4 : PORTAL LOGIN ============ -->
+  <table class="box">
+    <tr>
+      <td class="bx-head">
+        <table class="head-table"><tr>
+          <td class="head-icon"><img src="{{ img_dir }}/icon-portal-white.png" width="19" height="19" /></td>
+          <td class="head-text">4. Client Portal Login Details</td>
+        </tr></table>
+      </td>
+    </tr>
+    <tr>
+      <td class="bx-body">
+        <table class="portal-rows">
+          <tr>
+            <td class="p-k">Username</td>
+            <td class="p-sep">:</td>
+            <td class="p-v">{{ portal_username|default:"—" }}</td>
+          </tr>
+          <tr>
+            <td class="p-k">Temporary Password</td>
+            <td class="p-sep">:</td>
+            <td class="p-v">{% if temp_password %}{{ temp_password }}{% else %}<span class="pw-missing">Already issued to the client.</span>{% endif %}</td>
+          </tr>
+        </table>
+
+        <table class="info-box">
+          <tr>
+            <td class="info-icon"><img src="{{ img_dir }}/icon-info-blue.png" width="16" height="16" /></td>
+            <td class="info-text">Use these login details to access the LGS Client Portal and download your completed<br />and officially released Certificates of Analysis.</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <!-- ============ THANK YOU ============ -->
+  <table class="thanks">
+    <tr>
+      <td class="thanks-icon"><img src="{{ img_dir }}/icon-check-circle.png" width="36" height="36" /></td>
+      <td class="thanks-text">
+        <span class="thanks-h">Thank you for choosing LGS Mineral Assay Laboratory.</span><br />
+        Your samples are in good hands. We will keep you updated<br />on the progress of your analysis.
+      </td>
+      <td class="thanks-qr-cell"><img src="{{ img_dir }}/qr-website.png" width="42" height="42" /></td>
+      <td class="thanks-scan">Scan to visit<br />our website<br /><span class="thanks-url">www.lgsassay.co.tz</span></td>
+    </tr>
+  </table>
 
 </body>
 </html>

@@ -1,40 +1,42 @@
 .expense-form-page {
-  max-width: 680px;
+  width: 100%;
+  max-width: 860px;
   margin: 0 auto;
+  padding: 0 0 1.5rem;
 }
 
 .expense-form-card {
   background: var(--white);
   border: 1px solid var(--line);
-  border-top: 3px solid var(--navy);
-  border-radius: var(--radius);
-  padding: 2rem;
+  border-radius: 0;
+  overflow: hidden;
 }
 
 .expense-form-head {
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
+  padding: 1.1rem 1.5rem;
   border-bottom: 1px solid var(--line);
 }
 
 .expense-form-head h2 {
-  margin-bottom: 0.25rem;
+  margin: 0 0 0.2rem;
+  font-size: 1rem;
 }
 
 .expense-form-head p {
   margin: 0;
-  color: var(--muted);
   font-size: var(--fs-small);
+  color: #7b858c;
 }
 
 .expense-form-card .rc-form-alert {
-  margin-bottom: 1.25rem;
+  margin: 1.5rem 1.5rem 0;
   padding: 0.75rem 1rem;
-  background: var(--error-bg);
-  border: 1px solid var(--error-text);
+  background: #fdf0ee;
+  border: 1px solid #f0c5bd;
   border-left-width: 4px;
-  border-radius: var(--radius);
-  color: var(--error-text);
+  border-left-color: #a4342a;
+  border-radius: 0;
+  color: #a4342a;
   font-size: var(--fs-small);
 }
 
@@ -46,46 +48,25 @@
   margin-top: 0.35rem;
 }
 
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
 .expense-fields {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.25rem;
+  padding: 1.5rem;
 }
 
 .expense-fields [hidden] {
   display: none;
 }
 
-.rc-required-note {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.8125rem;
-}
-
 .rc-required {
-  color: var(--error-text);
+  color: #a4342a;
   font-weight: 700;
   margin-left: 0.2rem;
 }
 
-.rc-required-note .rc-required {
-  margin-left: 0;
-  margin-right: 0.3rem;
-}
-
 .expense-fields .rc-field-row {
+  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.25rem;
@@ -94,26 +75,33 @@
 
 .expense-fields .rc-field label {
   display: block;
-  margin-bottom: 0.4rem;
-  color: var(--navy);
-  font-size: var(--fs-small);
+  font-size: 0.75rem;
   font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #5a656c;
+  margin-bottom: 0.45rem;
 }
 
 .expense-fields .rc-field input,
 .expense-fields .rc-field select,
 .expense-fields .rc-field textarea {
   width: 100%;
-  padding: 0.7rem 0.85rem;
-  border: 1px solid #c9c2b2;
-  border-radius: var(--radius);
-  background-color: var(--white);
+  height: 42px;
+  padding: 0 0.85rem;
+  font-family: var(--font-body);
+  font-size: var(--fs-small);
   color: var(--charcoal);
-  font: inherit;
-  line-height: 1.4;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.expense-fields .rc-field textarea {
+  height: auto;
+  min-height: 6rem;
+  padding: 0.7rem 0.85rem;
+  resize: vertical;
 }
 
 .expense-fields .rc-field select {
@@ -126,15 +114,8 @@
   cursor: pointer;
 }
 
-.expense-fields .rc-field textarea {
-  min-height: 6rem;
-  resize: vertical;
-}
-
-.expense-fields .rc-field input:hover,
-.expense-fields .rc-field select:hover,
-.expense-fields .rc-field textarea:hover {
-  border-color: #a79f8a;
+.expense-fields .rc-field input::placeholder {
+  color: #98a1a7;
 }
 
 .expense-fields .rc-field input:focus,
@@ -142,7 +123,6 @@
 .expense-fields .rc-field textarea:focus {
   outline: none;
   border-color: var(--navy);
-  box-shadow: 0 0 0 3px rgba(18, 62, 91, 0.18);
 }
 
 .rc-input-affix {
@@ -154,7 +134,7 @@
   top: 50%;
   left: 0.85rem;
   transform: translateY(-50%);
-  color: var(--muted);
+  color: #7b858c;
   font-size: 0.8125rem;
   font-weight: 600;
   pointer-events: none;
@@ -168,31 +148,41 @@
 .expense-fields .rc-field.has-error input,
 .expense-fields .rc-field.has-error select,
 .expense-fields .rc-field.has-error textarea {
-  border-color: var(--error-text);
-  background-color: #fffafa;
-}
-
-.expense-fields .rc-field.has-error input:focus,
-.expense-fields .rc-field.has-error select:focus,
-.expense-fields .rc-field.has-error textarea:focus {
-  border-color: var(--error-text);
-  box-shadow: 0 0 0 3px rgba(161, 42, 42, 0.2);
+  border-color: #a4342a;
 }
 
 .rc-field-error {
+  display: block;
   margin: 0.4rem 0 0;
-  color: var(--error-text);
-  font-size: 0.8125rem;
-  font-weight: 500;
+  color: #a4342a;
+  font-size: 0.8rem;
 }
 
 .expense-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 0.75rem;
-  margin-top: 1.5rem;
-  padding-top: 1.25rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.5rem;
+  background: var(--off-white);
   border-top: 1px solid var(--line);
+}
+
+.expense-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 42px;
+  padding: 0 1.25rem;
+  border-radius: 0;
+  white-space: nowrap;
+}
+
+.expense-actions .btn .icon {
+  width: 18px;
+  height: 18px;
 }
 
 .expense-actions .btn.is-loading,
@@ -207,7 +197,7 @@
   padding: 0;
   border: 1px solid var(--line);
   border-top: 3px solid var(--navy);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: var(--white);
   color: var(--charcoal);
   box-shadow: 0 24px 60px rgba(18, 62, 91, 0.28);
@@ -228,7 +218,7 @@
 
 .rc-dialog-body p {
   margin: 0;
-  color: var(--muted);
+  color: #7b858c;
   font-size: var(--fs-small);
   line-height: 1.55;
 }
@@ -240,8 +230,15 @@
   padding: 1rem 1.5rem 1.5rem;
 }
 
-@media (max-width: 560px) {
-  .expense-form-card {
+.rc-dialog-actions .btn {
+  height: 42px;
+  padding: 0 1.25rem;
+  border-radius: 0;
+}
+
+@media (max-width: 640px) {
+  .expense-fields {
+    grid-template-columns: 1fr;
     padding: 1.25rem;
   }
 
@@ -252,18 +249,11 @@
   .expense-actions,
   .rc-dialog-actions {
     flex-direction: column-reverse;
+    align-items: stretch;
   }
 
   .expense-actions .btn,
   .rc-dialog-actions .btn {
     width: 100%;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .expense-fields .rc-field input,
-  .expense-fields .rc-field select,
-  .expense-fields .rc-field textarea {
-    transition: none;
   }
 }
