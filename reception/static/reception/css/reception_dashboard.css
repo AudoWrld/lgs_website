@@ -7,7 +7,7 @@
   flex-wrap: wrap;
   margin-bottom: 1rem;
   padding: 1.75rem 2rem;
-  border-radius: 6px;
+  border-radius: 0;
   border-bottom: 3px solid var(--orange);
   background: var(--navy);
   color: var(--white);
@@ -40,7 +40,7 @@
   margin-bottom: 0.75rem;
   padding: 0.3rem 0.75rem;
   border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
+  border-radius: 0;
   background: rgba(255, 255, 255, 0.07);
   color: rgba(255, 255, 255, 0.82);
   font-size: 0.8125rem;
@@ -90,7 +90,7 @@
   height: 42px;
   padding: 0 1.1rem;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: 0;
   font-size: var(--fs-small);
   font-weight: 600;
   text-decoration: none;
@@ -223,7 +223,7 @@
 
 .dash-panel {
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 0;
   background: var(--white);
   overflow: hidden;
 }
@@ -345,7 +345,7 @@ a.dash-recent-row:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 0;
   background: rgba(18, 62, 91, 0.09);
   color: var(--navy);
   font-family: var(--font-head);
@@ -374,7 +374,7 @@ a.dash-recent-row:hover {
   align-items: center;
   gap: 0.4rem;
   padding: 0.2rem 0.55rem;
-  border-radius: 3px;
+  border-radius: 0;
   font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
@@ -384,7 +384,7 @@ a.dash-recent-row:hover {
   content: "";
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: 0;
   background: currentColor;
 }
 
@@ -420,7 +420,7 @@ a.dash-recent-row:hover {
   align-items: center;
   justify-content: center;
   border: 1px solid var(--line);
-  border-radius: 50%;
+  border-radius: 0;
   background: var(--off-white);
   color: var(--navy);
 }
@@ -468,7 +468,7 @@ a.dash-recent-row:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: 0;
   background: rgba(18, 62, 91, 0.08);
   color: var(--navy);
   transition:

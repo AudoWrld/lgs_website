@@ -5,76 +5,144 @@
 {% block page_title %}Payments{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
 <link rel="stylesheet" href="{% static 'reception/css/payment_list.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="pl-page">
-  <section class="pl-toolbar rc-panel">
-    <form method="get" class="pl-search-form">
-      <label for="payment-search">Find a submission</label>
-      <div class="rc-search-bar">
-        <i class='bx bx-search-alt'></i>
-        <input id="payment-search" type="search" name="q" value="{{ query }}" placeholder="Reference or client name">
-        {% if status != "ALL" %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
-        <button type="submit" class="btn btn-primary"><i class='bx bx-search'></i> Search</button>
-      </div>
-    </form>
 
-    <nav class="pl-filters" aria-label="Payment status filters">
-      <a href="?{% if query %}q={{ query|urlencode }}{% endif %}" class="pl-filter {% if status == 'all' %}is-active{% endif %}">All</a>
-      {% for value, label in status_choices %}
-        <a href="?status={{ value }}{% if query %}&q={{ query|urlencode }}{% endif %}" class="pl-filter {% if status == value %}is-active{% endif %}">{{ label }}</a>
-      {% endfor %}
-    </nav>
+  <section class="pl-panel">
+    <form method="get" class="pl-search" role="search">
+      <label for="payment-search" class="visually-hidden">Find a submission</label>
+      <div class="pl-search-field">
+        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input id="payment-search" type="search" name="q" value="{{ query }}" placeholder="Search by reference or client name">
+      </div>
+      {% if status != "all" %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+      <button type="submit" class="btn btn-primary">Search</button>
+      {% if query %}<a href="?{% if status != 'all' %}status={{ status }}{% endif %}" class="btn btn-outline">Clear</a>{% endif %}
+    </form>
   </section>
 
-  {% if submissions %}
-    <div class="pl-results-head">
-      <h2>Payment Positions</h2>
-      <span class="rc-results-count">{{ submissions|length }} submission{{ submissions|length|pluralize }}</span>
+  <section class="pl-kpis" aria-label="Payment status summary">
+    {% for kpi in kpis %}
+    <a href="?status={{ kpi.value }}{% if query %}&q={{ query|urlencode }}{% endif %}" class="pl-kpi pl-kpi-{{ kpi.tone }}">
+      <span class="pl-kpi-label">{{ kpi.label }}</span>
+      <span class="pl-kpi-value">{{ kpi.count }}</span>
+    </a>
+    {% endfor %}
+  </section>
+
+  <section class="pl-insights">
+    <div class="pl-panel">
+      <div class="pl-panel-head">
+        <h2>Payment Status Overview</h2>
+        <span class="pl-muted-text">{{ total_count }} submission{{ total_count|pluralize }}</span>
+      </div>
+      <div class="pl-chart-body">
+        <div class="pl-donut" style="background: {{ donut_gradient }}" role="img" aria-label="Payment status distribution">
+          <div class="pl-donut-hole">
+            <span class="pl-donut-total">{{ total_count }}</span>
+            <span class="pl-donut-caption">Submissions</span>
+          </div>
+        </div>
+        <ul class="pl-legend">
+          {% for segment in segments %}
+          <li>
+            <span class="pl-swatch" style="background: {{ segment.color }}"></span>
+            <span class="pl-legend-label">{{ segment.label }}</span>
+            <span class="pl-legend-count">{{ segment.count }}</span>
+            <span class="pl-legend-share">{{ segment.share }}%</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
     </div>
 
-    <div class="pl-list">
-      {% for submission in submissions %}
-        <article class="rc-client-card pl-card">
-          <div class="pl-card-main">
-            <div class="pl-card-heading">
-              <a href="{% url 'reception:payment_detail' submission.reference %}" class="pl-reference">{{ submission.reference }}</a>
-              {% if submission.payment %}
-                <span class="pd-status-badge pd-status-{{ submission.payment.payment_status|lower }}">{{ submission.payment.get_payment_status_display }}</span>
-              {% else %}
-                <span class="pd-status-badge pd-status-not-started">Not Started</span>
-              {% endif %}
-            </div>
-            <div class="pl-card-meta">
-              <span><i class='bx bx-user'></i> {{ submission.client.client_name }}</span>
-              <span><i class='bx bx-calendar'></i> {{ submission.receiving_date|date:"d M Y" }}</span>
-              <span><i class='bx bx-test-tube'></i> {{ submission.sample_count }} sample{{ submission.sample_count|pluralize }}</span>
-            </div>
+    <div class="pl-panel">
+      <div class="pl-panel-head">
+        <h2>Needs Follow-up</h2>
+        <span class="pl-muted-text">Unpaid, partially paid or not started</span>
+      </div>
+      {% if follow_up %}
+      <ul class="pl-followup">
+        {% for item in follow_up %}
+        <li>
+          <div class="pl-followup-main">
+            <a href="{% url 'reception:payment_detail' item.reference %}" class="pl-reference">{{ item.reference }}</a>
+            <span class="pl-followup-client">{{ item.client.client_name }}</span>
           </div>
-          <div class="pl-card-position">
-            <span class="pl-position-label">Outstanding</span>
-            {% if submission.payment %}
-              <strong>TZS {{ submission.payment.outstanding_balance|floatformat:2 }}</strong>
-            {% else %}
-              <strong class="pl-muted">—</strong>
-            {% endif %}
-          </div>
-          <div class="rc-client-actions">
-            <a href="{% url 'reception:payment_detail' submission.reference %}" class="btn btn-outline">
-              View Payment <i class='bx bx-right-arrow-alt'></i>
-            </a>
-          </div>
-        </article>
-      {% endfor %}
+          {% if item.payment %}
+          <span class="pl-badge pl-badge-{{ item.payment.payment_status|lower }}">{{ item.payment.get_payment_status_display }}</span>
+          {% else %}
+          <span class="pl-badge pl-badge-not_started">Not Started</span>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-state">
+        <p>Nothing needs follow-up right now.</p>
+      </div>
+      {% endif %}
     </div>
-  {% else %}
-    <div class="rc-empty-state">
-      <i class='bx bx-wallet'></i>
+  </section>
+
+  <section class="pl-panel">
+    <div class="pl-panel-head">
+      <h2>Submissions</h2>
+      <span class="pl-muted-text">Showing {{ submission_count }} submission{{ submission_count|pluralize }}</span>
+    </div>
+
+    <nav class="pl-filters" aria-label="Payment status filters">
+      {% for f in filters %}
+      <a href="?status={{ f.value }}{% if query %}&q={{ query|urlencode }}{% endif %}" class="pl-filter{% if status == f.value %} is-active{% endif %}">
+        {{ f.label }}
+        <span class="pl-filter-count">{{ f.count }}</span>
+      </a>
+      {% endfor %}
+    </nav>
+
+    {% if submissions %}
+    <div class="table-wrap">
+      <table class="table pl-table">
+        <thead>
+          <tr>
+            <th>Reference</th>
+            <th>Client</th>
+            <th>Received</th>
+            <th class="num">Samples</th>
+            <th>Status</th>
+            <th class="num">Outstanding (TZS)</th>
+            <th><span class="visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for submission in submissions %}
+          <tr>
+            <td><a href="{% url 'reception:payment_detail' submission.reference %}" class="pl-reference">{{ submission.reference }}</a></td>
+            <td class="pl-client">{{ submission.client.client_name }}</td>
+            <td>{{ submission.receiving_date|date:"d M Y" }}</td>
+            <td class="num">{{ submission.sample_count }}</td>
+            {% if submission.payment %}
+            <td><span class="pl-badge pl-badge-{{ submission.payment.payment_status|lower }}">{{ submission.payment.get_payment_status_display }}</span></td>
+            <td class="num{% if submission.payment.outstanding_balance > 0 %} pl-due{% endif %}">{{ submission.payment.outstanding_balance|floatformat:"2g" }}</td>
+            {% else %}
+            <td><span class="pl-badge pl-badge-not_started">Not Started</span></td>
+            <td class="num pl-empty-cell">—</td>
+            {% endif %}
+            <td class="num"><a href="{% url 'reception:payment_detail' submission.reference %}" class="btn btn-outline btn-sm">View</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
       <p>No submissions match these payment filters.</p>
     </div>
-  {% endif %}
+    {% endif %}
+  </section>
+
 </div>
 {% endblock %}

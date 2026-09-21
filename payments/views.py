@@ -10,36 +10,148 @@ from .forms import PaymentUpdateForm
 from .models import Payment, PaymentTransaction
 
 
+from django.db.models import Count, Q
+from django.shortcuts import render
+
+STATUS_ORDER = ["PAID", "PARTIALLY_PAID", "UNPAID", "CREDIT", "NOT_STARTED"]
+
+STATUS_COLORS = {
+    "PAID": "#1f7a45",
+    "PARTIALLY_PAID": "#f39a2b",
+    "UNPAID": "#a12a2a",
+    "CREDIT": "#123e5b",
+    "NOT_STARTED": "#b9c0c5",
+}
+
+
+def _status_labels():
+    labels = dict(Payment.STATUS_CHOICES)
+    labels["NOT_STARTED"] = "Not Started"
+    return labels
+
+
+def _percent(part, whole):
+    if not whole:
+        return 0.0
+    value = float(part) / float(whole) * 100
+    return max(0.0, min(100.0, value))
+
+
 @reception_required
 def payment_list(request):
+    labels = _status_labels()
     query = request.GET.get("q", "").strip()
     status = request.GET.get("status", "all").upper()
-    valid_statuses = {choice[0] for choice in Payment.STATUS_CHOICES}
-    if status not in valid_statuses:
+    if status not in STATUS_ORDER:
         status = "all"
 
-    submissions = (
-        Submission.objects.filter(is_submitted=True)
-        .select_related("client")
-        .prefetch_related("payment")
-        .annotate(sample_count=Count("samples", distinct=True))
-    )
-
+    scoped = Submission.objects.filter(is_submitted=True)
     if query:
-        submissions = submissions.filter(
+        scoped = scoped.filter(
             Q(reference__icontains=query) | Q(client__client_name__icontains=query)
         )
-    if status != "all":
+
+    raw_counts = {
+        (row["payment__payment_status"] or "NOT_STARTED"): row["total"]
+        for row in scoped.order_by()
+        .values("payment__payment_status")
+        .annotate(total=Count("id"))
+    }
+    total_count = sum(raw_counts.values())
+
+    segments = []
+    stops = []
+    cursor = 0.0
+    for key in STATUS_ORDER:
+        count = raw_counts.get(key, 0)
+        share = _percent(count, total_count)
+        segments.append(
+            {
+                "key": key,
+                "label": labels[key],
+                "count": count,
+                "share": round(share, 1),
+                "color": STATUS_COLORS[key],
+            }
+        )
+        if count:
+            end = cursor + share
+            stops.append(f"{STATUS_COLORS[key]} {cursor:.2f}% {end:.2f}%")
+            cursor = end
+    if stops:
+        donut_gradient = f"conic-gradient({', '.join(stops)})"
+    else:
+        donut_gradient = "conic-gradient(#e4dfd3 0% 100%)"
+
+    filters = [{"value": "all", "label": "All", "count": total_count}]
+    for key in STATUS_ORDER:
+        filters.append(
+            {"value": key, "label": labels[key], "count": raw_counts.get(key, 0)}
+        )
+
+    kpis = [
+        {"value": "all", "label": "Submissions", "count": total_count, "tone": "navy"},
+        {
+            "value": "PAID",
+            "label": "Paid",
+            "count": raw_counts.get("PAID", 0),
+            "tone": "green",
+        },
+        {
+            "value": "PARTIALLY_PAID",
+            "label": "Partially Paid",
+            "count": raw_counts.get("PARTIALLY_PAID", 0),
+            "tone": "orange",
+        },
+        {
+            "value": "UNPAID",
+            "label": "Unpaid",
+            "count": raw_counts.get("UNPAID", 0),
+            "tone": "red",
+        },
+        {
+            "value": "NOT_STARTED",
+            "label": "Not Started",
+            "count": raw_counts.get("NOT_STARTED", 0),
+            "tone": "grey",
+        },
+    ]
+
+    follow_up = list(
+        scoped.filter(
+            Q(payment__isnull=True)
+            | Q(payment__payment_status__in=["UNPAID", "PARTIALLY_PAID"])
+        )
+        .select_related("client", "payment")
+        .order_by("-created_at")[:6]
+    )
+
+    submissions = scoped
+    if status == "NOT_STARTED":
+        submissions = submissions.filter(payment__isnull=True)
+    elif status != "all":
         submissions = submissions.filter(payment__payment_status=status)
+
+    submissions = list(
+        submissions.select_related("client", "payment")
+        .annotate(sample_count=Count("samples", distinct=True))
+        .order_by("-created_at")
+    )
 
     return render(
         request,
         "reception/payment_list.html",
         {
-            "submissions": submissions.order_by("-created_at"),
+            "submissions": submissions,
+            "submission_count": len(submissions),
             "query": query,
             "status": status,
-            "status_choices": Payment.STATUS_CHOICES,
+            "filters": filters,
+            "kpis": kpis,
+            "segments": segments,
+            "donut_gradient": donut_gradient,
+            "total_count": total_count,
+            "follow_up": follow_up,
         },
     )
 
@@ -93,7 +205,9 @@ def payment_detail(request, reference):
                     f"Total Paid: TZS {payment.total_amount_paid:,.2f}, "
                     f"Status: {payment.get_payment_status_display()}.",
                 )
-                return redirect("reception:payment_detail", reference=submission.reference)
+                return redirect(
+                    "reception:payment_detail", reference=submission.reference
+                )
     else:
         update_form = PaymentUpdateForm(
             initial={
