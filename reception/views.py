@@ -1033,6 +1033,13 @@ def client_submission_form(request):
         .order_by("-created_at")[:FORM_LIST_LIMIT]
     )
 
+    if submission is None and not reference and not list_only:
+        first_sub = submissions[0] if submissions else None
+        if first_sub:
+            submission = first_sub
+            reference = first_sub.reference
+            extra = _form_context(request, submission)
+
     context = {
         "query": query,
         "reference": reference,
@@ -1141,6 +1148,13 @@ def worksheet_generation(request):
         generate_worksheets_for_submission(submission, request.user)
         messages.success(request, f"Worksheets generated for {submission.reference}.")
         return redirect(f"{request.path}?ref={submission.reference}")
+
+    if submission is None and not reference:
+        first_sub = submissions.first()
+        if first_sub:
+            submission = first_sub
+            reference = first_sub.reference
+            not_found = False
 
     worksheets = None
     if submission is not None:

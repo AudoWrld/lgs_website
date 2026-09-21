@@ -129,6 +129,30 @@ def payment_list(request):
         .order_by("-created_at")[:LIST_LIMIT]
     )
 
+    if submission is None and not reference:
+        first_sub = submissions[0] if submissions else None
+        if first_sub:
+            submission = first_sub
+            payment, _ = Payment.objects.get_or_create(submission=submission)
+            payment.recalculate_gross_amount()
+            if payment.payment_status == Payment.PAID and payment.outstanding_balance > 0:
+                payment.payment_status = (
+                    Payment.PARTIALLY_PAID
+                    if payment.total_amount_paid > 0
+                    else Payment.UNPAID
+                )
+            payment.save(update_fields=["gross_amount", "payment_status"])
+            update_form = PaymentUpdateForm(
+                initial={
+                    "discount": payment.discount,
+                    "payment_method": payment.payment_method or Payment.CASH,
+                    "transaction_reference": payment.transaction_reference,
+                    "payment_status": payment.payment_status,
+                    "remarks": payment.remarks,
+                }
+            )
+            reference = first_sub.reference
+
     return render(
         request,
         "reception/payment_list.html",
