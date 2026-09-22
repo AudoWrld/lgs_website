@@ -9,4 +9,5 @@ urlpatterns = [
     path("login/", views.login_view, name="login"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("post-login/", views.post_login_redirect, name="post_login_redirect"),
+    path("force-password-change/", views.force_password_change, name="force_password_change"),
 ]
