@@ -105,6 +105,7 @@ def _build_mineral_analysis_worksheet(submission, samples, generated_by):
 
     row_number = 0
     submitted_sample_count = 0
+    display_counter = 0
     crm_eligible = any(
         ss.service.name in CRM_ELIGIBLE_SERVICES
         for sample in samples
@@ -117,6 +118,7 @@ def _build_mineral_analysis_worksheet(submission, samples, generated_by):
 
         for rep in range(1, replicate_count + 1):
             row_number += 1
+            display_counter += 1
             WorksheetRow.objects.create(
                 worksheet=worksheet,
                 row_number=row_number,
@@ -125,6 +127,7 @@ def _build_mineral_analysis_worksheet(submission, samples, generated_by):
                 replicate_number=rep,
                 beaker_id="",
                 remarks="",
+                display_number=display_counter,
             )
 
         submitted_sample_count += 1
@@ -141,10 +144,12 @@ def _build_mineral_analysis_worksheet(submission, samples, generated_by):
         # CRM every 2 submitted samples, count based on submitted samples not replicate rows
         if crm_eligible and submitted_sample_count % 2 == 0:
             row_number += 1
+            display_counter += 1
             WorksheetRow.objects.create(
                 worksheet=worksheet,
                 row_number=row_number,
                 row_type=WorksheetRow.CRM_ROW,
+                display_number=display_counter,
             )
 
     return worksheet
@@ -159,15 +164,18 @@ def _build_carbon_activity_worksheet(submission, samples, generated_by):
     )
 
     row_number = 0
+    display_counter = 0
     for sample in samples:
         for rep in range(1, 3):  # always exactly 2 replicates, no CRM
             row_number += 1
+            display_counter += 1
             WorksheetRow.objects.create(
                 worksheet=worksheet,
                 row_number=row_number,
                 row_type=WorksheetRow.REPLICATE_ROW,
                 lab_sample_mapping=sample.lab_mapping,
                 replicate_number=rep,
+                display_number=display_counter,
             )
 
     return worksheet
@@ -185,8 +193,10 @@ def _build_cyanide_leaching_worksheet(
     )
 
     row_number = 0
+    display_counter = 0
     for sample in samples:
         row_number += 1
+        display_counter += 1
         WorksheetRow.objects.create(
             worksheet=worksheet,
             row_number=row_number,
@@ -194,6 +204,7 @@ def _build_cyanide_leaching_worksheet(
             lab_sample_mapping=sample.lab_mapping,
             container_label="",
             parameter="",
+            display_number=display_counter,
         )
 
     return worksheet
