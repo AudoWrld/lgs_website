@@ -274,6 +274,8 @@ def client_register(request):
 
                 request.session["last_registered_temp_password"] = temp_password
                 request.session["last_registered_client_id"] = client.pk
+                client.portal_user.initial_temp_password = temp_password
+                client.portal_user.save(update_fields=["initial_temp_password"])
 
                 submission = _start_submission_for_client(request, client)
 
@@ -952,12 +954,6 @@ def _portal_login(request, client, consume):
         temp_password = session.pop("last_registered_temp_password")
         session.pop("last_registered_client_id", None)
         session.modified = True
-    elif session.get("reissued_client_id") == client.pk and session.get(
-        "reissued_temp_password"
-    ):
-        temp_password = session.pop("reissued_temp_password")
-        session.pop("reissued_client_id", None)
-        session.modified = True
     return username, temp_password
 
 
@@ -978,6 +974,8 @@ def _form_context(request, submission, consume_password=True):
 
     services, methods = _services_and_methods(submission)
     portal_username, temp_password = _portal_login(request, client, consume_password)
+    if temp_password is None and client.portal_user:
+        temp_password = client.portal_user.initial_temp_password
     has_outstanding = payment.payment_status in (Payment.UNPAID, Payment.PARTIALLY_PAID)
 
     return {
@@ -996,9 +994,6 @@ def _form_context(request, submission, consume_password=True):
         ),
         "portal_username": portal_username,
         "temp_password": temp_password,
-        "can_reissue_password": bool(
-            client.portal_user and client.portal_user.must_change_password
-        ),
         "site_url": request.build_absolute_uri("/"),
     }
 
@@ -1056,35 +1051,6 @@ def client_submission_form(request):
 def client_submission_form_detail(request, reference):
     url = reverse("reception:client_submission_form")
     return redirect(f"{url}?{urlencode({'ref': reference})}")
-
-
-@reception_required
-def client_reissue_temp_password(request, reference):
-    submission = get_object_or_404(Submission, reference=reference)
-    client = submission.client
-
-    if not client.portal_user:
-        messages.error(request, "This client has no portal account yet.")
-        return redirect("reception:client_submission_form_detail", reference=reference)
-
-    if not client.portal_user.must_change_password:
-        messages.warning(
-            request,
-            "This client has already logged in and set their own password — "
-            "reissuing is not available. Ask them to use 'Forgot Password' instead.",
-        )
-        return redirect("reception:client_submission_form_detail", reference=reference)
-
-    new_temp_password = generate_temp_password()
-    client.portal_user.set_password(new_temp_password)
-    client.portal_user.must_change_password = True
-    client.portal_user.save(update_fields=["password", "must_change_password"])
-
-    request.session["reissued_temp_password"] = new_temp_password
-    request.session["reissued_client_id"] = client.pk
-
-    messages.success(request, "New temporary password generated.")
-    return redirect("reception:client_submission_form_detail", reference=reference)
 
 
 @reception_required

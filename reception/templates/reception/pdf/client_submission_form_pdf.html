@@ -201,7 +201,7 @@
       <th>Username</th>
       <td>{{ portal_username|default:"—" }}</td>
       <th>Temporary Password</th>
-      <td>{% if temp_password %}<span class="password">{{ temp_password }}</span>{% else %}<span class="pw-missing">Already issued to the client.</span>{% endif %}</td>
+      <td>{% if temp_password %}<span class="password">{{ temp_password }}</span>{% else %}<span class="pw-missing">No portal account yet.</span>{% endif %}</td>
     </tr>
   </table>
   <p class="portal-note">Use these login details to access the LGS Client Portal and download your completed and officially released Certificates of Analysis.</p>

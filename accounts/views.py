@@ -53,6 +53,7 @@ def force_password_change(request):
         if form.is_valid():
             user = form.save(commit=False)
             user.must_change_password = False
+            user.initial_temp_password = form.cleaned_data["new_password1"]
             user.save()
 
             update_session_auth_hash(request, user)

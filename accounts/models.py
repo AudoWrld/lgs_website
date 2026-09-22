@@ -87,6 +87,13 @@ class User(AbstractUser):
         help_text="Set when Reception issues a temporary password on the Client Submission Form.",
     )
 
+    initial_temp_password = models.CharField(
+        max_length=128,
+        blank=True,
+        null=True,
+        help_text="Plaintext temporary password issued at first registration; always shown while must_change_password is active.",
+    )
+
     created_by = models.ForeignKey(
         "self",
         on_delete=models.SET_NULL,
