@@ -100,16 +100,32 @@ def render_client_submission_form_pdf(context):
 
 
 def render_worksheet_pdf(context):
+    # Prefer the actual worksheet creation time from the DB (Worksheet.generated_at)
+    # so reprinting later still shows when it was first generated, not "now".
+    worksheets = context.get("worksheets") or []
+    first_generated_at = None
+    for ws in worksheets:
+        if ws.generated_at and (
+            first_generated_at is None or ws.generated_at < first_generated_at
+        ):
+            first_generated_at = ws.generated_at
+
+    if first_generated_at:
+        generated_at_display = timezone.localtime(first_generated_at).strftime(
+            "%d %b %Y, %H:%M"
+        )
+    else:
+        # No worksheets yet (nothing generated) — fall back to "now" so the
+        # header doesn't show a blank/misleading date on an empty worksheet.
+        generated_at_display = timezone.localtime().strftime("%d %b %Y, %H:%M")
+
     context = {
         **context,
         "logo_path": os.path.join(STATIC_IMG, "lgs-logo.png"),
-        # strftime needs % codes; local time so it matches Nairobi (TIME_ZONE)
-        "generated_at": timezone.localtime().strftime("%d %b %Y, %H:%M"),
+        "generated_at": generated_at_display,
     }
 
-    html_string = render_to_string(
-        "reception/pdf/worksheet_form.html", context
-    )
+    html_string = render_to_string("reception/pdf/worksheet_form.html", context)
 
     result = BytesIO()
     pdf = pisa.pisaDocument(BytesIO(html_string.encode("UTF-8")), result)
@@ -184,7 +200,8 @@ def _assign_lab_sample_ids(submission):
 
 def _requested_services(submission):
     services = {}
-    for sample in submission.samples.all():
+    # Order matches _assign_lab_sample_ids so sample 1's rows are always on top.
+    for sample in submission.samples.order_by("id"):
         for service in sample.requested_services.all():
             services.setdefault(service.code, []).append(sample)
     return services
@@ -206,8 +223,13 @@ def _mineral_rows(samples, mapping_by_sample):
             )
         if index < total:
             if index % 2 == 0:
+                # Blank spacer, then CRM, then another blank spacer — CRM is
+                # visually separated from both the sample above and below it.
+                rows.append({"row_type": WorksheetRow.BLANK_ROW})
                 rows.append({"row_type": WorksheetRow.CRM_ROW})
-            rows.append({"row_type": WorksheetRow.BLANK_ROW})
+                rows.append({"row_type": WorksheetRow.BLANK_ROW})
+            else:
+                rows.append({"row_type": WorksheetRow.BLANK_ROW})
     return rows
 
 
@@ -283,7 +305,11 @@ def generate_worksheets_for_submission(submission, user):
         )
 
         rows = []
+        display_counter = 0
         for row_number, spec in enumerate(row_specs, start=1):
+            if spec.get("row_type") != WorksheetRow.BLANK_ROW:
+                display_counter += 1
+                spec = {**spec, "display_number": display_counter}
             rows.append(
                 WorksheetRow(worksheet=worksheet, row_number=row_number, **spec)
             )
@@ -291,3 +317,7 @@ def generate_worksheets_for_submission(submission, user):
         created_worksheets.append(worksheet)
 
     return created_worksheets
+
+
+def get_worksheets_for_display(submission):
+    return submission.worksheets.order_by("id")
