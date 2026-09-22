@@ -20,7 +20,7 @@ class LabSampleMapping(models.Model):
 
     @classmethod
     def generate_for_sample(cls, sample, sequence):
-        lab_id = f"{sample.submission.reference}-{sequence}"
+        lab_id = f"{sample.submission.reference}-{sequence:02d}"
         return cls.objects.create(sample=sample, lab_sample_id=lab_id)
 
 
@@ -81,6 +81,7 @@ class WorksheetRow(models.Model):
     )
     row_number = models.PositiveIntegerField()
     row_type = models.CharField(max_length=10, choices=ROW_TYPE_CHOICES)
+    display_number = models.PositiveIntegerField(null=True, blank=True)
 
     lab_sample_mapping = models.ForeignKey(
         LabSampleMapping,
