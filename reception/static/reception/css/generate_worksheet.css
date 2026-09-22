@@ -370,11 +370,15 @@
 }
 
 .gw-sheet .gw-table tr.gw-blank-row td {
-  height: 1.2rem;
+  height: 1.4rem;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  border-bottom: none;
+  background: #ffffff;
 }
 
-.gw-sheet .gw-table tr.gw-crm-row td {
-  height: auto;
+.gw-sheet .gw-table tr.gw-crm-row td:nth-child(3) {
   font-weight: 700;
   text-align: center;
 }
