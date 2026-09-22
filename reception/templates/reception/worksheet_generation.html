@@ -1,7 +1,7 @@
 {% extends "reception/base_reception.html" %}
 {% load static %}
 {% load worksheet_extras %}
-
+{% load replicate_letter_filter %}
 {% block title %}Laboratory Worksheets — LGS Reception{% endblock %}
 {% block page_title %}Laboratory Worksheets{% endblock %}
 
@@ -96,7 +96,6 @@
 
       <div class="gw-body">
 
-        <!-- General header (table) -->
         <table class="gw-info">
           <tbody>
             <tr>
@@ -113,7 +112,7 @@
             </tr>
             <tr>
               <th>Worksheet Generated</th>
-              <td colspan="3">{% now "d M Y, H:i" %}</td>
+              <td colspan="3">{{ worksheets.0.generated_at|date:"d M Y, H:i"|default:"—" }}</td>
             </tr>
             <tr>
               <th>Sample Type(s)</th>
@@ -159,12 +158,20 @@
                   {% if row.row_type == "BLANK" %}
                     <tr class="gw-blank-row"><td colspan="{{ els|length|add:5 }}">&nbsp;</td></tr>
                   {% elif row.row_type == "CRM" %}
-                    <tr class="gw-crm-row"><td colspan="{{ els|length|add:5 }}">CRM</td></tr>
+                    <tr class="gw-crm-row">
+                      <td class="c">{{ row.display_number }}</td>
+                      <td></td>
+                      <td>CRM</td>
+                      <td></td>
+                      {% for el in els %}<td></td>{% endfor %}
+                      <td></td>
+                    </tr>
+                    <tr class="gw-blank-row"><td colspan="{{ els|length|add:5 }}">&nbsp;</td></tr>
                   {% else %}
                     <tr>
-                      <td class="c">{{ forloop.counter }}</td>
+                      <td class="c">{{ row.display_number }}</td>
                       <td>{{ row.beaker_id|default:"" }}</td>
-                      <td>{{ row.lab_sample_mapping.lab_sample_id }}<br>Replicate {{ row.replicate_number }}</td>
+                      <td>{{ row.lab_sample_mapping.lab_sample_id }}{{ row.replicate_number|replicate_letter }}</td>
                       <td>{{ row.weight|default:"" }}</td>
                       {% for el in els %}<td></td>{% endfor %}
                       <td>{{ row.remarks|default:"" }}</td>
@@ -188,13 +195,26 @@
                 </thead>
                 <tbody>
                   {% for row in worksheet.rows.all %}
-                  <tr>
-                    <td class="c">{{ forloop.counter }}</td>
-                    <td>{{ row.lab_sample_mapping.lab_sample_id }}<br>Replicate {{ row.replicate_number }}</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                  </tr>
+                  {% if row.row_type == "BLANK" %}
+                    <tr class="gw-blank-row"><td colspan="5">&nbsp;</td></tr>
+                  {% elif row.row_type == "CRM" %}
+                    <tr class="gw-crm-row">
+                      <td class="c">{{ row.display_number }}</td>
+                      <td>CRM</td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                    </tr>
+                    <tr class="gw-blank-row"><td colspan="5">&nbsp;</td></tr>
+                  {% else %}
+                    <tr>
+                      <td class="c">{{ row.display_number }}</td>
+                      <td>{{ row.lab_sample_mapping.lab_sample_id }}{{ row.replicate_number|replicate_letter }}</td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                    </tr>
+                  {% endif %}
                   {% endfor %}
                 </tbody>
               </table>
@@ -216,17 +236,34 @@
                 </thead>
                 <tbody>
                   {% for row in worksheet.rows.all %}
-                  <tr>
-                    <td class="c">{{ forloop.counter }}</td>
-                    <td>{{ row.container_label|default:"" }}</td>
-                    <td>{{ row.lab_sample_mapping.lab_sample_id }}</td>
-                    <td>{{ row.parameter|default:"" }}</td>
-                    <td>{{ row.weight|default:"" }}</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>{{ row.remarks|default:"" }}</td>
-                  </tr>
+                  {% if row.row_type == "BLANK" %}
+                    <tr class="gw-blank-row"><td colspan="9">&nbsp;</td></tr>
+                  {% elif row.row_type == "CRM" %}
+                    <tr class="gw-crm-row">
+                      <td class="c">{{ row.display_number }}</td>
+                      <td></td>
+                      <td>CRM</td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                    </tr>
+                    <tr class="gw-blank-row"><td colspan="9">&nbsp;</td></tr>
+                  {% else %}
+                    <tr>
+                      <td class="c">{{ row.display_number }}</td>
+                      <td>{{ row.container_label|default:"" }}</td>
+                      <td>{{ row.lab_sample_mapping.lab_sample_id }}</td>
+                      <td>{{ row.parameter|default:"" }}</td>
+                      <td>{{ row.weight|default:"" }}</td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                      <td>{{ row.remarks|default:"" }}</td>
+                    </tr>
+                  {% endif %}
                   {% endfor %}
                 </tbody>
               </table>
@@ -245,7 +282,7 @@
 
       <footer class="gw-footer">
         <span>LGS African Group Company Limited — Internal Laboratory Use Only</span>
-        <span>Generated {% now "d M Y, H:i" %}</span>
+        <span>Generated {{ worksheets.0.generated_at|date:"d M Y, H:i"|default:"—" }}</span>
       </footer>
 
     </article>

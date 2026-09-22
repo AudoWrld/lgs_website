@@ -1,5 +1,7 @@
 {% load static %}
-{% load worksheet_extras %}<!DOCTYPE html>
+{% load worksheet_extras %}
+{% load replicate_letter_filter %}
+<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -32,14 +34,12 @@
   p { margin: 0; padding: 0; }
   table { width: 100%; border-collapse: collapse; }
 
-  /* ---------- Header with logo ---------- */
   .header-block { text-align: center; margin-bottom: 6px; }
   .header-logo { text-align: center; margin-bottom: 4px; }
   .org-name { font-size: 13pt; font-weight: bold; }
   .doc-name { font-size: 10pt; font-weight: bold; margin-top: 2px; }
   .doc-sub  { font-size: 8pt; font-weight: bold; margin-top: 5px; }
 
-  /* ---------- Details block (bordered table) ---------- */
   .info-table { margin-top: 8px; margin-bottom: 6px; }
   .info-table th, .info-table td {
     border: 1px solid #000000;
@@ -52,7 +52,6 @@
   .info-table th { width: 18%; background-color: #f2f2f2; font-weight: bold; }
   .info-table td { width: 32%; }
 
-  /* ---------- Worksheet heading ---------- */
   .ws-title {
     margin-top: 30px;
     font-size: 10.5pt;
@@ -61,7 +60,6 @@
   }
   .ws-meta { font-size: 9pt; margin-top: 2px; margin-bottom: 5px; }
 
-  /* ---------- Data tables ---------- */
   .gw-table { margin-top: 3px; }
   .gw-table th {
     border: 1px solid #000000;
@@ -80,12 +78,18 @@
     word-wrap: break-word;
   }
   .gw-table td.center { text-align: center; }
-  .gw-table tr.blank-row td { height: 14px; }
-  .gw-table tr.crm-row td { text-align: center; font-weight: bold; }
+  .gw-table tr.blank-row td {
+    height: 20px;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    border-bottom: none;
+    background: #ffffff;
+  }
+  .gw-table tr.crm-row td:nth-child(3) { text-align: center; font-weight: bold; }
 
   .empty-note { margin-top: 12px; font-size: 9pt; }
 
-  /* ---------- Footer ---------- */
   .footer-line { border-top: 1px solid #000000; margin-top: 2px; padding-top: 3px; }
   .footer-table td { font-size: 8pt; font-weight: bold; }
   .footer-right { text-align: right; }
@@ -106,7 +110,6 @@
 
 <div id="main_content">
 
-  <!-- Header: logo + title -->
   <div class="header-block">
     {% if logo_path %}<p class="header-logo"><img src="{{ logo_path }}" width="60" /></p>{% endif %}
     <p class="org-name">LGS MINERAL ASSAY LABORATORY</p>
@@ -114,7 +117,6 @@
     <p class="doc-sub">INTERNAL LABORATORY USE ONLY</p>
   </div>
 
-  <!-- General header (bordered table) -->
   <table class="info-table">
     <tr>
       <th>Submission Reference</th>
@@ -174,12 +176,20 @@
           {% if row.row_type == "BLANK" %}
             <tr class="blank-row"><td colspan="{{ els|length|add:5 }}">&nbsp;</td></tr>
           {% elif row.row_type == "CRM" %}
-            <tr class="crm-row"><td colspan="{{ els|length|add:5 }}">CRM</td></tr>
+            <tr class="crm-row">
+              <td class="center">{{ row.display_number }}</td>
+              <td>&nbsp;</td>
+              <td>CRM</td>
+              <td>&nbsp;</td>
+              {% for el in els %}<td>&nbsp;</td>{% endfor %}
+              <td>&nbsp;</td>
+            </tr>
+            <tr class="blank-row"><td colspan="{{ els|length|add:5 }}">&nbsp;</td></tr>
           {% else %}
             <tr>
-              <td class="center">{{ forloop.counter }}</td>
+              <td class="center">{{ row.display_number }}</td>
               <td>{{ row.beaker_id|default:"" }}</td>
-              <td>{{ row.lab_sample_mapping.lab_sample_id|default:"" }}<br/>Replicate {{ row.replicate_number|default:"" }}</td>
+              <td>{{ row.lab_sample_mapping.lab_sample_id|default:"" }}{{ row.replicate_number|replicate_letter }}</td>
               <td>{{ row.weight|default:"" }}</td>
               {% for el in els %}<td>&nbsp;</td>{% endfor %}
               <td>{{ row.remarks|default:"" }}</td>
@@ -203,13 +213,26 @@
       </thead>
       <tbody>
         {% for row in worksheet.rows.all %}
-        <tr>
-          <td class="center">{{ forloop.counter }}</td>
-          <td>{{ row.lab_sample_mapping.lab_sample_id|default:"" }}<br/>Replicate {{ row.replicate_number|default:"" }}</td>
-          <td>&nbsp;</td>
-          <td>&nbsp;</td>
-          <td>&nbsp;</td>
-        </tr>
+          {% if row.row_type == "BLANK" %}
+            <tr class="blank-row"><td colspan="5">&nbsp;</td></tr>
+          {% elif row.row_type == "CRM" %}
+            <tr class="crm-row">
+              <td class="center">{{ row.display_number }}</td>
+              <td>CRM</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+            </tr>
+            <tr class="blank-row"><td colspan="5">&nbsp;</td></tr>
+          {% else %}
+            <tr>
+              <td class="center">{{ row.display_number }}</td>
+              <td>{{ row.lab_sample_mapping.lab_sample_id|default:"" }}{{ row.replicate_number|replicate_letter }}</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+            </tr>
+          {% endif %}
         {% endfor %}
       </tbody>
     </table>
@@ -231,17 +254,34 @@
       </thead>
       <tbody>
         {% for row in worksheet.rows.all %}
-        <tr>
-          <td class="center">{{ forloop.counter }}</td>
-          <td>{{ row.container_label|default:"" }}</td>
-          <td>{{ row.lab_sample_mapping.lab_sample_id|default:"" }}</td>
-          <td>{{ row.parameter|default:"" }}</td>
-          <td>{{ row.weight|default:"" }}</td>
-          <td>&nbsp;</td>
-          <td>&nbsp;</td>
-          <td>&nbsp;</td>
-          <td>{{ row.remarks|default:"" }}</td>
-        </tr>
+          {% if row.row_type == "BLANK" %}
+            <tr class="blank-row"><td colspan="9">&nbsp;</td></tr>
+          {% elif row.row_type == "CRM" %}
+            <tr class="crm-row">
+              <td class="center">{{ row.display_number }}</td>
+              <td>&nbsp;</td>
+              <td>CRM</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+            </tr>
+            <tr class="blank-row"><td colspan="9">&nbsp;</td></tr>
+          {% else %}
+            <tr>
+              <td class="center">{{ row.display_number }}</td>
+              <td>{{ row.container_label|default:"" }}</td>
+              <td>{{ row.lab_sample_mapping.lab_sample_id|default:"" }}</td>
+              <td>{{ row.parameter|default:"" }}</td>
+              <td>{{ row.weight|default:"" }}</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>{{ row.remarks|default:"" }}</td>
+            </tr>
+          {% endif %}
         {% endfor %}
       </tbody>
     </table>
