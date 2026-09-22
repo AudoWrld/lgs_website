@@ -1,0 +1,223 @@
+{% load static %} {% load client_extras %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#123e5b" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>
+      {% block title %}My Results — LGS Client Portal{% endblock %}
+    </title>
+
+    <link
+      rel="icon"
+      href="{% static 'favicons/favicon.svg' %}"
+      type="image/svg+xml"
+    />
+    <link rel="icon" href="{% static 'favicons/favicon.ico' %}" sizes="any" />
+    <link
+      rel="icon"
+      href="{% static 'favicons/favicon-96x96.png' %}"
+      type="image/png"
+      sizes="96x96"
+    />
+    <link
+      rel="apple-touch-icon"
+      href="{% static 'favicons/apple-touch-icon.png' %}"
+    />
+    <link rel="manifest" href="{% static 'favicons/site.webmanifest' %}" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="{% static 'client/css/base_client.css' %}"
+    />
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body class="app-body">
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <input
+      type="checkbox"
+      id="sidebar-toggle"
+      class="sidebar-toggle-checkbox"
+      aria-label="Toggle navigation menu"
+    />
+
+    <div class="app-shell">
+      <aside class="app-sidebar">
+        <div class="app-sidebar-header">
+          <div class="app-brand">
+            <img
+              src="{% static 'core/img/lgs-logo.png' %}"
+              alt="LGS Mineral Assay Laboratory"
+            />
+            <span class="app-brand-text">
+              LGS Client Portal
+              <span class="app-brand-motto">The Lab You Can Trust</span>
+            </span>
+          </div>
+          <label
+            for="sidebar-toggle"
+            class="sidebar-close-label"
+            aria-label="Close menu"
+          >
+            <svg
+              class="icon"
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </label>
+        </div>
+
+        <nav class="app-nav" aria-label="Client navigation">
+          <span class="app-nav-label">Results</span>
+          <ul>
+            <li>
+              
+                <a href="{% url 'client:customer_dashboard' %}"
+                class="{% nav_active 'customer_dashboard' %}"
+              >
+                <svg
+                  class="icon"
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                My Results
+              </a>
+            </li>
+          </ul>
+        </nav>
+
+        <div class="app-sidebar-footer">
+          <form
+            action="{% url 'accounts:logout' %}"
+            method="post"
+            class="app-logout-form"
+          >
+            {% csrf_token %}
+            <button type="submit" class="app-logout">
+              <svg
+                class="icon"
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              <span>Log Out</span>
+            </button>
+          </form>
+        </div>
+      </aside>
+
+      <label
+        for="sidebar-toggle"
+        class="app-backdrop"
+        aria-hidden="true"
+      ></label>
+
+      <div class="app-main">
+        <header class="app-topbar">
+          <label
+            for="sidebar-toggle"
+            class="sidebar-open-label"
+            aria-label="Open menu"
+          >
+            <svg
+              class="icon"
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </label>
+
+          <h1 class="app-topbar-title">
+            {% block page_title %}My Results{% endblock %}
+          </h1>
+
+          <div class="app-topbar-user">
+            <span class="app-topbar-name"
+              >{{ user.get_full_name|default:user.email }}</span
+            >
+            <span class="app-topbar-role">Client</span>
+            <div class="app-topbar-avatar" aria-hidden="true">
+              <svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+          </div>
+        </header>
+
+        <main id="main-content" class="app-content">
+          {% if messages %}
+          <ul class="messages" role="status">
+            {% for message in messages %}
+            <li class="message {{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %} {% block content %}{% endblock %}
+        </main>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        var box = document.querySelector(".messages");
+        if (!box) return;
+        setTimeout(function () {
+          box.remove();
+        }, 5000);
+      })();
+    </script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>
