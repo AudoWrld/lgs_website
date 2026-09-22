@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     "expences",
     "submissions",
     "payments",
+    "client",
 ]
 
 MIDDLEWARE = [

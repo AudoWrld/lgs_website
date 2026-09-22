@@ -265,7 +265,6 @@ def client_register(request):
                     password=temp_password,
                     created_by=request.user,
                     whatsapp_number=cleaned["whatsapp_number"],
-                    must_change_password=True,
                 )
 
                 client = form.save(commit=False)
@@ -1165,7 +1164,7 @@ def worksheet_generation(request):
             "rows", "rows__lab_sample_mapping"
         ).all()
     else:
-      sample_types, services, methods = [], [], []
+        sample_types, services, methods = [], [], []
 
     context = {
         "submissions": submissions,

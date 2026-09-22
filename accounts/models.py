@@ -33,6 +33,8 @@ class UserManager(BaseUserManager):
         extra_fields["role"] = User.CUSTOMER
         extra_fields["is_staff"] = False
         extra_fields["is_superuser"] = False
+        extra_fields["must_change_password"] = True
+        extra_fields["created_by"] = created_by
         return self._create_user(email, password, **extra_fields)
 
     def create_reception(self, email, password=None, **extra_fields):
@@ -192,7 +194,9 @@ class Client(models.Model):
             base_slug = slugify(self.client_name) or "client"
             candidate = base_slug
             suffix = 2
-            while type(self).objects.filter(slug=candidate).exclude(pk=self.pk).exists():
+            while (
+                type(self).objects.filter(slug=candidate).exclude(pk=self.pk).exists()
+            ):
                 candidate = f"{base_slug}-{suffix}"
                 suffix += 1
             self.slug = candidate

@@ -28,13 +28,17 @@ def post_login_redirect(request):
     user = request.user
 
     if user.must_change_password:
-        return redirect("force_password_change")
+        return redirect("accounts:force_password_change")
 
     if user.is_customer:
-        return redirect("customer_dashboard")
+        return redirect("client:customer_dashboard")
     if user.is_reception:
         return redirect("reception:reception_dashboard")
     if user.is_administrator or user.is_superuser:
         return redirect("administrator_dashboard")
 
     return redirect("login")
+
+
+def force_password_change(request):
+    return render(request, "accounts/force_password_change.html")
