@@ -22,6 +22,7 @@ MINERAL_ELEMENT_MAP = {
     "Gold, Copper & Silver Analysis": ["Au", "Cu", "Ag"],
     "Gold, Copper & Sulphur Analysis": ["Au", "Cu", "S"],
     "Gold, Copper, Silver & Sulphur Analysis": ["Au", "Cu", "Ag", "S"],
+    "Metallic Screening and Gold Evaluation": ["Au", "Cu"],
 }
 
 CYANIDE_PARAMETER_OPTIONS_CONVENTIONAL = [
@@ -143,6 +144,13 @@ def _build_mineral_analysis_worksheet(submission, samples, generated_by):
 
         # CRM every 2 submitted samples, count based on submitted samples not replicate rows
         if crm_eligible and submitted_sample_count % 2 == 0:
+            if sample == samples[-1]:
+                row_number += 1
+                WorksheetRow.objects.create(
+                    worksheet=worksheet,
+                    row_number=row_number,
+                    row_type=WorksheetRow.BLANK_ROW,
+                )
             row_number += 1
             display_counter += 1
             WorksheetRow.objects.create(

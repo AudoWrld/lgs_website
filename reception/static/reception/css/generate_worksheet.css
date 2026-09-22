@@ -383,6 +383,13 @@
   text-align: center;
 }
 
+.gw-sheet .gw-table tr.gw-crm-row td {
+  border-top: 1px solid #000000;
+  border-bottom: 1px solid #000000;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
 .gw-footer {
   display: flex;
   justify-content: space-between;
