@@ -1,4 +1,4 @@
-from samples.models import Sample
+from samples.models import Sample, Service
 from .models import LabSampleMapping, Worksheet, WorksheetRow
 
 REPLICATE_RULES = {
@@ -24,21 +24,6 @@ MINERAL_ELEMENT_MAP = {
     "Gold, Copper, Silver & Sulphur Analysis": ["Au", "Cu", "Ag", "S"],
     "Metallic Screening and Gold Evaluation": ["Au", "Cu"],
 }
-
-CYANIDE_PARAMETER_OPTIONS_CONVENTIONAL = [
-    "Ore",
-    "Pulp Density",
-    "Cyanide Dose",
-    "Lime Dose",
-]
-CYANIDE_PARAMETER_OPTIONS_OPTIMIZATION = CYANIDE_PARAMETER_OPTIONS_CONVENTIONAL + [
-    "Lead Nitrate",
-    "Ammonium Solution",
-    "Caustic Soda",
-    "Sodium Sulphide",
-    "Hydrogen Peroxide",
-    "Ammonium Nitrate Salt",
-]
 
 
 def ensure_lab_sample_ids(submission):
@@ -66,20 +51,20 @@ def _group_samples_by_worksheet_type(submission):
 
     for sample in submission.samples.order_by("client_sample_id"):
         for sample_service in sample.sample_services.select_related("service"):
-            service_name = sample_service.service.name
+            service = sample_service.service
 
-            if service_name in MINERAL_ELEMENT_MAP:
-                if sample not in groups[Worksheet.MINERAL_ANALYSIS]:
-                    groups[Worksheet.MINERAL_ANALYSIS].append(sample)
-            elif service_name == "Carbon Activity Test":
+            if service.metallurgical_type == Service.CARBON_ACTIVITY:
                 if sample not in groups[Worksheet.CARBON_ACTIVITY]:
                     groups[Worksheet.CARBON_ACTIVITY].append(sample)
-            elif service_name == "Conventional Cyanide Leaching Test":
+            elif service.metallurgical_type == Service.CYANIDE_CONVENTIONAL:
                 if sample not in groups[Worksheet.CONVENTIONAL_CYANIDE_LEACHING]:
                     groups[Worksheet.CONVENTIONAL_CYANIDE_LEACHING].append(sample)
-            elif service_name == "Cyanide Leaching Parameter Optimization":
+            elif service.metallurgical_type == Service.CYANIDE_OPTIMIZATION:
                 if sample not in groups[Worksheet.PARAMETER_OPTIMIZATION]:
                     groups[Worksheet.PARAMETER_OPTIMIZATION].append(sample)
+            elif service.name in MINERAL_ELEMENT_MAP:
+                if sample not in groups[Worksheet.MINERAL_ANALYSIS]:
+                    groups[Worksheet.MINERAL_ANALYSIS].append(sample)
 
     return {k: v for k, v in groups.items() if v}
 
@@ -115,7 +100,6 @@ def _build_mineral_analysis_worksheet(submission, samples, generated_by):
 
     for sample in samples:
         replicate_count = REPLICATE_RULES.get(sample.sample_type, 0)
-        lab_id = sample.lab_mapping.lab_sample_id
 
         for rep in range(1, replicate_count + 1):
             row_number += 1
@@ -133,7 +117,6 @@ def _build_mineral_analysis_worksheet(submission, samples, generated_by):
 
         submitted_sample_count += 1
 
-        # blank row after every submitted sample's replicates, except the last
         if sample != samples[-1]:
             row_number += 1
             WorksheetRow.objects.create(
@@ -142,7 +125,6 @@ def _build_mineral_analysis_worksheet(submission, samples, generated_by):
                 row_type=WorksheetRow.BLANK_ROW,
             )
 
-        # CRM every 2 submitted samples, count based on submitted samples not replicate rows
         if crm_eligible and submitted_sample_count % 2 == 0:
             if sample == samples[-1]:
                 row_number += 1
@@ -174,7 +156,7 @@ def _build_carbon_activity_worksheet(submission, samples, generated_by):
     row_number = 0
     display_counter = 0
     for sample in samples:
-        for rep in range(1, 3):  # always exactly 2 replicates, no CRM
+        for rep in range(1, 3):
             row_number += 1
             display_counter += 1
             WorksheetRow.objects.create(
@@ -189,8 +171,15 @@ def _build_carbon_activity_worksheet(submission, samples, generated_by):
     return worksheet
 
 
+def _sample_service_for_type(sample, metallurgical_type):
+    for sample_service in sample.sample_services.select_related("service"):
+        if sample_service.service.metallurgical_type == metallurgical_type:
+            return sample_service
+    return None
+
+
 def _build_cyanide_leaching_worksheet(
-    submission, samples, generated_by, worksheet_type
+    submission, samples, generated_by, worksheet_type, metallurgical_type
 ):
     method = "Bottle Test + AAS"
     worksheet = Worksheet.objects.create(
@@ -202,18 +191,44 @@ def _build_cyanide_leaching_worksheet(
 
     row_number = 0
     display_counter = 0
+
     for sample in samples:
-        row_number += 1
-        display_counter += 1
-        WorksheetRow.objects.create(
-            worksheet=worksheet,
-            row_number=row_number,
-            row_type=WorksheetRow.SAMPLE_ROW,
-            lab_sample_mapping=sample.lab_mapping,
-            container_label="",
-            parameter="",
-            display_number=display_counter,
-        )
+        sample_service = _sample_service_for_type(sample, metallurgical_type)
+        parameters = list(sample_service.parameters.all()) if sample_service else []
+
+        if not parameters:
+            row_number += 1
+            display_counter += 1
+            WorksheetRow.objects.create(
+                worksheet=worksheet,
+                row_number=row_number,
+                row_type=WorksheetRow.SAMPLE_ROW,
+                lab_sample_mapping=sample.lab_mapping,
+                container_label="",
+                parameter="",
+                display_number=display_counter,
+            )
+        else:
+            for parameter in parameters:
+                row_number += 1
+                display_counter += 1
+                WorksheetRow.objects.create(
+                    worksheet=worksheet,
+                    row_number=row_number,
+                    row_type=WorksheetRow.SAMPLE_ROW,
+                    lab_sample_mapping=sample.lab_mapping,
+                    container_label="",
+                    parameter=parameter.display_label,
+                    display_number=display_counter,
+                )
+
+        if sample != samples[-1]:
+            row_number += 1
+            WorksheetRow.objects.create(
+                worksheet=worksheet,
+                row_number=row_number,
+                row_type=WorksheetRow.BLANK_ROW,
+            )
 
     return worksheet
 
@@ -245,6 +260,7 @@ def generate_worksheets_for_submission(submission, generated_by):
                 groups[Worksheet.CONVENTIONAL_CYANIDE_LEACHING],
                 generated_by,
                 Worksheet.CONVENTIONAL_CYANIDE_LEACHING,
+                Service.CYANIDE_CONVENTIONAL,
             )
         )
 
@@ -255,6 +271,7 @@ def generate_worksheets_for_submission(submission, generated_by):
                 groups[Worksheet.PARAMETER_OPTIMIZATION],
                 generated_by,
                 Worksheet.PARAMETER_OPTIMIZATION,
+                Service.CYANIDE_OPTIMIZATION,
             )
         )
 
