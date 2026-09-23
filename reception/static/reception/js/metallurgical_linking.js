@@ -23,12 +23,12 @@
     {
       type: "CYANIDE_CONVENTIONAL",
       section: ".rc-leaching-section",
-      hidden: "[data-role='leaching-custom-json']",
+      hidden: "input[name='leaching_custom_parameters']",
     },
     {
       type: "CYANIDE_OPTIMIZATION",
       section: ".rc-optimization-section",
-      hidden: "[data-role='optimization-custom-json']",
+      hidden: "input[name='optimization_custom_parameters']",
     },
   ];
 
@@ -84,8 +84,9 @@
   function packHiddenFields(root) {
     SECTIONS.forEach(function (cfg) {
       var section = root.querySelector(cfg.section);
-      var hidden = root.querySelector(cfg.hidden);
-      if (!section || !hidden) return;
+      if (!section) return;
+      var hidden = section.querySelector(cfg.hidden);
+      if (!hidden) return;
       hidden.value = JSON.stringify(collectCustomValues(section));
     });
   }
@@ -120,8 +121,9 @@
     // 3. Rehydrate existing custom parameters on edit (initial hidden value).
     SECTIONS.forEach(function (cfg) {
       var section = root.querySelector(cfg.section);
-      var hidden = root.querySelector(cfg.hidden);
-      if (!section || !hidden || !hidden.value) return;
+      if (!section) return;
+      var hidden = section.querySelector(cfg.hidden);
+      if (!hidden || !hidden.value) return;
       var list = section.querySelector(".rc-custom-param-list");
       if (!list || list.children.length) return; // already rendered server-side, skip
       try {

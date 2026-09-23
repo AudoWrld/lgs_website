@@ -246,7 +246,7 @@
           <th style="width:9%;">Container Label</th>
           <th style="width:18%;">Lab Sample ID</th>
           <th style="width:14%;">Parameter</th>
-          <th style="width:9%;">Weight</th>
+          <th style="width:9%;">Weight / Volume (SI Unit)</th>
           <th style="width:12%;">Gold Recovered – 12 Hrs</th>
           <th style="width:12%;">Gold Recovered – 24 Hrs</th>
           <th style="width:12%;">Gold Recovered – 48 Hrs</th>
@@ -276,7 +276,7 @@
               <td>{{ row.container_label|default:"" }}</td>
               <td>{{ row.lab_sample_mapping.lab_sample_id|default:"" }}</td>
               <td>{{ row.parameter|default:"" }}</td>
-              <td>{{ row.weight|default:"" }}</td>
+              <td>{{ row.weight|default:"" }}{% if row.si_unit %} {{ row.get_si_unit_display }}{% endif %}</td>
               <td>&nbsp;</td>
               <td>&nbsp;</td>
               <td>&nbsp;</td>
