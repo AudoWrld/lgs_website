@@ -220,24 +220,25 @@
               </table>
 
             {% else %}
-              <table class="gw-table">
+              <table class="gw-table leach-table">
                 <thead>
                   <tr>
-                    <th style="width:5%;">S/N</th>
-                    <th style="width:9%;">Container Label</th>
-                    <th style="width:18%;">Lab Sample ID</th>
-                    <th style="width:14%;">Parameter</th>
-                    <th style="width:9%;">Weight / Volume (SI Unit)</th>
-                    <th style="width:12%;">Gold Recovered – 12 Hrs</th>
-                    <th style="width:12%;">Gold Recovered – 24 Hrs</th>
-                    <th style="width:12%;">Gold Recovered – 48 Hrs</th>
-                    <th style="width:9%;">Remark</th>
+                    <th style="width:4%;">S/N</th>
+                    <th style="width:8%;">Container Label</th>
+                    <th style="width:14%;">Lab Sample ID</th>
+                    <th style="width:13%;">Parameter</th>
+                    <th style="width:7%;">Weight / Volume</th>
+                    <th style="width:5%;">SI Unit</th>
+                    <th style="width:13%;">Au Recovered<br>12 Hrs</th>
+                    <th style="width:13%;">Au Recovered<br>24 Hrs</th>
+                    <th style="width:13%;">Au Recovered<br>48 Hrs</th>
+                    <th style="width:10%;">Remark</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for row in worksheet.rows.all %}
                   {% if row.row_type == "BLANK" %}
-                    <tr class="gw-blank-row"><td colspan="9">&nbsp;</td></tr>
+                    <tr class="gw-blank-row"><td colspan="10">&nbsp;</td></tr>
                   {% elif row.row_type == "CRM" %}
                     <tr class="gw-crm-row">
                       <td class="c">{{ row.display_number }}</td>
@@ -249,15 +250,17 @@
                       <td></td>
                       <td></td>
                       <td></td>
+                      <td></td>
                     </tr>
-                    <tr class="gw-blank-row"><td colspan="9">&nbsp;</td></tr>
+                    <tr class="gw-blank-row"><td colspan="10">&nbsp;</td></tr>
                   {% else %}
                     <tr>
                       <td class="c">{{ row.display_number }}</td>
                       <td>{{ row.container_label|default:"" }}</td>
                       <td>{{ row.lab_sample_mapping.lab_sample_id }}</td>
                       <td>{{ row.parameter|default:"" }}</td>
-                      <td>{{ row.weight|default:"" }}{% if row.si_unit %} {{ row.get_si_unit_display }}{% endif %}</td>
+                      <td>{{ row.weight|default:"" }}</td>
+                      <td class="c">{{ row.get_si_unit_display|default:"" }}</td>
                       <td></td>
                       <td></td>
                       <td></td>

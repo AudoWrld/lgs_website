@@ -429,11 +429,8 @@ def sample_registration_detail(request, slug):
     elif request.method == "POST":
         form = SampleForm(request.POST, submission=submission)
         if form.is_valid():
-            sample = form.save(commit=False)
-            sample.submission = submission
-            sample.added_by = request.user
-            sample.save()
-            form.save_m2m()
+            form.instance.added_by = request.user
+            sample = form.save()
             messages.success(request, f"Sample {sample.client_sample_id} added.")
             return redirect(
                 "reception:sample_registration_detail", slug=submission.slug

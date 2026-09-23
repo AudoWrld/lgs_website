@@ -390,6 +390,22 @@
   padding-bottom: 4px;
 }
 
+/* Denser variant for the leaching / parameter-optimization table, which
+   carries more columns (Container Label, Parameter, Weight/Volume, SI Unit,
+   three time-point recovery columns, Remark) than the other worksheet
+   tables and needs smaller type + tighter padding to keep every header
+   and cell legible without crowding the border. */
+.gw-sheet .gw-table.leach-table th,
+.gw-sheet .gw-table.leach-table td {
+  padding: 0.25rem 0.3rem;
+  font-size: 0.68rem;
+  line-height: 1.15;
+}
+
+.gw-sheet .gw-table.leach-table th {
+  letter-spacing: -0.01em;
+}
+
 .gw-footer {
   display: flex;
   justify-content: space-between;

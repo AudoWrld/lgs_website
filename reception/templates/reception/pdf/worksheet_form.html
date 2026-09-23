@@ -32,7 +32,7 @@
     line-height: 1.25;
   }
   p { margin: 0; padding: 0; }
-  table { width: 100%; border-collapse: collapse; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 
   .header-block { text-align: center; margin-bottom: 6px; }
   .header-logo { text-align: center; margin-bottom: 4px; }
@@ -66,8 +66,8 @@
     padding: 3px 3px;
     font-size: 9pt;
     font-weight: bold;
-    text-align: left;
-    vertical-align: top;
+    text-align: center;
+    vertical-align: middle;
     word-wrap: break-word;
   }
   .gw-table td {
@@ -88,6 +88,26 @@
   }
   .gw-table tr.crm-row td:nth-child(3) { text-align: center; font-weight: bold; }
   .gw-table tr.crm-row td { border-top: 1px solid #000000; border-bottom: 1px solid #000000; padding-top: 3px; padding-bottom: 3px; }
+
+  /* Denser variant for the parameter-optimization / leaching table, which has
+     more columns than the others and needs smaller type + tighter padding
+     to keep every header and cell (incl. SI Unit) legible without crowding
+     the border. */
+  .gw-table.leach-table th,
+  .gw-table.leach-table td {
+    font-size: 7.3pt;
+    padding: 2px 3px;
+    line-height: 1.15;
+  }
+  .gw-table.leach-table th {
+    letter-spacing: -0.2px;
+  }
+  .gw-table.leach-table td.si-unit {
+    text-align: center;
+    padding-left: 2px;
+    padding-right: 2px;
+    white-space: normal;
+  }
 
   .empty-note { margin-top: 12px; font-size: 9pt; }
 
@@ -239,24 +259,25 @@
     </table>
 
     {% else %}
-    <table class="gw-table" repeat="1">
+    <table class="gw-table leach-table" repeat="1">
       <thead>
         <tr>
-          <th style="width:5%;">S/N</th>
-          <th style="width:9%;">Container Label</th>
-          <th style="width:18%;">Lab Sample ID</th>
-          <th style="width:14%;">Parameter</th>
-          <th style="width:9%;">Weight / Volume (SI Unit)</th>
-          <th style="width:12%;">Gold Recovered – 12 Hrs</th>
-          <th style="width:12%;">Gold Recovered – 24 Hrs</th>
-          <th style="width:12%;">Gold Recovered – 48 Hrs</th>
-          <th style="width:9%;">Remark</th>
+          <th style="width:4%;">S/N</th>
+          <th style="width:8%;">Container Label</th>
+          <th style="width:14%;">Lab Sample ID</th>
+          <th style="width:13%;">Parameter</th>
+          <th style="width:7%;">Weight / Volume</th>
+          <th style="width:5%;">SI Unit</th>
+          <th style="width:13%;">Au Recovered<br/>12 Hrs</th>
+          <th style="width:13%;">Au Recovered<br/>24 Hrs</th>
+          <th style="width:13%;">Au Recovered<br/>48 Hrs</th>
+          <th style="width:10%;">Remark</th>
         </tr>
       </thead>
       <tbody>
         {% for row in worksheet.rows.all %}
           {% if row.row_type == "BLANK" %}
-            <tr class="blank-row"><td colspan="9">&nbsp;</td></tr>
+            <tr class="blank-row"><td colspan="10">&nbsp;</td></tr>
           {% elif row.row_type == "CRM" %}
             <tr class="crm-row">
               <td class="center">{{ row.display_number }}</td>
@@ -268,15 +289,17 @@
               <td>&nbsp;</td>
               <td>&nbsp;</td>
               <td>&nbsp;</td>
+              <td>&nbsp;</td>
             </tr>
-            <tr class="blank-row"><td colspan="9">&nbsp;</td></tr>
+            <tr class="blank-row"><td colspan="10">&nbsp;</td></tr>
           {% else %}
             <tr>
               <td class="center">{{ row.display_number }}</td>
               <td>{{ row.container_label|default:"" }}</td>
               <td>{{ row.lab_sample_mapping.lab_sample_id|default:"" }}</td>
               <td>{{ row.parameter|default:"" }}</td>
-              <td>{{ row.weight|default:"" }}{% if row.si_unit %} {{ row.get_si_unit_display }}{% endif %}</td>
+              <td>{{ row.weight|default:"" }}</td>
+              <td class="si-unit">{{ row.get_si_unit_display|default:"" }}</td>
               <td>&nbsp;</td>
               <td>&nbsp;</td>
               <td>&nbsp;</td>
