@@ -130,21 +130,28 @@
   display: grid;
   grid-template-columns: 360px minmax(0, 1fr);
   gap: 1rem;
-  align-items: start;
+  align-items: stretch;
+  height: calc(100vh - var(--topbar-height) - 200px);
+  min-height: 520px;
 }
 
 .rc-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
   background: var(--white);
   border: 1px solid var(--line);
   border-radius: 0;
+  overflow: hidden;
 }
 
 .rc-form-card {
-  position: sticky;
-  top: calc(var(--topbar-height) + 0.5rem);
+  height: 100%;
 }
 
 .rc-card-head {
+  flex: none;
   padding: 1.25rem 1.5rem 1rem;
   border-bottom: 1px solid var(--line);
 }
@@ -168,6 +175,9 @@
 }
 
 .rc-form {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
@@ -206,7 +216,7 @@
 .rc-checkbox-list {
   display: flex;
   flex-direction: column;
-  max-height: 240px;
+  max-height: 220px;
   overflow-y: auto;
   border: 1px solid var(--line);
   border-radius: 0;
@@ -272,6 +282,11 @@
 }
 
 .rc-locked {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   padding: 2.5rem 1.5rem;
 }
@@ -293,8 +308,14 @@
   color: #7b858c;
 }
 
+.rc-list-card {
+  height: 100%;
+}
+
 .rc-table-wrap {
-  overflow-x: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
 }
 
 .rc-sample-table {
@@ -303,7 +324,10 @@
   font-size: var(--fs-small);
 }
 
-.rc-sample-table th {
+.rc-sample-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   text-align: left;
   font-size: 0.6875rem;
   font-weight: 600;
@@ -440,6 +464,11 @@
 }
 
 .rc-empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   padding: 3.5rem 1rem;
   color: #7b858c;
@@ -458,6 +487,7 @@
 }
 
 .rc-submit-bar {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -519,9 +549,24 @@
 @media (max-width: 960px) {
   .rc-sample-layout {
     grid-template-columns: 1fr;
+    height: auto;
+    min-height: 0;
   }
 
-  .rc-form-card {
+  .rc-card {
+    height: auto;
+    overflow: visible;
+  }
+
+  .rc-form {
+    overflow-y: visible;
+  }
+
+  .rc-table-wrap {
+    overflow: visible;
+  }
+
+  .rc-sample-table thead th {
     position: static;
   }
 }
@@ -627,4 +672,57 @@
     width: 100%;
     justify-content: center;
   }
+}
+
+.rc-metallurgical-section > label {
+  margin-bottom: 0.4rem;
+}
+
+.rc-custom-param-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.rc-custom-param-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rc-custom-param-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.rc-custom-param-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: var(--white);
+  border: 1px solid var(--line);
+  color: var(--error-text);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.rc-custom-param-remove:hover {
+  background: var(--error-bg);
+  border-color: var(--error-text);
+}
+
+.rc-add-custom-param {
+  margin-top: 0.6rem;
+}
+
+.rc-line-services .rc-cell-note {
+  display: block;
+  margin-top: 0.1rem;
+  color: var(--muted);
+  font-size: 0.75rem;
 }

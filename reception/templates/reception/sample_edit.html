@@ -95,6 +95,40 @@
         {% if form.services.errors %}<span class="rc-field-error">{{ form.services.errors.0 }}</span>{% endif %}
       </div>
 
+      <!-- Appears automatically only when Cyanide Conventional Leaching Test is selected above -->
+      <div class="rc-field rc-metallurgical-section rc-leaching-section" style="display:none;">
+        <label>Leaching Parameters</label>
+        <div class="rc-checkbox-list">
+          {% for checkbox in form.leaching_parameters %}
+            <label class="rc-checkbox-item">{{ checkbox.tag }}<span>{{ checkbox.choice_label }}</span></label>
+          {% endfor %}
+        </div>
+        {% if form.leaching_parameters.errors %}<span class="rc-field-error">{{ form.leaching_parameters.errors.0 }}</span>{% endif %}
+
+        <div class="rc-custom-param-list" data-role="leaching-custom-list"></div>
+        <button type="button" class="btn btn-outline btn-sm rc-add-custom-param">
+          <i class='bx bx-plus'></i> Add Another Parameter
+        </button>
+        {{ form.leaching_custom_parameters }}
+      </div>
+
+      <!-- Appears automatically only when Cyanide Leaching Parameter Optimization is selected above -->
+      <div class="rc-field rc-metallurgical-section rc-optimization-section" style="display:none;">
+        <label>Optimization Parameters</label>
+        <div class="rc-checkbox-list">
+          {% for checkbox in form.optimization_parameters %}
+            <label class="rc-checkbox-item">{{ checkbox.tag }}<span>{{ checkbox.choice_label }}</span></label>
+          {% endfor %}
+        </div>
+        {% if form.optimization_parameters.errors %}<span class="rc-field-error">{{ form.optimization_parameters.errors.0 }}</span>{% endif %}
+
+        <div class="rc-custom-param-list" data-role="optimization-custom-list"></div>
+        <button type="button" class="btn btn-outline btn-sm rc-add-custom-param">
+          <i class='bx bx-plus'></i> Add Another Parameter
+        </button>
+        {{ form.optimization_custom_parameters }}
+      </div>
+
       <div class="rc-form-actions">
         <button type="submit" class="btn btn-primary rc-submit">
           <i class='bx bx-save'></i> Save Sample Changes
@@ -108,6 +142,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'reception/js/metallurgical_linking.js' %}"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     var sampleTypeField = document.getElementById('{{ form.sample_type.id_for_label }}');
@@ -122,6 +157,8 @@
       toggleOtherField();
       sampleTypeField.addEventListener('change', toggleOtherField);
     }
+
+    initMetallurgicalLinking(document);
   });
 </script>
 {% endblock %}
