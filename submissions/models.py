@@ -5,6 +5,14 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 
+def _default_receiving_date():
+    return timezone.localdate()
+
+
+def _default_receiving_time():
+    return timezone.localtime().time()
+
+
 class DailySubmissionSequence(models.Model):
     date = models.DateField(unique=True)
     last_sequence = models.PositiveIntegerField(default=0)
@@ -29,8 +37,8 @@ class Submission(models.Model):
         related_name="submissions",
     )
 
-    receiving_date = models.DateField(default=timezone.now)
-    receiving_time = models.TimeField(default=timezone.now)
+    receiving_date = models.DateField(default=_default_receiving_date)
+    receiving_time = models.TimeField(default=_default_receiving_time)
 
     registered_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
