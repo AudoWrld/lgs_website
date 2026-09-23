@@ -77,6 +77,13 @@ def _watermark_data_uri(text="LGS MINERAL ASSAY LABORATORY", page_size=(1240, 17
 
 
 def render_client_submission_form_pdf(context):
+    submission = context.get("submission")
+    received_at_display = ""
+    if submission is not None and submission.created_at:
+        received_at_display = timezone.localtime(submission.created_at).strftime(
+            "%d %b %Y, %H:%M"
+        )
+
     context = {
         **context,
         "logo_path": os.path.join(STATIC_IMG, "lgs-logo.png"),
@@ -84,6 +91,7 @@ def render_client_submission_form_pdf(context):
             context.get("site_url") or "https://audowrld.pythonanywhere.com/"
         ),
         "watermark": _watermark_data_uri(),
+        "received_at": received_at_display,
     }
 
     html_string = render_to_string(
@@ -100,8 +108,6 @@ def render_client_submission_form_pdf(context):
 
 
 def render_worksheet_pdf(context):
-    # Prefer the actual worksheet creation time from the DB (Worksheet.generated_at)
-    # so reprinting later still shows when it was first generated, not "now".
     worksheets = context.get("worksheets") or []
     first_generated_at = None
     for ws in worksheets:
@@ -115,8 +121,6 @@ def render_worksheet_pdf(context):
             "%d %b %Y, %H:%M"
         )
     else:
-        # No worksheets yet (nothing generated) — fall back to "now" so the
-        # header doesn't show a blank/misleading date on an empty worksheet.
         generated_at_display = timezone.localtime().strftime("%d %b %Y, %H:%M")
 
     context = {
@@ -134,190 +138,3 @@ def render_worksheet_pdf(context):
         raise ValueError(f"PDF generation failed with {pdf.err} error(s).")
 
     return result.getvalue()
-
-
-from worksheet.models import LabSampleMapping, Worksheet, WorksheetRow
-
-REPLICATES_BY_SAMPLE_TYPE = {
-    "ROCK": 2,
-    "ROCK_PULP": 2,
-    "SOIL": 3,
-    "TAILINGS": 3,
-    "CARBON": 4,
-    "PROCESS_SOLUTION": 2,
-}
-
-MINERAL_SERVICES = {
-    "GOLD_COPPER_ANALYSIS": {
-        "elements": ["Au", "Cu"],
-        "method": "Aqua Regia + AAS",
-    },
-    "GOLD_COPPER_SILVER_ANALYSIS": {
-        "elements": ["Au", "Cu", "Ag"],
-        "method": "Aqua Regia + AAS",
-    },
-    "GOLD_COPPER_SULPHUR_ANALYSIS": {
-        "elements": ["Au", "Cu", "S"],
-        "method": "Aqua Regia + AAS / Furnace Induction",
-    },
-    "GOLD_COPPER_SILVER_SULPHUR_ANALYSIS": {
-        "elements": ["Au", "Cu", "Ag", "S"],
-        "method": "Aqua Regia + AAS / Furnace Induction",
-    },
-}
-
-CARBON_ACTIVITY_SERVICE = "CARBON_ACTIVITY_TEST"
-CONVENTIONAL_CYANIDE_SERVICE = "CONVENTIONAL_CYANIDE_LEACHING_TEST"
-PARAMETER_OPTIMIZATION_SERVICE = "CYANIDE_LEACHING_PARAMETER_OPTIMIZATION"
-
-CONVENTIONAL_PARAMETERS = ["Ore", "Pulp Density", "Cyanide Dose", "Lime Dose"]
-OPTIMIZATION_PARAMETERS = CONVENTIONAL_PARAMETERS + [
-    "Lead Nitrate",
-    "Ammonium Solution",
-    "Caustic Soda",
-    "Sodium Sulphide",
-    "Hydrogen Peroxide",
-    "Ammonium Nitrate Salt",
-]
-
-WORKSHEET_TYPE_BY_SERVICE = {
-    **{code: Worksheet.MINERAL_ANALYSIS for code in MINERAL_SERVICES},
-    CARBON_ACTIVITY_SERVICE: Worksheet.CARBON_ACTIVITY,
-    CONVENTIONAL_CYANIDE_SERVICE: Worksheet.CONVENTIONAL_CYANIDE_LEACHING,
-    PARAMETER_OPTIMIZATION_SERVICE: Worksheet.PARAMETER_OPTIMIZATION,
-}
-
-
-def _assign_lab_sample_ids(submission):
-    mapping_by_sample = {}
-    for sequence, sample in enumerate(submission.samples.order_by("id"), start=1):
-        mapping = getattr(sample, "lab_mapping", None)
-        if mapping is None:
-            mapping = LabSampleMapping.generate_for_sample(sample, sequence)
-        mapping_by_sample[sample.id] = mapping
-    return mapping_by_sample
-
-
-def _requested_services(submission):
-    services = {}
-    # Order matches _assign_lab_sample_ids so sample 1's rows are always on top.
-    for sample in submission.samples.order_by("id"):
-        for service in sample.requested_services.all():
-            services.setdefault(service.code, []).append(sample)
-    return services
-
-
-def _mineral_rows(samples, mapping_by_sample):
-    rows = []
-    total = len(samples)
-    for index, sample in enumerate(samples, start=1):
-        mapping = mapping_by_sample[sample.id]
-        replicate_count = REPLICATES_BY_SAMPLE_TYPE.get(sample.sample_type, 2)
-        for replicate_number in range(1, replicate_count + 1):
-            rows.append(
-                {
-                    "row_type": WorksheetRow.REPLICATE_ROW,
-                    "lab_sample_mapping_id": mapping.id,
-                    "replicate_number": replicate_number,
-                }
-            )
-        if index < total:
-            if index % 2 == 0:
-                # Blank spacer, then CRM, then another blank spacer — CRM is
-                # visually separated from both the sample above and below it.
-                rows.append({"row_type": WorksheetRow.BLANK_ROW})
-                rows.append({"row_type": WorksheetRow.CRM_ROW})
-                rows.append({"row_type": WorksheetRow.BLANK_ROW})
-            else:
-                rows.append({"row_type": WorksheetRow.BLANK_ROW})
-    return rows
-
-
-def _carbon_activity_rows(samples, mapping_by_sample):
-    rows = []
-    for sample in samples:
-        mapping = mapping_by_sample[sample.id]
-        for replicate_number in (1, 2):
-            rows.append(
-                {
-                    "row_type": WorksheetRow.REPLICATE_ROW,
-                    "lab_sample_mapping_id": mapping.id,
-                    "replicate_number": replicate_number,
-                }
-            )
-    return rows
-
-
-def _parameter_rows(samples, mapping_by_sample, parameters):
-    rows = []
-    for sample in samples:
-        mapping = mapping_by_sample[sample.id]
-        for parameter in parameters:
-            rows.append(
-                {
-                    "row_type": WorksheetRow.SAMPLE_ROW,
-                    "lab_sample_mapping_id": mapping.id,
-                    "parameter": parameter,
-                    "weight": getattr(sample, "weight", None),
-                }
-            )
-    return rows
-
-
-def generate_worksheets_for_submission(submission, user):
-    mapping_by_sample = _assign_lab_sample_ids(submission)
-    services = _requested_services(submission)
-
-    created_worksheets = []
-    for service_code, samples in services.items():
-        worksheet_type = WORKSHEET_TYPE_BY_SERVICE.get(service_code)
-        if worksheet_type is None:
-            continue
-
-        if worksheet_type == Worksheet.MINERAL_ANALYSIS:
-            spec = MINERAL_SERVICES[service_code]
-            elements = ",".join(spec["elements"])
-            method = spec["method"]
-            row_specs = _mineral_rows(samples, mapping_by_sample)
-        elif worksheet_type == Worksheet.CARBON_ACTIVITY:
-            elements = ""
-            method = "Carbon Activity Test Method"
-            row_specs = _carbon_activity_rows(samples, mapping_by_sample)
-        elif worksheet_type == Worksheet.CONVENTIONAL_CYANIDE_LEACHING:
-            elements = ""
-            method = "Bottle Test + AAS"
-            row_specs = _parameter_rows(
-                samples, mapping_by_sample, CONVENTIONAL_PARAMETERS
-            )
-        else:
-            elements = ""
-            method = "Bottle Test + AAS"
-            row_specs = _parameter_rows(
-                samples, mapping_by_sample, OPTIMIZATION_PARAMETERS
-            )
-
-        worksheet = Worksheet.objects.create(
-            submission=submission,
-            worksheet_type=worksheet_type,
-            elements=elements,
-            method_of_analysis=method,
-            generated_by=user,
-        )
-
-        rows = []
-        display_counter = 0
-        for row_number, spec in enumerate(row_specs, start=1):
-            if spec.get("row_type") != WorksheetRow.BLANK_ROW:
-                display_counter += 1
-                spec = {**spec, "display_number": display_counter}
-            rows.append(
-                WorksheetRow(worksheet=worksheet, row_number=row_number, **spec)
-            )
-        WorksheetRow.objects.bulk_create(rows)
-        created_worksheets.append(worksheet)
-
-    return created_worksheets
-
-
-def get_worksheets_for_display(submission):
-    return submission.worksheets.order_by("id")
