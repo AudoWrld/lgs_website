@@ -76,6 +76,18 @@ class WorksheetRow(models.Model):
         (BLANK_ROW, "Blank"),
     ]
 
+    KG = "KG"
+    G = "G"
+    ML = "ML"
+    L = "L"
+
+    SI_UNIT_CHOICES = [
+        (KG, "kg"),
+        (G, "g"),
+        (ML, "mL"),
+        (L, "L"),
+    ]
+
     worksheet = models.ForeignKey(
         Worksheet, on_delete=models.CASCADE, related_name="rows"
     )
@@ -96,6 +108,7 @@ class WorksheetRow(models.Model):
     container_label = models.CharField(max_length=30, blank=True)
     parameter = models.CharField(max_length=50, blank=True)
     weight = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True)
+    si_unit = models.CharField(max_length=3, choices=SI_UNIT_CHOICES, blank=True)
 
     values = models.JSONField(default=dict, blank=True)
     remarks = models.TextField(blank=True)
