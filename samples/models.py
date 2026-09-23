@@ -13,6 +13,18 @@ class Service(models.Model):
         (QUOTATION, "By Quotation"),
     ]
 
+    NONE = "NONE"
+    CYANIDE_CONVENTIONAL = "CYANIDE_CONVENTIONAL"
+    CYANIDE_OPTIMIZATION = "CYANIDE_OPTIMIZATION"
+    CARBON_ACTIVITY = "CARBON_ACTIVITY"
+
+    METALLURGICAL_TYPE_CHOICES = [
+        (NONE, "None — ordinary mineral analysis"),
+        (CYANIDE_CONVENTIONAL, "Cyanide Conventional Leaching Test"),
+        (CYANIDE_OPTIMIZATION, "Cyanide Leaching Parameter Optimization"),
+        (CARBON_ACTIVITY, "Carbon Activity Test"),
+    ]
+
     name = models.CharField(max_length=100, unique=True)
     method_of_analysis = models.CharField(max_length=150)
     pricing_type = models.CharField(
@@ -20,6 +32,16 @@ class Service(models.Model):
     )
     unit_price = models.DecimalField(
         max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    metallurgical_type = models.CharField(
+        max_length=25,
+        choices=METALLURGICAL_TYPE_CHOICES,
+        default=NONE,
+        blank=True,
+        help_text=(
+            "Tag this service if selecting it should show a conditional "
+            "parameter section on Sample Registration."
+        ),
     )
 
     is_active = models.BooleanField(default=True)
@@ -127,7 +149,9 @@ class Sample(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            submission_slug = self.submission.slug if self.submission_id else "submission"
+            submission_slug = (
+                self.submission.slug if self.submission_id else "submission"
+            )
             self.slug = self.generate_slug(submission_slug, self.submission_id)
         super().save(*args, **kwargs)
 
@@ -156,6 +180,18 @@ class Sample(models.Model):
             if not sample_service.service.method_of_analysis:
                 errors.append(
                     f"No Method of Analysis assigned for service "
+                    f"'{sample_service.service.name}'."
+                )
+            if (
+                sample_service.service.metallurgical_type
+                in (
+                    Service.CYANIDE_CONVENTIONAL,
+                    Service.CYANIDE_OPTIMIZATION,
+                )
+                and not sample_service.parameters.exists()
+            ):
+                errors.append(
+                    f"Select at least one parameter for "
                     f"'{sample_service.service.name}'."
                 )
         if errors:
@@ -192,3 +228,69 @@ class SampleService(models.Model):
     def clean(self):
         if self.service.pricing_type == Service.FIXED and self.quoted_price is not None:
             raise ValidationError("Fixed-price services cannot carry a quoted price.")
+
+
+class SampleServiceParameter(models.Model):
+    CYANIDE = "CYANIDE"
+    LIME = "LIME"
+    WATER = "WATER"
+    LEAD_NITRATE = "LEAD_NITRATE"
+    AMMONIUM_SOLUTION = "AMMONIUM_SOLUTION"
+    CAUSTIC_SODA = "CAUSTIC_SODA"
+    SODIUM_SULPHIDE = "SODIUM_SULPHIDE"
+    HYDROGEN_PEROXIDE = "HYDROGEN_PEROXIDE"
+    AMMONIUM_NITRATE_SALT = "AMMONIUM_NITRATE_SALT"
+    OTHER = "OTHER"
+
+    PARAMETER_CHOICES = [
+        (CYANIDE, "Cyanide"),
+        (LIME, "Lime"),
+        (WATER, "Water"),
+        (LEAD_NITRATE, "Lead Nitrate"),
+        (AMMONIUM_SOLUTION, "Ammonium Solution"),
+        (CAUSTIC_SODA, "Caustic Soda"),
+        (SODIUM_SULPHIDE, "Sodium Sulphide"),
+        (HYDROGEN_PEROXIDE, "Hydrogen Peroxide"),
+        (AMMONIUM_NITRATE_SALT, "Ammonium Nitrate Salt"),
+        (OTHER, "Other Parameter — Specify"),
+    ]
+    CONVENTIONAL_LEACHING_OPTIONS = [CYANIDE, LIME, WATER]
+    OPTIMIZATION_OPTIONS = [
+        CYANIDE,
+        LIME,
+        LEAD_NITRATE,
+        AMMONIUM_SOLUTION,
+        CAUSTIC_SODA,
+        SODIUM_SULPHIDE,
+        HYDROGEN_PEROXIDE,
+        AMMONIUM_NITRATE_SALT,
+    ]
+
+    sample_service = models.ForeignKey(
+        SampleService, on_delete=models.CASCADE, related_name="parameters"
+    )
+    parameter = models.CharField(max_length=30, choices=PARAMETER_CHOICES)
+    custom_label = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Required when parameter is 'Other Parameter — Specify'.",
+    )
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return self.display_label
+
+    @property
+    def display_label(self):
+        if self.parameter == self.OTHER:
+            return self.custom_label or "Other"
+        return self.get_parameter_display()
+
+    def clean(self):
+        if self.parameter == self.OTHER and not self.custom_label.strip():
+            raise ValidationError(
+                "Specify a name for the custom parameter (e.g. Sodium Metabisulphite)."
+            )
