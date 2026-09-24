@@ -4,59 +4,45 @@ from samples.models import Service
 
 SERVICES = [
     {
-        "name": "Mineral Analysis",
-        "method_of_analysis": "Mineralogical Assessment",
-        "pricing_type": Service.QUOTATION,
-        "unit_price": None,
-        "metallurgical_type": Service.NONE,
-    },
-    {
         "name": "Gold & Copper Analysis",
         "method_of_analysis": "Aqua Regia Digestion + AAS",
         "pricing_type": Service.FIXED,
-        "unit_price": Decimal("15.00"),
+        "unit_price": Decimal("30000.00"),
         "metallurgical_type": Service.NONE,
     },
     {
         "name": "Gold, Copper & Silver Analysis",
         "method_of_analysis": "Aqua Regia Digestion + AAS",
         "pricing_type": Service.FIXED,
-        "unit_price": Decimal("20.00"),
+        "unit_price": Decimal("40000.00"),
         "metallurgical_type": Service.NONE,
     },
     {
         "name": "Gold, Copper & Sulphur Analysis",
         "method_of_analysis": "Aqua Regia Digestion + AAS / Sulphur Method",
         "pricing_type": Service.FIXED,
-        "unit_price": Decimal("22.00"),
+        "unit_price": Decimal("40000.00"),
         "metallurgical_type": Service.NONE,
     },
     {
         "name": "Gold, Copper, Silver & Sulphur Analysis",
         "method_of_analysis": "Aqua Regia Digestion + AAS / Sulphur Method",
         "pricing_type": Service.FIXED,
-        "unit_price": Decimal("28.00"),
+        "unit_price": Decimal("50000.00"),
         "metallurgical_type": Service.NONE,
     },
     {
         "name": "Multi-Element Analysis",
         "method_of_analysis": "X-Ray Fluorescence",
         "pricing_type": Service.FIXED,
-        "unit_price": Decimal("30.00"),
-        "metallurgical_type": Service.NONE,
-    },
-    {
-        "name": "Metallurgical Testing",
-        "method_of_analysis": "Metallurgical Test Method",
-        "pricing_type": Service.QUOTATION,
-        "unit_price": None,
+        "unit_price": Decimal("50000.00"),
         "metallurgical_type": Service.NONE,
     },
     {
         "name": "Conventional Cyanide Leaching Test",
         "method_of_analysis": "Cyanide Leaching Test Method",
-        "pricing_type": Service.QUOTATION,
-        "unit_price": None,
+        "pricing_type": Service.FIXED,
+        "unit_price": Decimal("30000.00"),
         "metallurgical_type": Service.CYANIDE_CONVENTIONAL,
     },
     {
@@ -70,7 +56,7 @@ SERVICES = [
         "name": "Carbon Activity Test",
         "method_of_analysis": "Carbon Activity Test Method",
         "pricing_type": Service.FIXED,
-        "unit_price": Decimal("18.00"),
+        "unit_price": Decimal("30000.00"),
         "metallurgical_type": Service.CARBON_ACTIVITY,
     },
     {
@@ -81,6 +67,8 @@ SERVICES = [
         "metallurgical_type": Service.NONE,
     },
 ]
+
+STALE_SERVICE_NAMES = ["Mineral Analysis", "Metallurgical Testing"]
 
 
 class Command(BaseCommand):
@@ -104,6 +92,16 @@ class Command(BaseCommand):
         updated_count = 0
 
         for entry in SERVICES:
+            service = Service(
+                name=entry["name"],
+                method_of_analysis=entry["method_of_analysis"],
+                pricing_type=entry["pricing_type"],
+                unit_price=entry["unit_price"],
+                metallurgical_type=entry["metallurgical_type"],
+                is_active=True,
+            )
+            service.full_clean(exclude=["id"], validate_unique=False)
+
             service, created = Service.objects.update_or_create(
                 name=entry["name"],
                 defaults={
@@ -119,9 +117,27 @@ class Command(BaseCommand):
             else:
                 updated_count += 1
 
+        for stale_name in STALE_SERVICE_NAMES:
+            stale = Service.objects.filter(name=stale_name).first()
+            if stale is None:
+                continue
+            if stale.sample_services.exists():
+                stale.is_active = False
+                stale.save(update_fields=["is_active"])
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"Deactivated (still referenced by existing samples): {stale.name}"
+                    )
+                )
+            else:
+                stale.delete()
+                self.stdout.write(
+                    self.style.WARNING(f"Deleted unused placeholder: {stale.name}")
+                )
+
         self.stdout.write(
             self.style.SUCCESS(
                 f"Seed complete: {created_count} created, {updated_count} updated, "
-                f"{Service.objects.count()} total services."
+                f"{Service.objects.count()} total active services."
             )
         )
