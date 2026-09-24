@@ -1,0 +1,92 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Chemist{% endblock %} | LGS Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'chemist/css/chemist_base.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="shell" id="shell">
+        <aside class="sidebar" id="sidebar">
+            <a href="#" class="brand">
+                <span class="brand-mark">LGS</span>
+                <span class="brand-text">Chemist</span>
+            </a>
+
+            <nav class="nav" aria-label="Chemist navigation">
+                <a href="#" class="nav-link{% if active_nav == 'mineral' %} is-active{% endif %}"{% if active_nav == 'mineral' %} aria-current="page"{% endif %}>Mineral Analysis</a>
+                <a href="#" class="nav-link{% if active_nav == 'metallurgical' %} is-active{% endif %}"{% if active_nav == 'metallurgical' %} aria-current="page"{% endif %}>Metallurgical Tests</a>
+                <a href="#" class="nav-link{% if active_nav == 'reassay' %} is-active{% endif %}"{% if active_nav == 'reassay' %} aria-current="page"{% endif %}>Reassay Samples</a>
+                <a href="#" class="nav-link{% if active_nav == 'approved' %} is-active{% endif %}"{% if active_nav == 'approved' %} aria-current="page"{% endif %}>QC Approved</a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="#" class="nav-link">Sign out</a>
+            </div>
+        </aside>
+
+        <div class="scrim" id="scrim"></div>
+
+        <div class="main">
+            <header class="topbar">
+                <button type="button" class="menu-toggle" id="menuToggle" aria-controls="sidebar" aria-expanded="false" aria-label="Open navigation">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <h1 class="topbar-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                <div class="topbar-user">
+                    <span class="user-avatar">{{ request.user.username|slice:":1"|upper }}</span>
+                    <span class="user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+                </div>
+            </header>
+
+            <main class="content">
+                {% if messages %}
+                <ul class="messages">
+                    {% for message in messages %}
+                    <li class="message message-{{ message.tags }}">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            var shell = document.getElementById('shell');
+            var toggle = document.getElementById('menuToggle');
+            var scrim = document.getElementById('scrim');
+
+            function setOpen(open) {
+                shell.classList.toggle('nav-open', open);
+                toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            }
+
+            toggle.addEventListener('click', function () {
+                setOpen(!shell.classList.contains('nav-open'));
+            });
+
+            scrim.addEventListener('click', function () {
+                setOpen(false);
+            });
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape') {
+                    setOpen(false);
+                }
+            });
+        })();
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
