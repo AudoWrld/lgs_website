@@ -119,7 +119,13 @@ class ClientForm(forms.ModelForm):
         return number
 
     def clean_client_name(self):
-        return self.cleaned_data["client_name"].strip()
+        value = self.cleaned_data["client_name"].strip()
+        if self.instance.pk is None:
+            return value.title()
+        return value
 
     def clean_contact_person(self):
-        return self.cleaned_data["contact_person"].strip()
+        value = self.cleaned_data["contact_person"].strip()
+        if self.instance.pk is None:
+            return value.title()
+        return value
