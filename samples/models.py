@@ -97,6 +97,24 @@ class Sample(models.Model):
         PROCESS_SOLUTION: 2,
     }
 
+    SUBMITTED_TO_LAB = "SUBMITTED_TO_LAB"
+    DRAFT = "DRAFT"
+    READY_FOR_SUBMISSION = "READY_FOR_SUBMISSION"
+    SUBMITTED_TO_QC = "SUBMITTED_TO_QC"
+    REASSAY_REQUIRED = "REASSAY_REQUIRED"
+    REASSAY_SUBMITTED = "REASSAY_SUBMITTED"
+    QC_APPROVED = "QC_APPROVED"
+
+    ANALYSIS_STATUS_CHOICES = [
+        (SUBMITTED_TO_LAB, "Submitted to Lab"),
+        (DRAFT, "Draft"),
+        (READY_FOR_SUBMISSION, "Ready for Submission"),
+        (SUBMITTED_TO_QC, "Submitted to QC"),
+        (REASSAY_REQUIRED, "Reassay Required"),
+        (REASSAY_SUBMITTED, "Reassay Submitted"),
+        (QC_APPROVED, "QC Approved"),
+    ]
+
     submission = models.ForeignKey(
         "submissions.Submission",
         on_delete=models.CASCADE,
@@ -110,6 +128,19 @@ class Sample(models.Model):
 
     services = models.ManyToManyField(
         Service, through="SampleService", related_name="samples"
+    )
+
+    analysis_status = models.CharField(
+        max_length=25,
+        choices=ANALYSIS_STATUS_CHOICES,
+        default=SUBMITTED_TO_LAB,
+        db_index=True,
+        help_text=(
+            "Set automatically to Submitted to Lab for Data Entry when a "
+            "worksheet is generated for this sample. The Chemist Module "
+            "moves it through the workflow from there. Reception may view "
+            "this but never change it directly."
+        ),
     )
 
     added_by = models.ForeignKey(
@@ -196,6 +227,18 @@ class Sample(models.Model):
                 )
         if errors:
             raise ValidationError(errors)
+
+    def set_analysis_status(self, new_status, sync_submission=True):
+        if new_status not in dict(self.ANALYSIS_STATUS_CHOICES):
+            raise ValidationError(f"'{new_status}' is not a valid analysis status.")
+
+        self.analysis_status = new_status
+        self.save(update_fields=["analysis_status", "updated_at"])
+
+        if sync_submission:
+            self.submission.sync_status_from_samples()
+
+        return self.analysis_status
 
 
 class SampleService(models.Model):
