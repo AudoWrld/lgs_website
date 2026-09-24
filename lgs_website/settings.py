@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     "submissions",
     "payments",
     "client",
+    "chemist",
 ]
 
 MIDDLEWARE = [
