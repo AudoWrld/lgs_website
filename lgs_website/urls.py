@@ -5,5 +5,5 @@ urlpatterns = [
     path("accounts/", include("accounts.urls")),
     path("reception/", include("reception.urls")),
     path("client/", include("client.urls")),
-    path("chemisy ", include("chemist.urls")),
+    path("chemist/", include("chemist.urls")),
 ]
