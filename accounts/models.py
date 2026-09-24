@@ -43,6 +43,20 @@ class UserManager(BaseUserManager):
         extra_fields["is_superuser"] = False
         return self._create_user(email, password, **extra_fields)
 
+    def create_chemist(self, email, password=None, created_by=None, **extra_fields):
+        if created_by is not None and not (
+            created_by.is_administrator or created_by.is_superuser
+        ):
+            raise PermissionDenied(
+                "Only an Administrator may register Chemist accounts."
+            )
+
+        extra_fields["role"] = User.CHEMIST
+        extra_fields["is_staff"] = False
+        extra_fields["is_superuser"] = False
+        extra_fields["created_by"] = created_by
+        return self._create_user(email, password, **extra_fields)
+
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
@@ -52,8 +66,10 @@ class UserManager(BaseUserManager):
             raise ValueError("Superuser must have is_staff=True.")
         if extra_fields.get("is_superuser") is not True:
             raise ValueError("Superuser must have is_superuser=True.")
-        if extra_fields.get("role") in (User.CUSTOMER, User.RECEPTION):
-            raise ValueError("A superuser cannot hold the Customer or Reception role.")
+        if extra_fields.get("role") in (User.CUSTOMER, User.RECEPTION, User.CHEMIST):
+            raise ValueError(
+                "A superuser cannot hold the Customer, Reception, or Chemist role."
+            )
 
         return self._create_user(email, password, **extra_fields)
 
@@ -62,13 +78,17 @@ class User(AbstractUser):
 
     CUSTOMER = "CUSTOMER"
     RECEPTION = "RECEPTION"
+    CHEMIST = "CHEMIST"
     ADMINISTRATOR = "ADMINISTRATOR"
 
     ROLE_CHOICES = [
         (CUSTOMER, "Customer"),
         (RECEPTION, "Reception"),
+        (CHEMIST, "Chemist"),
         (ADMINISTRATOR, "Administrator"),
     ]
+
+    STAFF_ROLES = (RECEPTION, CHEMIST, ADMINISTRATOR)
 
     username = None
     email = models.EmailField(unique=True, db_index=True)
@@ -122,20 +142,24 @@ class User(AbstractUser):
         return self.role == self.RECEPTION
 
     @property
+    def is_chemist(self):
+        return self.role == self.CHEMIST
+
+    @property
     def is_administrator(self):
         return self.role == self.ADMINISTRATOR
 
     def clean(self):
         super().clean()
-        if self.role in (self.CUSTOMER, self.RECEPTION) and (
+        if self.role in (self.CUSTOMER, self.RECEPTION, self.CHEMIST) and (
             self.is_staff or self.is_superuser
         ):
             raise ValidationError(
-                "Customer and Reception accounts cannot be granted admin-site access."
+                "Customer, Reception, and Chemist accounts cannot be granted admin-site access."
             )
 
     def save(self, *args, **kwargs):
-        if self.role in (self.CUSTOMER, self.RECEPTION):
+        if self.role in (self.CUSTOMER, self.RECEPTION, self.CHEMIST):
             self.is_staff = False
             self.is_superuser = False
         super().save(*args, **kwargs)
@@ -144,7 +168,7 @@ class User(AbstractUser):
         if self.is_reception:
             return role == self.CUSTOMER
         if self.is_administrator or self.is_superuser:
-            return role in (self.CUSTOMER, self.RECEPTION, self.ADMINISTRATOR)
+            return role in (self.CUSTOMER, self.RECEPTION, self.CHEMIST, self.ADMINISTRATOR)
         return False
 
 
