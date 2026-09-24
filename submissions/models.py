@@ -26,6 +26,37 @@ class DailySubmissionSequence(models.Model):
 
 
 class Submission(models.Model):
+    REGISTRATION_DRAFT = "REGISTRATION_DRAFT"
+
+    SUBMITTED_TO_LAB = "SUBMITTED_TO_LAB"
+    DRAFT = "DRAFT"
+    READY_FOR_SUBMISSION = "READY_FOR_SUBMISSION"
+    SUBMITTED_TO_QC = "SUBMITTED_TO_QC"
+    REASSAY_REQUIRED = "REASSAY_REQUIRED"
+    REASSAY_SUBMITTED = "REASSAY_SUBMITTED"
+    QC_APPROVED = "QC_APPROVED"
+
+    STATUS_CHOICES = [
+        (REGISTRATION_DRAFT, "Registration Draft"),
+        (SUBMITTED_TO_LAB, "Submitted to Lab"),
+        (DRAFT, "Draft"),
+        (READY_FOR_SUBMISSION, "Ready for Submission"),
+        (SUBMITTED_TO_QC, "Submitted to QC"),
+        (REASSAY_REQUIRED, "Reassay Required"),
+        (REASSAY_SUBMITTED, "Reassay Submitted"),
+        (QC_APPROVED, "QC Approved"),
+    ]
+
+    SAMPLE_STATUS_PRIORITY = [
+        REASSAY_REQUIRED,
+        SUBMITTED_TO_LAB,
+        DRAFT,
+        READY_FOR_SUBMISSION,
+        SUBMITTED_TO_QC,
+        REASSAY_SUBMITTED,
+        QC_APPROVED,
+    ]
+
     reference = models.CharField(
         max_length=20, unique=True, db_index=True, editable=False
     )
@@ -51,6 +82,20 @@ class Submission(models.Model):
 
     is_submitted = models.BooleanField(default=False)
     submitted_at = models.DateTimeField(null=True, blank=True)
+
+    status = models.CharField(
+        max_length=25,
+        choices=STATUS_CHOICES,
+        default=REGISTRATION_DRAFT,
+        db_index=True,
+        help_text=(
+            "Registration Draft while Reception is still adding samples. "
+            "Moves to Submitted to Lab for Data Entry once the submission "
+            "is finalized. From there it tracks the most advanced/urgent "
+            "stage across all samples — kept in sync via "
+            "sync_status_from_samples()."
+        ),
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -126,15 +171,36 @@ class Submission(models.Model):
         with transaction.atomic():
             self.is_submitted = True
             self.submitted_at = timezone.now()
+            self.status = self.SUBMITTED_TO_LAB
             if submitted_by is not None:
                 self.registered_by = submitted_by
             self.save(
                 update_fields=[
                     "is_submitted",
                     "submitted_at",
+                    "status",
                     "registered_by",
                     "updated_at",
                 ]
             )
 
         return self
+
+    def sync_status_from_samples(self, save=True):
+        if not self.is_submitted:
+            return self.status
+
+        statuses = set(self.samples.values_list("analysis_status", flat=True))
+        new_status = self.status
+
+        for candidate in self.SAMPLE_STATUS_PRIORITY:
+            if candidate in statuses:
+                new_status = candidate
+                break
+
+        if new_status != self.status:
+            self.status = new_status
+            if save:
+                self.save(update_fields=["status", "updated_at"])
+
+        return self.status
