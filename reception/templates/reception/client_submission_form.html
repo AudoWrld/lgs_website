@@ -32,20 +32,16 @@
       {% if submissions %}
       <ul class="cs-list" id="cs-list">
         {% for item in submissions %}
-        <li>
-          <a href="?ref={{ item.reference|urlencode:'' }}{% if query %}&q={{ query|urlencode:'' }}{% endif %}" class="cs-item{% if submission and item.pk == submission.pk %} is-active{% endif %}"{% if submission and item.pk == submission.pk %} aria-current="true"{% endif %}>
-            <span class="cs-item-top">
-              <span class="cs-item-ref">{{ item.reference }}</span>
-              {% if item.payment %}
-              <span class="cs-badge cs-status-{{ item.payment.payment_status|lower }}">{{ item.payment.get_payment_status_display }}</span>
-              {% else %}
-              <span class="cs-badge cs-status-not_started">Not Started</span>
-              {% endif %}
-            </span>
-            <span class="cs-item-client">{{ item.client.client_name }}</span>
-            <span class="cs-item-sub">{{ item.receiving_date|date:"d M Y" }} · {{ item.sample_count }} sample{{ item.sample_count|pluralize }}</span>
-          </a>
-        </li>
+          <li>
+            <a href="?ref={{ item.reference|urlencode:'' }}{% if query %}&q={{ query|urlencode:'' }}{% endif %}" class="cs-item{% if submission and item.pk == submission.pk %} is-active{% endif %}"{% if submission and item.pk == submission.pk %} aria-current="true"{% endif %}>
+              <span class="cs-item-top">
+                <span class="cs-item-ref">{{ item.reference }}</span>
+                <span class="cs-badge cs-status-{{ item.status|lower }}">{{ item.get_status_display }}</span>
+              </span>
+              <span class="cs-item-client">{{ item.client.client_name }}</span>
+              <span class="cs-item-sub">{{ item.receiving_date|date:"d M Y" }} · {{ item.sample_count }} sample{{ item.sample_count|pluralize }}</span>
+            </a>
+          </li>
         {% endfor %}
       </ul>
       {% if match_count > list_limit %}

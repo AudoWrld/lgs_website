@@ -620,3 +620,38 @@
     break-inside: avoid;
   }
 }
+
+.cs-status-submitted_to_lab {
+  background: rgba(18, 62, 91, 0.1);
+  color: #123e5b;
+}
+
+.cs-status-draft {
+  background: rgba(138, 151, 161, 0.15);
+  color: #6b7680;
+}
+
+.cs-status-ready_for_submission {
+  background: rgba(18, 62, 91, 0.12);
+  color: #123e5b;
+}
+
+.cs-status-submitted_to_qc {
+  background: rgba(243, 154, 43, 0.15);
+  color: #b8791a;
+}
+
+.cs-status-reassay_required {
+  background: rgba(164, 52, 42, 0.12);
+  color: #a4342a;
+}
+
+.cs-status-reassay_submitted {
+  background: rgba(243, 154, 43, 0.15);
+  color: #b8791a;
+}
+
+.cs-status-qc_approved {
+  background: rgba(37, 152, 82, 0.12);
+  color: #1f7a45;
+}

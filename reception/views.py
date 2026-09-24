@@ -96,6 +96,23 @@ def reception_dashboard(request):
         for label, count in zip(week_labels, week_counts)
     ]
 
+    status_rows = (
+        Submission.objects.filter(is_submitted=True)
+        .values("status")
+        .annotate(total=Count("id"))
+    )
+    status_totals = {row["status"]: row["total"] for row in status_rows}
+    status_labels = dict(Submission.STATUS_CHOICES)
+    status_breakdown = [
+        {
+            "code": code,
+            "label": status_labels[code],
+            "total": status_totals.get(code, 0),
+        }
+        for code in Submission.SAMPLE_STATUS_PRIORITY
+    ]
+    reassay_required_count = status_totals.get(Submission.REASSAY_REQUIRED, 0)
+
     return render(
         request,
         "reception/reception_dashboard.html",
@@ -108,6 +125,8 @@ def reception_dashboard(request):
             "week_counts": week_counts,
             "recent_submissions": recent_submissions,
             "weekly_chart": weekly_chart,
+            "status_breakdown": status_breakdown,
+            "reassay_required_count": reassay_required_count,
         },
     )
 
@@ -330,6 +349,9 @@ def submission_list(request):
     status = request.GET.get("status", "all")
     if status not in ("all", "pending", "submitted"):
         status = "all"
+    stage = request.GET.get("stage", "").strip().upper()
+    if stage not in dict(Submission.STATUS_CHOICES):
+        stage = ""
     sort = request.GET.get("sort", "newest")
     if sort not in SORT_OPTIONS:
         sort = "newest"
@@ -356,6 +378,8 @@ def submission_list(request):
         submissions = submissions.filter(is_submitted=False)
     elif status == "submitted":
         submissions = submissions.filter(is_submitted=True)
+    if stage:
+        submissions = submissions.filter(status=stage)
     if date_from:
         submissions = submissions.filter(created_at__date__gte=date_from)
     if date_to:
@@ -389,12 +413,14 @@ def submission_list(request):
     active = {
         "q": query,
         "status": status if status != "all" else "",
+        "stage": stage,
         "date_from": date_from.isoformat() if date_from else "",
         "date_to": date_to.isoformat() if date_to else "",
         "sort": sort if sort != "newest" else "",
     }
     active = {key: value for key, value in active.items() if value}
     without_status = {key: value for key, value in active.items() if key != "status"}
+    without_stage = {key: value for key, value in active.items() if key != "stage"}
 
     context = {
         "page_obj": page_obj,
@@ -405,11 +431,14 @@ def submission_list(request):
         "stats": build_stats(),
         "query": query,
         "status": status,
+        "stage": stage,
+        "stage_choices": Submission.STATUS_CHOICES,
         "sort": sort,
         "date_from": date_from.isoformat() if date_from else "",
         "date_to": date_to.isoformat() if date_to else "",
         "qs_page": urlencode(active),
         "qs_status": urlencode(without_status),
+        "qs_stage": urlencode(without_stage),
         "has_filters": bool(active),
     }
     return render(request, "reception/submission_list.html", context)
@@ -1108,6 +1137,14 @@ def worksheet_generation(request):
         )
         submission.worksheets.all().delete()
         generate_worksheets_for_submission(submission, request.user)
+        for sample in submission.samples.all():
+            if sample.analysis_status == Sample.SUBMITTED_TO_LAB:
+                continue
+            if sample.analysis_status not in dict(Sample.ANALYSIS_STATUS_CHOICES):
+                sample.set_analysis_status(
+                    Sample.SUBMITTED_TO_LAB, sync_submission=False
+                )
+        submission.sync_status_from_samples()
         messages.success(request, f"Worksheets generated for {submission.reference}.")
         return redirect(f"{request.path}?ref={submission.reference}")
 
