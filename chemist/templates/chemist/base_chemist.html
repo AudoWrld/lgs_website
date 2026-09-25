@@ -90,7 +90,10 @@
           <span class="app-nav-label">Workflow</span>
           <ul>
             <li>
-              <a href="#" class="{% nav_active 'chemist_dashboard' %}">
+              <a
+                href="{% url 'chemist:chemist_dashboard' %}"
+                class="{% nav_active 'chemist_dashboard' %}"
+              >
                 <svg
                   class="icon"
                   aria-hidden="true"
@@ -111,8 +114,8 @@
             </li>
             <li>
               <a
-                href="#"
-                class="{% nav_active 'mineral_analysis_search' 'mineral_analysis_samples' 'mineral_analysis_entry' %}"
+                href="{% url 'chemist:mineral_analysis' %}"
+                class="{% nav_active 'mineral_analysis' %}"
               >
                 <svg
                   class="icon"
@@ -135,8 +138,8 @@
             </li>
             <li>
               <a
-                href="#"
-                class="{% nav_active 'metallurgical_tests_search' 'metallurgical_tests_samples' 'metallurgical_tests_entry' %}"
+                href="{% url 'chemist:metallurgical_analysis' %}"
+                class="{% nav_active 'metallurgical_analysis' %}"
               >
                 <svg
                   class="icon"
@@ -159,8 +162,8 @@
             </li>
             <li>
               <a
-                href="#"
-                class="{% nav_active 'reassay_search' 'reassay_samples' 'reassay_entry' %}"
+                href="{% url 'chemist:reassay_samples' %}"
+                class="{% nav_active 'reassay_samples' %}"
               >
                 <svg
                   class="icon"
@@ -182,8 +185,8 @@
             </li>
             <li>
               <a
-                href="#"
-                class="{% nav_active 'qc_approved_list' 'qc_approved_detail' %}"
+                href="{% url 'chemist:qc_approved' %}"
+                class="{% nav_active 'qc_approved' %}"
               >
                 <svg
                   class="icon"
