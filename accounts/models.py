@@ -80,15 +80,17 @@ class User(AbstractUser):
     RECEPTION = "RECEPTION"
     CHEMIST = "CHEMIST"
     ADMINISTRATOR = "ADMINISTRATOR"
+    QUANTITY_CONTROL = "QUANTITY_CONTROL"
 
     ROLE_CHOICES = [
         (CUSTOMER, "Customer"),
         (RECEPTION, "Reception"),
         (CHEMIST, "Chemist"),
         (ADMINISTRATOR, "Administrator"),
+        (QUANTITY_CONTROL, "QC"),
     ]
 
-    STAFF_ROLES = (RECEPTION, CHEMIST, ADMINISTRATOR)
+    STAFF_ROLES = (RECEPTION, CHEMIST, ADMINISTRATOR, QUANTITY_CONTROL)
 
     username = None
     email = models.EmailField(unique=True, db_index=True)
@@ -168,7 +170,12 @@ class User(AbstractUser):
         if self.is_reception:
             return role == self.CUSTOMER
         if self.is_administrator or self.is_superuser:
-            return role in (self.CUSTOMER, self.RECEPTION, self.CHEMIST, self.ADMINISTRATOR)
+            return role in (
+                self.CUSTOMER,
+                self.RECEPTION,
+                self.CHEMIST,
+                self.ADMINISTRATOR,
+            )
         return False
 
 
