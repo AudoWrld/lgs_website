@@ -1,5 +1,162 @@
 {% extends "chemist/base_chemist.html" %}
+{% load static %}
+
+{% block title %}Dashboard — LGS Chemist{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'chemist/css/chemist_dashboard.css' %}">
+{% endblock %}
+
 {% block content %}
-<h1>Dashboard</h1>
+{% firstof request.user.first_name request.user.get_full_name "there" as display_name %}
+
+<section class="dash-hero">
+  <div class="dash-hero-main">
+    <div class="dash-hero-meta">
+      <i class='bx bx-time-five' aria-hidden="true"></i>
+      <span data-date>{% now "l, j F Y" %}</span>
+      <span class="dash-hero-divider" aria-hidden="true"></span>
+      <span><span data-time>{% now "H:i" %}</span> EAT</span>
+    </div>
+    <h1 class="dash-hero-title"><span data-greeting>Welcome back</span>, {{ display_name }}</h1>
+    <p class="dash-hero-sub">
+      {% if awaiting_mineral_count or awaiting_metallurgical_count or reassay_count %}
+        You have {{ awaiting_mineral_count }} mineral analysis{{ awaiting_mineral_count|pluralize }}, {{ awaiting_metallurgical_count }} metallurgical test{{ awaiting_metallurgical_count|pluralize }} and {{ reassay_count }} reassay{{ reassay_count|pluralize:"y,ies" }} awaiting entry.
+      {% else %}
+        You're all caught up. Nothing needs your attention right now.
+      {% endif %}
+    </p>
+  </div>
+  <div class="dash-hero-actions">
+    <a href="#" class="dash-hero-btn dash-hero-btn--primary"><i class='bx bx-flask' aria-hidden="true"></i> Mineral Analysis</a>
+    <a href="#" class="dash-hero-btn dash-hero-btn--ghost"><i class='bx bx-test-tube' aria-hidden="true"></i> Metallurgical Tests</a>
+  </div>
+</section>
+
+<section class="dash-stats" aria-label="Today at a glance">
+  <div class="dash-stat-card{% if awaiting_mineral_count %} dash-stat-warning{% endif %}">
+    <span class="dash-stat-icon"><i class='bx bx-atom' aria-hidden="true"></i></span>
+    <div class="dash-stat-body">
+      <span class="dash-stat-label">Mineral analysis pending</span>
+      <span class="dash-stat-value">{{ awaiting_mineral_count }}</span>
+      <span class="dash-stat-hint">{% if awaiting_mineral_count %}Needs entry{% else %}All clear{% endif %}</span>
+    </div>
+  </div>
+  <div class="dash-stat-card{% if awaiting_metallurgical_count %} dash-stat-warning{% endif %}">
+    <span class="dash-stat-icon"><i class='bx bx-test-tube' aria-hidden="true"></i></span>
+    <div class="dash-stat-body">
+      <span class="dash-stat-label">Metallurgical tests pending</span>
+      <span class="dash-stat-value">{{ awaiting_metallurgical_count }}</span>
+      <span class="dash-stat-hint">{% if awaiting_metallurgical_count %}Needs entry{% else %}All clear{% endif %}</span>
+    </div>
+  </div>
+  <div class="dash-stat-card{% if reassay_count %} dash-stat-warning{% endif %}">
+    <span class="dash-stat-icon"><i class='bx bx-refresh' aria-hidden="true"></i></span>
+    <div class="dash-stat-body">
+      <span class="dash-stat-label">Reassay required</span>
+      <span class="dash-stat-value">{{ reassay_count }}</span>
+      <span class="dash-stat-hint">{% if reassay_count %}Returned by QC{% else %}None pending{% endif %}</span>
+    </div>
+  </div>
+  <div class="dash-stat-card">
+    <span class="dash-stat-icon"><i class='bx bx-check-shield' aria-hidden="true"></i></span>
+    <div class="dash-stat-body">
+      <span class="dash-stat-label">QC approved</span>
+      <span class="dash-stat-value">{{ qc_approved_count }}</span>
+      <span class="dash-stat-hint">Total approved</span>
+    </div>
+  </div>
+</section>
+
+<div class="dash-grid">
+  <div class="dash-col">
+    <section class="dash-panel">
+      <div class="dash-panel-head">
+        <h3>Submissions to QC this week</h3>
+        <span>Last 7 days</span>
+      </div>
+      <div class="dash-graph">
+        <canvas id="dash-graph-canvas" aria-hidden="true"></canvas>
+      </div>
+      <ul class="dash-graph-data">
+        {% for item in weekly_chart %}
+        <li data-label="{{ item.label }}" data-count="{{ item.count }}">{{ item.label }}: {{ item.count }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="dash-panel">
+      <div class="dash-panel-head">
+        <h3>Recent activity</h3>
+        <a href="#" class="dash-recent-link">View all</a>
+      </div>
+      <div class="dash-recent-table">
+        <div class="dash-recent-row dash-recent-head">
+          <span>Reference</span>
+          <span>Lab Sample ID</span>
+          <span>Date</span>
+          <span>Status</span>
+        </div>
+        {% for sample in recent_samples %}
+        <a href="#" class="dash-recent-row">
+          <span class="dash-recent-ref">{{ sample.submission.reference }}</span>
+          <span class="dash-client-name">{{ sample.slug|upper }}</span>
+          <span class="dash-recent-date">{{ sample.updated_at|date:"d M Y" }}</span>
+          <span>
+            {% if sample.analysis_status == "QC_APPROVED" %}
+              <span class="dash-badge dash-badge--done">QC Approved</span>
+            {% elif sample.analysis_status == "REASSAY_REQUIRED" %}
+              <span class="dash-badge dash-badge--pending">Reassay Required</span>
+            {% elif sample.analysis_status == "SUBMITTED_TO_QC" %}
+              <span class="dash-badge dash-badge--pending">Submitted to QC</span>
+            {% else %}
+              <span class="dash-badge dash-badge--pending">{{ sample.get_analysis_status_display }}</span>
+            {% endif %}
+          </span>
+        </a>
+        {% empty %}
+        <div class="dash-recent-empty">
+          <span class="dash-empty-icon"><i class='bx bx-flask' aria-hidden="true"></i></span>
+          <p>No recent activity yet.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <aside class="dash-panel dash-quick">
+    <div class="dash-panel-head">
+      <h3>Quick actions</h3>
+    </div>
+    <nav class="dash-actions" aria-label="Quick actions">
+      <a href="#" class="dash-action">
+        <span class="dash-action-icon"><i class='bx bx-flask' aria-hidden="true"></i></span>
+        <span class="dash-action-text"><span class="dash-action-title">Mineral analysis</span><span class="dash-action-desc">Search a reference and enter mineral analysis results</span></span>
+        <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
+      </a>
+      <a href="#" class="dash-action">
+        <span class="dash-action-icon"><i class='bx bx-test-tube' aria-hidden="true"></i></span>
+        <span class="dash-action-text"><span class="dash-action-title">Metallurgical tests</span><span class="dash-action-desc">Enter leaching, optimization or carbon activity data</span></span>
+        <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
+      </a>
+      <a href="#" class="dash-action">
+        <span class="dash-action-icon"><i class='bx bx-refresh' aria-hidden="true"></i></span>
+        <span class="dash-action-text"><span class="dash-action-title">Reassay samples</span><span class="dash-action-desc">Handle samples returned by QC for reassay</span></span>
+        <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
+      </a>
+      <a href="#" class="dash-action">
+        <span class="dash-action-icon"><i class='bx bx-check-shield' aria-hidden="true"></i></span>
+        <span class="dash-action-text"><span class="dash-action-title">QC approved</span><span class="dash-action-desc">View records already approved by Quality Control</span></span>
+        <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
+      </a>
+    </nav>
+  </aside>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{% static 'chemist/js/chemist_dashboard.js' %}" defer></script>
 {% endblock %}
