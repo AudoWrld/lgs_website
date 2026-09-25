@@ -12,3 +12,14 @@ def reception_required(view):
         return view(request, *args, **kwargs)
 
     return wrapped
+
+
+def chemist_required(view):
+    @wraps(view)
+    @login_required(login_url="accounts:login")
+    def wrapped(request, *args, **kwargs):
+        if not request.user.is_chemist:
+            raise PermissionDenied("Chemist access is required.")
+        return view(request, *args, **kwargs)
+
+    return wrapped
