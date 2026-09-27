@@ -1,0 +1,92 @@
+{% extends "chemist/base_chemist.html" %}
+{% load static %}
+
+{% block title %}{{ sample.slug }} — {{ entry.get_test_type_display }} — LGS Chemist{% endblock %}
+{% block page_title %}{{ entry.get_test_type_display }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'chemist/css/chemist_entry.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="entry-header">
+  <div class="entry-header-main">
+    <span class="entry-id-badge"><i class='bx bx-test-tube' aria-hidden="true"></i> {{ sample.slug }}</span>
+    <h2>{{ entry.get_test_type_display }}</h2>
+    <p>Parameters loaded automatically from Reception registration. No calculation formula applies.</p>
+  </div>
+  <div class="entry-header-status">
+    {% if entry.status == "READY_FOR_SUBMISSION" %}
+      <span class="badge badge-success">Ready for Submission</span>
+    {% elif entry.status == "SUBMITTED_TO_QC" %}
+      <span class="badge badge-success">Submitted to QC</span>
+    {% else %}
+      <span class="badge badge-warning">Draft</span>
+    {% endif %}
+  </div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  {% if rows %}
+  <div class="card entry-card">
+    <div class="table-wrap">
+      <table class="table entry-table">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Weight / Volume</th>
+            <th>SI Unit</th>
+            <th>Gold Recovery 12h</th>
+            <th>Gold Recovery 24h</th>
+            <th>Gold Recovery 48h</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td class="entry-param-label">{{ row.source_parameter.display_label }}</td>
+            <td><input type="number" step="any" name="row{{ row.id }}_weight_volume" value="{{ row.weight_volume|default_if_none:'' }}"></td>
+            <td>
+              <select name="row{{ row.id }}_si_unit">
+                <option value="">—</option>
+                <option value="kg" {% if row.si_unit == "kg" %}selected{% endif %}>kg</option>
+                <option value="g" {% if row.si_unit == "g" %}selected{% endif %}>g</option>
+                <option value="mL" {% if row.si_unit == "mL" %}selected{% endif %}>mL</option>
+                <option value="L" {% if row.si_unit == "L" %}selected{% endif %}>L</option>
+              </select>
+            </td>
+            <td><input type="number" step="any" name="row{{ row.id }}_recovery_12h" value="{{ row.gold_recovery_12h|default_if_none:'' }}"></td>
+            <td><input type="number" step="any" name="row{{ row.id }}_recovery_24h" value="{{ row.gold_recovery_24h|default_if_none:'' }}"></td>
+            <td><input type="number" step="any" name="row{{ row.id }}_recovery_48h" value="{{ row.gold_recovery_48h|default_if_none:'' }}"></td>
+            <td><input type="text" name="row{{ row.id }}_remarks" value="{{ row.remarks }}"></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <span class="empty-state-icon"><i class='bx bx-error' aria-hidden="true"></i></span>
+    <p>No parameters have been assigned to this sample by Reception yet.</p>
+  </div>
+  {% endif %}
+
+  <div class="entry-actions">
+    <a href="{% url 'chemist:metallurgical_tests_samples' reference=sample.submission.reference %}" class="btn btn-outline">
+      <i class='bx bx-arrow-back' aria-hidden="true"></i> Back
+    </a>
+    <div class="entry-actions-right">
+      <button type="submit" name="save_draft" class="btn btn-secondary">
+        <i class='bx bx-save' aria-hidden="true"></i> Save
+      </button>
+      <button type="submit" name="submit_qc" value="1" class="btn btn-primary">
+        <i class='bx bx-check' aria-hidden="true"></i> Submit to QC
+      </button>
+    </div>
+  </div>
+</form>
+{% endblock %}

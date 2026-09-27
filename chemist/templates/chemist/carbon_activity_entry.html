@@ -1,0 +1,81 @@
+{% extends "chemist/base_chemist.html" %}
+{% load static %}
+
+{% block title %}{{ sample.slug }} — Carbon Activity — LGS Chemist{% endblock %}
+{% block page_title %}Carbon Activity Test{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'chemist/css/chemist_entry.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="entry-header">
+  <div class="entry-header-main">
+    <span class="entry-id-badge"><i class='bx bx-test-tube' aria-hidden="true"></i> {{ sample.slug }}</span>
+    <h2>Carbon Activity Test</h2>
+    <p>2 replicates generated automatically. Activity % is calculated for you.</p>
+  </div>
+  <div class="entry-header-status">
+    {% if entry.status == "READY_FOR_SUBMISSION" %}
+      <span class="badge badge-success">Ready for Submission</span>
+    {% elif entry.status == "SUBMITTED_TO_QC" %}
+      <span class="badge badge-success">Submitted to QC</span>
+    {% else %}
+      <span class="badge badge-warning">Draft</span>
+    {% endif %}
+  </div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  <div class="card entry-card">
+    <div class="table-wrap">
+      <table class="table entry-table">
+        <thead>
+          <tr>
+            <th>Replicate</th>
+            <th>Standard Concentration (ppm)</th>
+            <th>Final Concentration in Sample</th>
+            <th>Final Concentration of Standard Carbon</th>
+            <th class="entry-col-result">Activity (%)</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for replicate in replicates %}
+          <tr>
+            <td class="entry-sn">Replicate {{ replicate.replicate_number }}</td>
+            <td><input type="number" step="any" name="rep{{ replicate.replicate_number }}_standard" value="{{ replicate.standard_concentration|default_if_none:'' }}"></td>
+            <td><input type="number" step="any" name="rep{{ replicate.replicate_number }}_final_sample" value="{{ replicate.final_concentration_sample|default_if_none:'' }}"></td>
+            <td><input type="number" step="any" name="rep{{ replicate.replicate_number }}_final_standard" value="{{ replicate.final_concentration_standard|default_if_none:'' }}"></td>
+            <td class="entry-col-result">{{ replicate.activity_percent|default_if_none:"—" }}</td>
+            <td><input type="text" name="rep{{ replicate.replicate_number }}_remarks" value="{{ replicate.remarks }}"></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if entry.final_carbon_activity_percent is not None %}
+    <div class="entry-final-result">
+      <span class="entry-final-label">Final Carbon Activity</span>
+      <span class="entry-final-value">{{ entry.final_carbon_activity_percent }}%</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="entry-actions">
+    <a href="{% url 'chemist:metallurgical_tests_samples' reference=sample.submission.reference %}" class="btn btn-outline">
+      <i class='bx bx-arrow-back' aria-hidden="true"></i> Back
+    </a>
+    <div class="entry-actions-right">
+      <button type="submit" name="save_draft" class="btn btn-secondary">
+        <i class='bx bx-save' aria-hidden="true"></i> Save
+      </button>
+      <button type="submit" name="submit_qc" value="1" class="btn btn-primary">
+        <i class='bx bx-check' aria-hidden="true"></i> Submit to QC
+      </button>
+    </div>
+  </div>
+</form>
+{% endblock %}

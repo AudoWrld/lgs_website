@@ -1,0 +1,89 @@
+{% extends "chemist/base_chemist.html" %}
+{% load static %}
+
+{% block title %}Metallurgical Tests — {{ reference }} — LGS Chemist{% endblock %}
+{% block page_title %}Metallurgical Tests{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'chemist/css/chemist_lists.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="list-toolbar">
+  <div class="list-toolbar-stats">
+    <div class="list-chip">
+      <span class="list-chip-value">{{ reference }}</span>
+      <span class="list-chip-label">Reference</span>
+    </div>
+    <div class="list-chip">
+      <span class="list-chip-value">{{ samples|length }}</span>
+      <span class="list-chip-label">Lab Sample IDs</span>
+    </div>
+  </div>
+
+  <form method="get" action="{% url 'chemist:metallurgical_tests_search' %}" class="list-search">
+    <div class="list-search-field">
+      <i class='bx bx-search-alt' aria-hidden="true"></i>
+      <input type="text" name="reference" value="{{ reference }}" placeholder="Search another reference" />
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">Search</button>
+  </form>
+</div>
+
+<div class="card list-card">
+  {% if not submission %}
+  <div class="empty-state">
+    <span class="empty-state-icon"><i class='bx bx-error' aria-hidden="true"></i></span>
+    <p>No submission found for reference '{{ reference }}'.</p>
+  </div>
+  {% elif samples %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Lab Sample ID</th>
+          <th>Status</th>
+          <th>Last Updated</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sample in samples %}
+        <tr>
+          <td class="list-cell-id">
+            <span class="list-id-dot{% if sample.analysis_status == 'SUBMITTED_TO_QC' or sample.analysis_status == 'QC_APPROVED' %} is-submitted{% endif %}"></span>
+            {{ sample.slug }}
+          </td>
+          <td>
+            {% if sample.analysis_status == "QC_APPROVED" %}
+              <span class="badge badge-success">QC Approved</span>
+            {% elif sample.analysis_status == "SUBMITTED_TO_QC" %}
+              <span class="badge badge-success">Submitted to QC</span>
+            {% elif sample.analysis_status == "REASSAY_REQUIRED" %}
+              <span class="badge badge-warning">Reassay Required</span>
+            {% elif sample.analysis_status == "REASSAY_SUBMITTED" %}
+              <span class="badge badge-warning">Reassay Submitted</span>
+            {% else %}
+              <span class="badge badge-danger">Draft</span>
+            {% endif %}
+          </td>
+          <td class="list-cell-muted">{{ sample.updated_at|date:"d M Y, H:i" }}</td>
+          <td class="list-cell-action">
+            <a href="{% url 'chemist:metallurgical_tests_entry' slug=sample.slug %}" class="btn btn-outline btn-sm">
+              <i class='bx bx-edit' aria-hidden="true"></i> Open
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <span class="empty-state-icon"><i class='bx bx-test-tube' aria-hidden="true"></i></span>
+    <p>No Metallurgical Test samples were found for this reference.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

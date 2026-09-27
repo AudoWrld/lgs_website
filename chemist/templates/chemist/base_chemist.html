@@ -71,19 +71,18 @@
             aria-label="Close menu"
           >
             <svg
-          class="icon"
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <circle cx="12" cy="12" r="1"></circle>
-          <path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"></path>
-          <path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z"></path>
-        </svg>
+              class="icon"
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </label>
         </div>
 
@@ -114,9 +113,9 @@
               </a>
             </li>
             <li>
-  
-              <a href="{% url 'chemist:mineral_analysis' %}"
-                class="{% nav_active 'mineral_analysis' %}"
+              <a
+                href="{% url 'chemist:mineral_analysis_search' %}"
+                class="{% nav_active 'mineral_analysis_search' 'mineral_analysis_samples' 'mineral_analysis_entry' %}"
               >
                 <svg
                   class="icon"
@@ -129,16 +128,20 @@
                   stroke-linejoin="round"
                 >
                   <circle cx="12" cy="12" r="1"></circle>
-                  <path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"></path>
-                  <path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z"></path>
+                  <path
+                    d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"
+                  ></path>
+                  <path
+                    d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z"
+                  ></path>
                 </svg>
                 Mineral Analysis
               </a>
             </li>
             <li>
               <a
-                href="{% url 'chemist:metallurgical_analysis' %}"
-                class="{% nav_active 'metallurgical_analysis' %}"
+                href="{% url 'chemist:metallurgical_tests_search' %}"
+                class="{% nav_active 'metallurgical_tests_search' 'metallurgical_tests_samples' 'metallurgical_tests_entry' 'carbon_activity_entry' %}"
               >
                 <svg
                   class="icon"
@@ -162,7 +165,7 @@
             <li>
               <a
                 href="{% url 'chemist:reassay_samples' %}"
-                class="{% nav_active 'reassay_samples' %}"
+                class="{% nav_active 'reassay_samples' 'reassay_entry' %}"
               >
                 <svg
                   class="icon"

@@ -1,0 +1,33 @@
+{% extends "chemist/base_chemist.html" %}
+{% load static %}
+
+{% block title %}Metallurgical Tests — LGS Chemist{% endblock %}
+{% block page_title %}Metallurgical Tests{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'chemist/css/chemist_search.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="search-hero">
+  <span class="search-hero-icon"><i class='bx bx-test-tube' aria-hidden="true"></i></span>
+  <h2>Search Metallurgical Test Samples</h2>
+  <p>Enter a Client Reference Number to view its Laboratory Sample IDs.</p>
+  <form method="get" action="{% url 'chemist:metallurgical_tests_search' %}" class="search-hero-form">
+    <div class="search-hero-field">
+      <i class='bx bx-search-alt' aria-hidden="true"></i>
+      <input
+        type="text"
+        name="reference"
+        placeholder="e.g. LGS/260921/01"
+        autofocus
+        required
+      />
+    </div>
+    <button type="submit" class="btn btn-primary">
+      <i class='bx bx-search-alt' aria-hidden="true"></i> Search
+    </button>
+  </form>
+</div>
+{% endblock %}

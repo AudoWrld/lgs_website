@@ -30,7 +30,7 @@
     </p>
   </div>
   <div class="dash-hero-actions">
-    <a href="{% url 'chemist:mineral_analysis' %}" class="dash-hero-btn dash-hero-btn--primary">
+    <a href="{% url 'chemist:mineral_analysis_search' %}" class="dash-hero-btn dash-hero-btn--primary">
       <svg
         class="icon"
         aria-hidden="true"
@@ -47,7 +47,7 @@
       </svg>
       Mineral Analysis
     </a>
-    <a href="{% url 'chemist:metallurgical_analysis' %}" class="dash-hero-btn dash-hero-btn--ghost"><i class='bx bx-test-tube' aria-hidden="true"></i> Metallurgical Tests</a>
+    <a href="{% url 'chemist:metallurgical_tests_search' %}" class="dash-hero-btn dash-hero-btn--ghost"><i class='bx bx-test-tube' aria-hidden="true"></i> Metallurgical Tests</a>
   </div>
 </section>
 
@@ -121,7 +121,7 @@
     <section class="dash-panel">
       <div class="dash-panel-head">
         <h3>Recent activity</h3>
-        <a href="#" class="dash-recent-link">View all</a>
+        <a href="{% url 'chemist:qc_approved' %}" class="dash-recent-link">View all</a>
       </div>
       <div class="dash-recent-table">
         <div class="dash-recent-row dash-recent-head">
@@ -131,7 +131,7 @@
           <span>Status</span>
         </div>
         {% for sample in recent_samples %}
-        <a href="#" class="dash-recent-row">
+        <a href="{% url 'chemist:mineral_analysis_entry' slug=sample.slug %}" class="dash-recent-row">
           <span class="dash-recent-ref">{{ sample.submission.reference }}</span>
           <span class="dash-client-name">{{ sample.slug|upper }}</span>
           <span class="dash-recent-date">{{ sample.updated_at|date:"d M Y" }}</span>
@@ -162,7 +162,7 @@
       <h3>Quick actions</h3>
     </div>
     <nav class="dash-actions" aria-label="Quick actions">
-      <a href="{% url 'chemist:mineral_analysis' %}" class="dash-action">
+      <a href="{% url 'chemist:mineral_analysis_search' %}" class="dash-action">
         <span class="dash-action-icon">
           <svg
             class="icon"
@@ -182,7 +182,7 @@
         <span class="dash-action-text"><span class="dash-action-title">Mineral analysis</span><span class="dash-action-desc">Search a reference and enter mineral analysis results</span></span>
         <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
       </a>
-      <a href="{% url 'chemist:metallurgical_analysis' %}" class="dash-action">
+      <a href="{% url 'chemist:metallurgical_tests_search' %}" class="dash-action">
         <span class="dash-action-icon"><i class='bx bx-test-tube' aria-hidden="true"></i></span>
         <span class="dash-action-text"><span class="dash-action-title">Metallurgical tests</span><span class="dash-action-desc">Enter leaching, optimization or carbon activity data</span></span>
         <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>

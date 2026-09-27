@@ -1,0 +1,91 @@
+{% extends "chemist/base_chemist.html" %}
+{% load static %}
+
+{% block title %}{{ sample.slug }} — Mineral Analysis — LGS Chemist{% endblock %}
+{% block page_title %}Mineral Analysis Entry{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'chemist/css/chemist_entry.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="entry-header">
+  <div class="entry-header-main">
+    <span class="entry-id-badge"><i class='bx bx-flask' aria-hidden="true"></i> {{ sample.slug }}</span>
+    <h2>Mineral Analysis Data Entry</h2>
+    <p>{{ replicates|length }} replicate row{{ replicates|length|pluralize }} generated automatically.</p>
+  </div>
+  <div class="entry-header-status">
+    {% if entry.status == "READY_FOR_SUBMISSION" %}
+      <span class="badge badge-success">Ready for Submission</span>
+    {% elif entry.status == "SUBMITTED_TO_QC" %}
+      <span class="badge badge-success">Submitted to QC</span>
+    {% else %}
+      <span class="badge badge-warning">Draft</span>
+    {% endif %}
+  </div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  <div class="card entry-card">
+    <div class="table-wrap">
+      <table class="table entry-table">
+        <thead>
+          <tr>
+            <th>S/N</th>
+            {% if entry.show_weight_column %}<th>Weight</th>{% endif %}
+            {% if elements.gold %}<th>Au AAS</th><th>Au DF</th><th class="entry-col-result">Gold (ppm)</th>{% endif %}
+            {% if elements.copper %}<th>Cu AAS</th><th>Cu DF</th><th class="entry-col-result">Copper (ppm)</th>{% endif %}
+            {% if elements.silver %}<th>Ag AAS</th><th>Ag DF</th><th class="entry-col-result">Silver (ppm)</th>{% endif %}
+            {% if elements.sulphur %}<th>S (%)</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for replicate in replicates %}
+          <tr>
+            <td class="entry-sn">{{ replicate.replicate_number }}</td>
+            {% if entry.show_weight_column %}
+            <td><input type="number" step="any" name="rep{{ replicate.replicate_number }}_weight" value="{{ replicate.weight|default_if_none:'' }}"></td>
+            {% endif %}
+            {% if elements.gold %}
+            <td><input type="number" step="any" name="rep{{ replicate.replicate_number }}_au_aas" value="{{ replicate.au_aas|default_if_none:'' }}"></td>
+            <td><input type="number" step="any" name="rep{{ replicate.replicate_number }}_au_df" value="{{ replicate.au_df|default_if_none:'' }}"></td>
+            <td class="entry-col-result">{{ replicate.gold_ppm|default_if_none:"—" }}</td>
+            {% endif %}
+            {% if elements.copper %}
+            <td><input type="number" step="any" name="rep{{ replicate.replicate_number }}_cu_aas" value="{{ replicate.cu_aas|default_if_none:'' }}"></td>
+            <td><input type="number" step="any" name="rep{{ replicate.replicate_number }}_cu_df" value="{{ replicate.cu_df|default_if_none:'' }}"></td>
+            <td class="entry-col-result">{{ replicate.copper_ppm|default_if_none:"—" }}</td>
+            {% endif %}
+            {% if elements.silver %}
+            <td><input type="number" step="any" name="rep{{ replicate.replicate_number }}_ag_aas" value="{{ replicate.ag_aas|default_if_none:'' }}"></td>
+            <td><input type="number" step="any" name="rep{{ replicate.replicate_number }}_ag_df" value="{{ replicate.ag_df|default_if_none:'' }}"></td>
+            <td class="entry-col-result">{{ replicate.silver_ppm|default_if_none:"—" }}</td>
+            {% endif %}
+            {% if elements.sulphur %}
+            <td><input type="number" step="any" name="rep{{ replicate.replicate_number }}_sulphur" value="{{ replicate.sulphur|default_if_none:'' }}"></td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="entry-actions">
+    <a href="{% url 'chemist:mineral_analysis_samples' reference=sample.submission.reference %}" class="btn btn-outline">
+      <i class='bx bx-arrow-back' aria-hidden="true"></i> Back
+    </a>
+    <div class="entry-actions-right">
+      <button type="submit" name="save_draft" class="btn btn-secondary">
+        <i class='bx bx-save' aria-hidden="true"></i> Save
+      </button>
+      <button type="submit" name="submit_qc" value="1" class="btn btn-primary">
+        <i class='bx bx-check' aria-hidden="true"></i> Submit to QC
+      </button>
+    </div>
+  </div>
+</form>
+{% endblock %}
