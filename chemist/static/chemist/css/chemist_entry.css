@@ -1,0 +1,151 @@
+.entry-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+  padding: 1.5rem 1.75rem;
+  border: 1px solid var(--line);
+  border-bottom: 3px solid var(--orange);
+  border-radius: 0;
+  background: var(--navy);
+  color: var(--white);
+}
+
+.entry-header-main {
+  min-width: 0;
+}
+
+.entry-id-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.75rem;
+  margin-bottom: 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.08);
+  font-family: var(--font-head);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.entry-id-badge i {
+  color: var(--orange);
+}
+
+.entry-header-main h2 {
+  color: var(--white);
+  margin-bottom: 0.3rem;
+}
+
+.entry-header-main p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.875rem;
+}
+
+.entry-header-status {
+  flex: none;
+}
+
+.entry-card {
+  padding: 0;
+  margin-bottom: 1.25rem;
+}
+
+.entry-card .table-wrap {
+  border: none;
+}
+
+.entry-table th,
+.entry-table td {
+  white-space: nowrap;
+}
+
+.entry-table input,
+.entry-table select {
+  min-width: 90px;
+  padding: 0.4rem 0.55rem;
+}
+
+.entry-sn {
+  font-family: var(--font-head);
+  font-weight: 700;
+  color: var(--navy);
+  text-align: center;
+}
+
+.entry-param-label {
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.entry-col-result {
+  background: #f1ede3;
+  color: var(--navy);
+  font-family: var(--font-head);
+  font-weight: 700;
+  text-align: center;
+}
+
+.entry-table td.entry-col-result {
+  background: #faf8f3;
+}
+
+.entry-final-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.75rem;
+  border-top: 1px solid var(--line);
+  background: #f1ede3;
+}
+
+.entry-final-label {
+  font-family: var(--font-head);
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.entry-final-value {
+  font-family: var(--font-head);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.entry-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.entry-actions-right {
+  display: flex;
+  gap: 0.6rem;
+}
+
+@media (max-width: 700px) {
+  .entry-header {
+    padding: 1.25rem 1.25rem;
+  }
+
+  .entry-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .entry-actions-right {
+    justify-content: stretch;
+  }
+
+  .entry-actions-right .btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
