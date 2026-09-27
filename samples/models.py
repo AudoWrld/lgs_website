@@ -44,6 +44,11 @@ class Service(models.Model):
         ),
     )
 
+    tests_gold = models.BooleanField(default=False)
+    tests_copper = models.BooleanField(default=False)
+    tests_silver = models.BooleanField(default=False)
+    tests_sulphur = models.BooleanField(default=False)
+
     is_active = models.BooleanField(default=True)
 
     class Meta:
