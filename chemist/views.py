@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.db.models import Q
 from samples.models import Sample, Service
 from accounts.decorators import chemist_required
+from django.contrib import messages
 
 
 @chemist_required
@@ -76,9 +77,64 @@ def metallurgical_analysis(request):
 
 @chemist_required
 def reassay_samples(request):
-    return render(request, "chemist/reassay_samples.html")
+    reference = request.GET.get("reference", "").strip()
+    status = request.GET.get("status", "all")
+
+    samples = (
+        Sample.objects.filter(
+            analysis_status__in=[
+                Sample.REASSAY_REQUIRED,
+                Sample.REASSAY_SUBMITTED,
+            ]
+        )
+        .select_related("submission")
+        .order_by("-updated_at")
+    )
+
+    if reference:
+        samples = samples.filter(submission__reference__iexact=reference)
+
+    if status == "required":
+        samples = samples.filter(analysis_status=Sample.REASSAY_REQUIRED)
+    elif status == "submitted":
+        samples = samples.filter(analysis_status=Sample.REASSAY_SUBMITTED)
+
+    required_count = Sample.objects.filter(
+        analysis_status=Sample.REASSAY_REQUIRED
+    ).count()
+    submitted_count = Sample.objects.filter(
+        analysis_status=Sample.REASSAY_SUBMITTED
+    ).count()
+
+    context = {
+        "reference": reference,
+        "status": status,
+        "samples": samples,
+        "required_count": required_count,
+        "submitted_count": submitted_count,
+        "total_count": required_count + submitted_count,
+    }
+    return render(request, "chemist/reassay_samples.html", context)
 
 
 @chemist_required
 def qc_approved(request):
-    return render(request, "chemist/qc_approved.html")
+    reference = request.GET.get("reference", "").strip()
+
+    samples = (
+        Sample.objects.filter(analysis_status=Sample.QC_APPROVED)
+        .select_related("submission")
+        .order_by("-updated_at")
+    )
+
+    if reference:
+        samples = samples.filter(submission__reference__iexact=reference)
+
+    context = {
+        "reference": reference,
+        "samples": samples,
+        "total_count": Sample.objects.filter(
+            analysis_status=Sample.QC_APPROVED
+        ).count(),
+    }
+    return render(request, "chemist/qc_approved.html", context)
