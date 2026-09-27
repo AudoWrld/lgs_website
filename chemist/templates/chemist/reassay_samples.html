@@ -1,5 +1,111 @@
 {% extends "chemist/base_chemist.html" %}
+{% load static %}
+
+{% block title %}Reassay Samples — LGS Chemist{% endblock %}
 {% block page_title %}Reassay Samples{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'chemist/css/chemist_lists.css' %}">
+{% endblock %}
+
 {% block content %}
-<h1>Reassay Samples</h1>
+<div class="list-toolbar">
+  <div class="list-toolbar-stats">
+    <div class="list-chip">
+      <span class="list-chip-value">{{ total_count }}</span>
+      <span class="list-chip-label">Total</span>
+    </div>
+    <div class="list-chip list-chip-warning">
+      <span class="list-chip-value">{{ required_count }}</span>
+      <span class="list-chip-label">Required</span>
+    </div>
+    <div class="list-chip list-chip-info">
+      <span class="list-chip-value">{{ submitted_count }}</span>
+      <span class="list-chip-label">Submitted</span>
+    </div>
+  </div>
+
+  <form method="get" class="list-search">
+    {% if status != "all" %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+    <div class="list-search-field">
+      <i class='bx bx-search-alt' aria-hidden="true"></i>
+      <input
+        type="text"
+        name="reference"
+        value="{{ reference }}"
+        placeholder="Search Client Reference Number"
+      />
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    {% if reference %}
+    <a href="?{% if status != 'all' %}status={{ status }}{% endif %}" class="btn btn-outline btn-sm">Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="list-tabs">
+  <a href="?status=all{% if reference %}&reference={{ reference }}{% endif %}" class="list-tab{% if status == 'all' %} is-active{% endif %}">
+    All <span class="list-tab-count">{{ total_count }}</span>
+  </a>
+  <a href="?status=required{% if reference %}&reference={{ reference }}{% endif %}" class="list-tab{% if status == 'required' %} is-active{% endif %}">
+    Reassay Required <span class="list-tab-count">{{ required_count }}</span>
+  </a>
+  <a href="?status=submitted{% if reference %}&reference={{ reference }}{% endif %}" class="list-tab{% if status == 'submitted' %} is-active{% endif %}">
+    Reassay Submitted <span class="list-tab-count">{{ submitted_count }}</span>
+  </a>
+</div>
+
+<div class="card list-card">
+  {% if samples %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Lab Sample ID</th>
+          <th>Reference</th>
+          <th>Status</th>
+          <th>Last Updated</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sample in samples %}
+        <tr>
+          <td class="list-cell-id">
+            <span class="list-id-dot{% if sample.analysis_status == 'REASSAY_SUBMITTED' %} is-submitted{% endif %}"></span>
+            {{ sample.slug }}
+          </td>
+          <td>{{ sample.submission.reference }}</td>
+          <td>
+            {% if sample.analysis_status == "REASSAY_SUBMITTED" %}
+              <span class="badge badge-success">Reassay Submitted</span>
+            {% else %}
+              <span class="badge badge-warning">Reassay Required</span>
+            {% endif %}
+          </td>
+          <td class="list-cell-muted">{{ sample.updated_at|date:"d M Y, H:i" }}</td>
+          <td class="list-cell-action">
+            <a href="#" class="btn btn-outline btn-sm">
+              <i class='bx bx-edit' aria-hidden="true"></i> Open
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <span class="empty-state-icon"><i class='bx bx-refresh' aria-hidden="true"></i></span>
+    <p>
+      {% if reference %}
+        No reassay samples found for reference '{{ reference }}'.
+      {% else %}
+        No samples are currently awaiting reassay.
+      {% endif %}
+    </p>
+  </div>
+  {% endif %}
+</div>
 {% endblock %}

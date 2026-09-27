@@ -1,5 +1,84 @@
 {% extends "chemist/base_chemist.html" %}
+{% load static %}
+
+{% block title %}QC Approved — LGS Chemist{% endblock %}
 {% block page_title %}QC Approved{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'chemist/css/chemist_lists.css' %}">
+{% endblock %}
+
 {% block content %}
-<h1>QC Approved</h1>
+<div class="list-toolbar">
+  <div class="list-toolbar-stats">
+    <div class="list-chip list-chip-success">
+      <span class="list-chip-value">{{ total_count }}</span>
+      <span class="list-chip-label">Approved</span>
+    </div>
+  </div>
+
+  <form method="get" class="list-search">
+    <div class="list-search-field">
+      <i class='bx bx-search-alt' aria-hidden="true"></i>
+      <input
+        type="text"
+        name="reference"
+        value="{{ reference }}"
+        placeholder="Search Client Reference Number"
+      />
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    {% if reference %}
+    <a href="{% url 'chemist:qc_approved' %}" class="btn btn-outline btn-sm">Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="card list-card">
+  {% if samples %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Lab Sample ID</th>
+          <th>Reference</th>
+          <th>Status</th>
+          <th>Approved / Updated</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sample in samples %}
+        <tr>
+          <td class="list-cell-id">
+            <span class="list-id-dot is-approved"></span>
+            {{ sample.slug }}
+          </td>
+          <td>{{ sample.submission.reference }}</td>
+          <td><span class="badge badge-success">QC Approved</span></td>
+          <td class="list-cell-muted">{{ sample.updated_at|date:"d M Y, H:i" }}</td>
+          <td class="list-cell-action">
+            <a href="#" class="btn btn-outline btn-sm">
+              <i class='bx bx-show' aria-hidden="true"></i> View
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <span class="empty-state-icon"><i class='bx bx-check-shield' aria-hidden="true"></i></span>
+    <p>
+      {% if reference %}
+        No QC-approved records found for reference '{{ reference }}'.
+      {% else %}
+        No records have been approved by QC yet.
+      {% endif %}
+    </p>
+  </div>
+  {% endif %}
+</div>
 {% endblock %}
