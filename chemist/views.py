@@ -6,20 +6,28 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Count
 from django.db.models.functions import TruncDate
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from accounts.decorators import chemist_required
 from samples.models import Sample, Service
 from submissions.models import Submission
+from worksheet.models import Worksheet, WorksheetRow
 
 from .models import (
     CYANIDE_TYPES,
     METALLURGICAL_TYPES,
     CarbonActivityEntry,
+    CRMEntry,
     MetallurgicalTestEntry,
     MineralAnalysisEntry,
+    format_lab_sample_id,
     get_metallurgical_type,
+    lab_sample_id_for,
+    latest_mineral_worksheet,
+    worksheet_elements,
 )
 
 MINERAL_FIELDS = (
@@ -43,11 +51,7 @@ METALLURGICAL_FIELDS = (
 CARBON_FIELDS = (
     ("standard_concentration", "standard", "Standard concentration"),
     ("final_concentration_sample", "final_sample", "Final concentration in sample"),
-    (
-        "final_concentration_standard",
-        "final_standard",
-        "Final concentration of standard",
-    ),
+    ("final_concentration_standard", "final_standard", "Final concentration of standard"),
 )
 
 MAX_REPORTED_ERRORS = 10
@@ -79,7 +83,7 @@ class _PostReader:
 def _check(reader, instance, label):
     try:
         instance.clean_fields(
-            exclude=["entry", "source_parameter", *instance.RESULT_FIELDS]
+            exclude=["entry", "source_parameter", "worksheet_row", *instance.RESULT_FIELDS]
         )
     except ValidationError as exc:
         for field, field_errors in exc.message_dict.items():
@@ -145,7 +149,7 @@ def _finalize(request, sample, entry, list_route, entry_route):
         except ValidationError as exc:
             messages.error(request, " ".join(exc.messages))
             return redirect(entry_route, slug=sample.slug)
-        messages.success(request, f"{sample.lab_sample_id} submitted to QC.")
+        messages.success(request, f"{lab_sample_id_for(sample)} submitted to QC.")
         return redirect(list_route, reference=sample.submission.reference)
 
     messages.success(request, "Draft saved.")
@@ -174,12 +178,10 @@ def chemist_dashboard(request):
         .count()
     )
 
-    status_counts = dict(
-        visible.order_by()
-        .values("analysis_status")
-        .annotate(total=Count("id"))
-        .values_list("analysis_status", "total")
-    )
+    reassay_count = visible.filter(analysis_status=Sample.REASSAY_REQUIRED).count()
+    qc_approved_count = visible.filter(analysis_status=Sample.QC_APPROVED).count()
+
+    recent_samples = visible.select_related("submission").order_by("-updated_at")[:8]
 
     today = timezone.localdate()
     days = [today - timedelta(days=offset) for offset in range(6, -1, -1)]
@@ -205,10 +207,9 @@ def chemist_dashboard(request):
     context = {
         "awaiting_mineral_count": awaiting_mineral_count,
         "awaiting_metallurgical_count": awaiting_metallurgical_count,
-        "reassay_count": status_counts.get(Sample.REASSAY_REQUIRED, 0),
-        "qc_approved_count": status_counts.get(Sample.QC_APPROVED, 0),
-        "in_qc_count": status_counts.get(Sample.SUBMITTED_TO_QC, 0),
-        "reassay_submitted_count": status_counts.get(Sample.REASSAY_SUBMITTED, 0),
+        "reassay_count": reassay_count,
+        "qc_approved_count": qc_approved_count,
+        "recent_samples": recent_samples,
         "weekly_chart": weekly_chart,
     }
     return render(request, "chemist/chemist_dashboard.html", context)
@@ -222,26 +223,89 @@ def mineral_analysis_search(request):
     return render(request, "chemist/mineral_analysis_search.html")
 
 
+def _mineral_worksheet_items(submission):
+    worksheet = latest_mineral_worksheet(submission)
+    if worksheet is None:
+        return []
+
+    elements = worksheet_elements(worksheet)
+    rows = worksheet.rows.select_related("lab_sample_mapping__sample").order_by(
+        "row_number"
+    )
+    crm_data = {
+        crm.worksheet_row_id: crm
+        for crm in CRMEntry.objects.filter(worksheet_row__worksheet=worksheet)
+    }
+
+    items = []
+    by_sample = {}
+    for row in rows:
+        number = row.display_number or row.row_number
+        if (
+            row.row_type in (WorksheetRow.SAMPLE_ROW, WorksheetRow.REPLICATE_ROW)
+            and row.lab_sample_mapping_id
+        ):
+            sample = row.lab_sample_mapping.sample
+            item = by_sample.get(sample.pk)
+            if item is None:
+                item = {
+                    "kind": "sample",
+                    "sample": sample,
+                    "lab_id": format_lab_sample_id(row.lab_sample_mapping.lab_sample_id),
+                    "first": number,
+                    "last": number,
+                }
+                by_sample[sample.pk] = item
+                items.append(item)
+            item["last"] = number
+        elif row.row_type == WorksheetRow.CRM_ROW:
+            crm = crm_data.get(row.pk)
+            if crm is None or not crm.has_data:
+                state = "pending"
+            elif crm.status == CRMEntry.SUBMITTED_TO_QC:
+                state = "submitted"
+            elif crm.is_complete(elements):
+                state = "complete"
+            else:
+                state = "partial"
+            items.append(
+                {"kind": "crm", "number": number, "row_id": row.pk, "state": state}
+            )
+    return items
+
+
 @chemist_required
 def mineral_analysis_samples(request, reference):
     submission = _find_submission(reference)
 
-    samples = []
+    items = []
+    sample_count = 0
     if submission:
-        samples = (
-            _visible_samples()
-            .filter(
-                submission=submission,
-                sample_services__service__metallurgical_type=Service.NONE,
-            )
-            .distinct()
-            .order_by("id")
-        )
+        items = _mineral_worksheet_items(submission)
+        if not items:
+            items = [
+                {
+                    "kind": "sample",
+                    "sample": sample,
+                    "lab_id": lab_sample_id_for(sample),
+                    "first": None,
+                    "last": None,
+                }
+                for sample in _visible_samples()
+                .filter(
+                    submission=submission,
+                    sample_services__service__metallurgical_type=Service.NONE,
+                )
+                .distinct()
+                .order_by("id")
+            ]
+        sample_count = sum(1 for item in items if item["kind"] == "sample")
 
     context = {
         "reference": reference,
         "submission": submission,
-        "samples": samples,
+        "items": items,
+        "sample_count": sample_count,
     }
     return render(request, "chemist/mineral_analysis_samples.html", context)
 
@@ -258,13 +322,16 @@ def mineral_analysis_entry(request, slug):
         return _no_entry(request)
 
     entry.ensure_replicates()
-    replicates = list(entry.replicates.all())
+    replicates = list(
+        entry.replicates.select_related("worksheet_row__lab_sample_mapping")
+    )
     read_only = _is_read_only(sample, entry)
 
     def render_entry():
         context = {
             "sample": sample,
             "entry": entry,
+            "lab_id": lab_sample_id_for(sample),
             "elements": entry.registered_elements,
             "replicates": replicates,
             "read_only": read_only,
@@ -304,6 +371,106 @@ def mineral_analysis_entry(request, slug):
             "chemist:mineral_analysis_samples",
             "chemist:mineral_analysis_entry",
         )
+
+    return render_entry()
+
+
+def _format_result(value):
+    if value is None:
+        return None
+    return format(value, "f")
+
+
+@chemist_required
+@require_POST
+def mineral_analysis_preview(request, slug):
+    sample = _get_sample(slug)
+    entry = (
+        MineralAnalysisEntry.objects.filter(sample=sample)
+        .order_by("-revision")
+        .first()
+    )
+    if entry is None:
+        return JsonResponse({"results": {}})
+
+    reader = _PostReader(request.POST)
+    results = {}
+    for replicate in entry.replicates.select_related("entry__sample"):
+        number = replicate.replicate_number
+        prefix = f"rep{number}"
+        for field, label in MINERAL_FIELDS:
+            setattr(replicate, field, reader.decimal(f"{prefix}_{field}", label))
+        try:
+            replicate.calculate()
+        except ArithmeticError:
+            replicate.gold_ppm = None
+            replicate.copper_ppm = None
+            replicate.silver_ppm = None
+        results[str(number)] = {
+            "gold": _format_result(replicate.gold_ppm),
+            "copper": _format_result(replicate.copper_ppm),
+            "silver": _format_result(replicate.silver_ppm),
+        }
+    return JsonResponse({"results": results})
+
+
+@chemist_required
+def mineral_crm_entry(request, row_id):
+    row = get_object_or_404(
+        WorksheetRow.objects.select_related("worksheet__submission"),
+        pk=row_id,
+        row_type=WorksheetRow.CRM_ROW,
+        worksheet__worksheet_type=Worksheet.MINERAL_ANALYSIS,
+        worksheet__submission__is_submitted=True,
+    )
+    submission = row.worksheet.submission
+    elements = worksheet_elements(row.worksheet)
+    crm, _ = CRMEntry.objects.get_or_create(worksheet_row=row)
+    read_only = crm.is_locked
+
+    def render_entry():
+        context = {
+            "crm": crm,
+            "submission": submission,
+            "elements": elements,
+            "read_only": read_only,
+        }
+        return render(request, "chemist/mineral_crm_entry.html", context)
+
+    if request.method == "POST":
+        if read_only:
+            messages.error(
+                request, "This CRM was submitted to QC and can no longer be edited."
+            )
+            return redirect("chemist:mineral_crm_entry", row_id=row.pk)
+
+        reader = _PostReader(request.POST)
+        for field, label in MINERAL_FIELDS:
+            setattr(crm, field, reader.decimal(f"crm_{field}", f"CRM {label}"))
+        _check(reader, crm, "CRM")
+
+        if reader.errors:
+            _report_errors(request, reader.errors)
+            return render_entry()
+
+        with transaction.atomic():
+            crm.entered_by = request.user
+            crm.save()
+            crm.refresh_status(elements, request.user)
+
+        if "submit_qc" in request.POST:
+            try:
+                crm.submit_to_qc(elements, request.user)
+            except ValidationError as exc:
+                messages.error(request, " ".join(exc.messages))
+                return redirect("chemist:mineral_crm_entry", row_id=row.pk)
+            messages.success(request, "CRM submitted to QC.")
+            return redirect(
+                "chemist:mineral_analysis_samples", reference=submission.reference
+            )
+
+        messages.success(request, "Draft saved.")
+        return redirect("chemist:mineral_crm_entry", row_id=row.pk)
 
     return render_entry()
 
@@ -358,6 +525,7 @@ def metallurgical_test_entry(request, slug):
     def render_entry():
         context = {
             "sample": sample,
+            "lab_id": lab_sample_id_for(sample),
             "entry": entry,
             "rows": rows,
             "read_only": read_only,
@@ -421,6 +589,7 @@ def carbon_activity_entry(request, slug):
     def render_entry():
         context = {
             "sample": sample,
+            "lab_id": lab_sample_id_for(sample),
             "entry": entry,
             "replicates": replicates,
             "read_only": read_only,

@@ -17,6 +17,16 @@ urlpatterns = [
         name="mineral_analysis_entry",
     ),
     path(
+        "mineral-analysis/entry/<slug:slug>/preview/",
+        views.mineral_analysis_preview,
+        name="mineral_analysis_preview",
+    ),
+    path(
+        "mineral-analysis/crm/<int:row_id>/",
+        views.mineral_crm_entry,
+        name="mineral_crm_entry",
+    ),
+    path(
         "mineral-analysis/<path:reference>/",
         views.mineral_analysis_samples,
         name="mineral_analysis_samples",
