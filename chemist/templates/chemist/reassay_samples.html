@@ -60,13 +60,13 @@
 </div>
 
 <div class="list-tabs">
-  <a href="?status=all{% if reference %}&reference={{ reference }}{% endif %}" class="list-tab{% if status == 'all' %} is-active{% endif %}">
+  <a href="?status=all{% if reference %}&reference={{ reference|urlencode }}{% endif %}" class="list-tab{% if status == 'all' %} is-active{% endif %}">
     All <span class="list-tab-count">{{ total_count }}</span>
   </a>
-  <a href="?status=required{% if reference %}&reference={{ reference }}{% endif %}" class="list-tab{% if status == 'required' %} is-active{% endif %}">
+  <a href="?status=required{% if reference %}&reference={{ reference|urlencode }}{% endif %}" class="list-tab{% if status == 'required' %} is-active{% endif %}">
     Reassay Required <span class="list-tab-count">{{ required_count }}</span>
   </a>
-  <a href="?status=submitted{% if reference %}&reference={{ reference }}{% endif %}" class="list-tab{% if status == 'submitted' %} is-active{% endif %}">
+  <a href="?status=submitted{% if reference %}&reference={{ reference|urlencode }}{% endif %}" class="list-tab{% if status == 'submitted' %} is-active{% endif %}">
     Reassay Submitted <span class="list-tab-count">{{ submitted_count }}</span>
   </a>
 </div>
@@ -120,6 +120,7 @@
       </tbody>
     </table>
   </div>
+  {% include "chemist/_pagination.html" %}
   {% else %}
   <div class="empty-state">
     <span class="empty-state-icon"><i class='bx bx-refresh' aria-hidden="true"></i></span>

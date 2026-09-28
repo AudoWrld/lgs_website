@@ -1,0 +1,18 @@
+{% if page_obj.has_other_pages %}
+<nav class="pagination" aria-label="Pagination">
+  <span class="pagination-range">Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}</span>
+  <div class="pagination-controls">
+    {% if page_obj.has_previous %}
+    <a href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.previous_page_number }}" class="btn btn-outline btn-sm">
+      <i class='bx bx-chevron-left' aria-hidden="true"></i> Previous
+    </a>
+    {% endif %}
+    <span class="pagination-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.next_page_number }}" class="btn btn-outline btn-sm">
+      Next <i class='bx bx-chevron-right' aria-hidden="true"></i>
+    </a>
+    {% endif %}
+  </div>
+</nav>
+{% endif %}
