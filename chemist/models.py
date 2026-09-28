@@ -653,18 +653,65 @@ class MetallurgicalTestEntry(BaseEntry):
             )
         return {"test_type": test_type}
 
+    @cached_property
+    def worksheet_rows(self):
+        if self.test_type == Service.CYANIDE_CONVENTIONAL:
+            worksheet_type = Worksheet.CONVENTIONAL_CYANIDE_LEACHING
+        elif self.test_type == Service.CYANIDE_OPTIMIZATION:
+            worksheet_type = Worksheet.PARAMETER_OPTIMIZATION
+        else:
+            return []
+
+        worksheet = (
+            Worksheet.objects.filter(
+                submission=self.sample.submission,
+                worksheet_type=worksheet_type,
+            )
+            .order_by("-generated_at", "-id")
+            .first()
+        )
+        if worksheet is None:
+            return []
+        return list(
+            worksheet.rows.filter(
+                lab_sample_mapping__sample=self.sample,
+                row_type=WorksheetRow.SAMPLE_ROW,
+            )
+            .select_related("worksheet", "lab_sample_mapping")
+            .order_by("row_number")
+        )
+
     def ensure_parameter_rows(self):
-        assigned = SampleServiceParameter.objects.filter(
-            sample_service__sample=self.sample
-        ).order_by("order", "id")
+        assigned = (
+            SampleServiceParameter.objects.filter(
+                sample_service__sample=self.sample
+            )
+            .order_by("order", "id")
+        )
+
+        ws_map = {
+            row.parameter: row for row in self.worksheet_rows if row.parameter
+        }
 
         with transaction.atomic():
-            existing = set(self.rows.values_list("source_parameter_id", flat=True))
+            existing = set(
+                self.rows.values_list("source_parameter_id", flat=True)
+            )
             for parameter in assigned:
                 if parameter.id not in existing:
                     MetallurgicalTestRow.objects.create(
-                        entry=self, source_parameter=parameter
+                        entry=self,
+                        source_parameter=parameter,
+                        worksheet_row=ws_map.get(parameter.display_label),
                     )
+                else:
+                    entry_row = self.rows.get(source_parameter=parameter)
+                    ws_row = ws_map.get(parameter.display_label)
+                    if entry_row.worksheet_row_id != getattr(ws_row, "pk", None):
+                        entry_row.worksheet_row = ws_row
+                        entry_row.save(
+                            update_fields=["worksheet_row", "updated_at"]
+                        )
 
     def is_complete(self):
         rows = list(self.rows.all())
@@ -691,6 +738,13 @@ class MetallurgicalTestRow(models.Model):
     source_parameter = models.ForeignKey(
         SampleServiceParameter, on_delete=models.PROTECT, related_name="+"
     )
+    worksheet_row = models.ForeignKey(
+        "worksheet.WorksheetRow",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
 
     weight_volume = _input_field(10, 4)
     si_unit = models.CharField(
@@ -713,6 +767,13 @@ class MetallurgicalTestRow(models.Model):
 
     def __str__(self):
         return f"{self.entry} — {self.source_parameter.display_label}"
+
+    @property
+    def serial_number(self):
+        row = self.worksheet_row
+        if row is None:
+            return None
+        return row.display_number or row.row_number
 
 
 class CarbonActivityEntry(BaseEntry):
@@ -830,6 +891,13 @@ class CarbonActivityReplicate(models.Model):
 
     def __str__(self):
         return f"{self.entry.sample.slug} — Carbon Rep {self.replicate_number}"
+
+    @property
+    def serial_number(self):
+        row = self.worksheet_row
+        if row is None:
+            return self.replicate_number
+        return row.display_number or row.row_number
 
     @property
     def label(self):
