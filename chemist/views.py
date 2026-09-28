@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
@@ -60,6 +61,7 @@ CARBON_FIELDS = (
 )
 
 MAX_REPORTED_ERRORS = 10
+PAGE_SIZE = 10
 
 
 class _PostReader:
@@ -108,6 +110,13 @@ def _report_errors(request, errors):
     remaining = len(errors) - MAX_REPORTED_ERRORS
     if remaining > 0:
         messages.error(request, f"{remaining} more error(s) not shown.")
+
+
+def _paginate(request, queryset):
+    page = Paginator(queryset, PAGE_SIZE).get_page(request.GET.get("page"))
+    params = request.GET.copy()
+    params.pop("page", None)
+    return page, params.urlencode()
 
 
 def _visible_samples():
@@ -713,7 +722,7 @@ def reassay_samples(request):
             analysis_status__in=[Sample.REASSAY_REQUIRED, Sample.REASSAY_SUBMITTED]
         )
         .select_related("submission", "lab_mapping")
-        .order_by("-updated_at")
+        .order_by("-updated_at", "-id")
     )
 
     if reference:
@@ -724,8 +733,11 @@ def reassay_samples(request):
     elif status == "submitted":
         samples = samples.filter(analysis_status=Sample.REASSAY_SUBMITTED)
 
+    page_obj, querystring = _paginate(request, samples)
+
     items = [
-        {"sample": sample, "lab_id": lab_sample_id_for(sample)} for sample in samples
+        {"sample": sample, "lab_id": lab_sample_id_for(sample)}
+        for sample in page_obj.object_list
     ]
 
     required_count = visible.filter(analysis_status=Sample.REASSAY_REQUIRED).count()
@@ -735,6 +747,8 @@ def reassay_samples(request):
         "reference": reference,
         "status": status,
         "items": items,
+        "page_obj": page_obj,
+        "querystring": querystring,
         "required_count": required_count,
         "submitted_count": submitted_count,
         "total_count": required_count + submitted_count,
@@ -756,11 +770,13 @@ def qc_approved(request):
     samples = (
         visible.filter(analysis_status=Sample.QC_APPROVED)
         .select_related("submission", "lab_mapping")
-        .order_by("-updated_at")
+        .order_by("-updated_at", "-id")
     )
 
     if reference:
         samples = samples.filter(submission__reference__iexact=reference)
+
+    page_obj, querystring = _paginate(request, samples)
 
     items = [
         {
@@ -768,12 +784,14 @@ def qc_approved(request):
             "lab_id": lab_sample_id_for(sample),
             "route": _route_name(sample),
         }
-        for sample in samples
+        for sample in page_obj.object_list
     ]
 
     context = {
         "reference": reference,
         "items": items,
+        "page_obj": page_obj,
+        "querystring": querystring,
         "total_count": visible.filter(analysis_status=Sample.QC_APPROVED).count(),
     }
     return render(request, "chemist/qc_approved.html", context)
