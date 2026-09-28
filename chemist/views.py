@@ -196,6 +196,10 @@ def chemist_dashboard(request):
 
     reassay_count = visible.filter(analysis_status=Sample.REASSAY_REQUIRED).count()
     qc_approved_count = visible.filter(analysis_status=Sample.QC_APPROVED).count()
+    in_qc_count = visible.filter(analysis_status=Sample.SUBMITTED_TO_QC).count()
+    reassay_submitted_count = visible.filter(
+        analysis_status=Sample.REASSAY_SUBMITTED
+    ).count()
 
     recent_samples = visible.select_related("submission").order_by("-updated_at")[:8]
 
@@ -225,6 +229,8 @@ def chemist_dashboard(request):
         "awaiting_metallurgical_count": awaiting_metallurgical_count,
         "reassay_count": reassay_count,
         "qc_approved_count": qc_approved_count,
+        "in_qc_count": in_qc_count,
+        "reassay_submitted_count": reassay_submitted_count,
         "recent_samples": recent_samples,
         "weekly_chart": weekly_chart,
     }
