@@ -46,7 +46,7 @@
   <div class="entry-header-main">
     <span class="entry-id-badge"><i class='bx bx-test-tube' aria-hidden="true"></i> {{ lab_id }}</span>
     <h2>Carbon Activity Test</h2>
-    <p>2 replicates generated automatically. Activity % is calculated for you.</p>
+    <p>{{ replicates|length }} replicate{{ replicates|length|pluralize }} generated from the worksheet. Activity % is calculated for you.</p>
   </div>
   <div class="entry-header-status">
     {% if entry.status == "READY_FOR_SUBMISSION" %}
@@ -77,12 +77,12 @@
         <tbody>
           {% for replicate in replicates %}
           <tr>
-            <td class="entry-lab-id">{{ lab_id }} - Replicate {{ replicate.replicate_number }}</td>
-            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_standard" aria-label="Standard concentration, replicate {{ replicate.replicate_number }}" value="{{ replicate.standard_concentration|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
-            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_final_sample" aria-label="Final concentration in sample, replicate {{ replicate.replicate_number }}" value="{{ replicate.final_concentration_sample|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
-            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_final_standard" aria-label="Final concentration of standard carbon, replicate {{ replicate.replicate_number }}" value="{{ replicate.final_concentration_standard|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td class="entry-lab-id">{{ replicate.label }}</td>
+            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_standard" aria-label="Standard concentration, {{ replicate.label }}" value="{{ replicate.standard_concentration|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_final_sample" aria-label="Final concentration in sample, {{ replicate.label }}" value="{{ replicate.final_concentration_sample|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_final_standard" aria-label="Final concentration of standard carbon, {{ replicate.label }}" value="{{ replicate.final_concentration_standard|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
             <td class="entry-col-result" data-result="activity" data-rep="{{ replicate.replicate_number }}">{% if replicate.activity_percent is not None %}{{ replicate.activity_percent|floatformat:4 }}{% else %}—{% endif %}</td>
-            <td><input type="text" name="rep{{ replicate.replicate_number }}_remarks" aria-label="Remarks, replicate {{ replicate.replicate_number }}" value="{{ replicate.remarks }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="text" name="rep{{ replicate.replicate_number }}_remarks" aria-label="Remarks, {{ replicate.label }}" value="{{ replicate.remarks }}" {% if read_only %}disabled{% endif %}></td>
           </tr>
           {% endfor %}
         </tbody>
