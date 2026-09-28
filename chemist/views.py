@@ -174,10 +174,12 @@ def chemist_dashboard(request):
         .count()
     )
 
-    reassay_count = visible.filter(analysis_status=Sample.REASSAY_REQUIRED).count()
-    qc_approved_count = visible.filter(analysis_status=Sample.QC_APPROVED).count()
-
-    recent_samples = visible.select_related("submission").order_by("-updated_at")[:8]
+    status_counts = dict(
+        visible.order_by()
+        .values("analysis_status")
+        .annotate(total=Count("id"))
+        .values_list("analysis_status", "total")
+    )
 
     today = timezone.localdate()
     days = [today - timedelta(days=offset) for offset in range(6, -1, -1)]
@@ -203,9 +205,10 @@ def chemist_dashboard(request):
     context = {
         "awaiting_mineral_count": awaiting_mineral_count,
         "awaiting_metallurgical_count": awaiting_metallurgical_count,
-        "reassay_count": reassay_count,
-        "qc_approved_count": qc_approved_count,
-        "recent_samples": recent_samples,
+        "reassay_count": status_counts.get(Sample.REASSAY_REQUIRED, 0),
+        "qc_approved_count": status_counts.get(Sample.QC_APPROVED, 0),
+        "in_qc_count": status_counts.get(Sample.SUBMITTED_TO_QC, 0),
+        "reassay_submitted_count": status_counts.get(Sample.REASSAY_SUBMITTED, 0),
         "weekly_chart": weekly_chart,
     }
     return render(request, "chemist/chemist_dashboard.html", context)

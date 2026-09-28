@@ -23,7 +23,7 @@
     <h1 class="dash-hero-title"><span data-greeting>Welcome back</span>, {{ display_name }}</h1>
     <p class="dash-hero-sub">
       {% if awaiting_mineral_count or awaiting_metallurgical_count or reassay_count %}
-        You have {{ awaiting_mineral_count }} mineral analysis{{ awaiting_mineral_count|pluralize }}, {{ awaiting_metallurgical_count }} metallurgical test{{ awaiting_metallurgical_count|pluralize }} and {{ reassay_count }} reassay{{ reassay_count|pluralize:"y,ies" }} awaiting entry.
+        You have {{ awaiting_mineral_count }} mineral analysis{{ awaiting_mineral_count|pluralize:"es" }}, {{ awaiting_metallurgical_count }} metallurgical test{{ awaiting_metallurgical_count|pluralize }} and {{ reassay_count }} reassay{{ reassay_count|pluralize:",s" }} awaiting entry.
       {% else %}
         You're all caught up. Nothing needs your attention right now.
       {% endif %}
@@ -120,85 +120,96 @@
 
     <section class="dash-panel">
       <div class="dash-panel-head">
-        <h3>Recent activity</h3>
-        <a href="{% url 'chemist:qc_approved' %}" class="dash-recent-link">View all</a>
+        <h3>Find a reference</h3>
+        <span>Search by Client Reference Number</span>
       </div>
-      <div class="dash-recent-table">
-        <div class="dash-recent-row dash-recent-head">
-          <span>Reference</span>
-          <span>Lab Sample ID</span>
-          <span>Date</span>
-          <span>Status</span>
+      <form method="get" class="dash-search" role="search">
+        <label for="dash-reference" class="dash-search-label">Client Reference Number</label>
+        <input
+          type="text"
+          id="dash-reference"
+          name="reference"
+          class="dash-search-input"
+          placeholder="e.g. LGS/260927/01"
+          autocomplete="off"
+          required
+        >
+        <div class="dash-search-actions">
+          <button type="submit" formaction="{% url 'chemist:mineral_analysis_search' %}" class="btn btn-primary">
+            <i class='bx bx-search' aria-hidden="true"></i> Mineral Analysis
+          </button>
+          <button type="submit" formaction="{% url 'chemist:metallurgical_tests_search' %}" class="btn btn-secondary">
+            <i class='bx bx-test-tube' aria-hidden="true"></i> Metallurgical Tests
+          </button>
+          <button type="submit" formaction="{% url 'chemist:reassay_samples' %}" class="btn btn-outline">
+            <i class='bx bx-refresh' aria-hidden="true"></i> Reassay
+          </button>
         </div>
-        {% for sample in recent_samples %}
-        <a href="{% url 'chemist:mineral_analysis_entry' slug=sample.slug %}" class="dash-recent-row">
-          <span class="dash-recent-ref">{{ sample.submission.reference }}</span>
-          <span class="dash-client-name">{{ sample.slug|upper }}</span>
-          <span class="dash-recent-date">{{ sample.updated_at|date:"d M Y" }}</span>
-          <span>
-            {% if sample.analysis_status == "QC_APPROVED" %}
-              <span class="dash-badge dash-badge--done">QC Approved</span>
-            {% elif sample.analysis_status == "REASSAY_REQUIRED" %}
-              <span class="dash-badge dash-badge--pending">Reassay Required</span>
-            {% elif sample.analysis_status == "SUBMITTED_TO_QC" %}
-              <span class="dash-badge dash-badge--pending">Submitted to QC</span>
-            {% else %}
-              <span class="dash-badge dash-badge--pending">{{ sample.get_analysis_status_display }}</span>
-            {% endif %}
-          </span>
-        </a>
-        {% empty %}
-        <div class="dash-recent-empty">
-          <span class="dash-empty-icon"><i class='bx bx-flask' aria-hidden="true"></i></span>
-          <p>No recent activity yet.</p>
-        </div>
-        {% endfor %}
-      </div>
+      </form>
     </section>
   </div>
 
-  <aside class="dash-panel dash-quick">
-    <div class="dash-panel-head">
-      <h3>Quick actions</h3>
-    </div>
-    <nav class="dash-actions" aria-label="Quick actions">
-      <a href="{% url 'chemist:mineral_analysis_search' %}" class="dash-action">
-        <span class="dash-action-icon">
-          <svg
-            class="icon"
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <circle cx="12" cy="12" r="1"></circle>
-            <path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"></path>
-            <path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z"></path>
-          </svg>
-        </span>
-        <span class="dash-action-text"><span class="dash-action-title">Mineral analysis</span><span class="dash-action-desc">Search a reference and enter mineral analysis results</span></span>
-        <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
-      </a>
-      <a href="{% url 'chemist:metallurgical_tests_search' %}" class="dash-action">
-        <span class="dash-action-icon"><i class='bx bx-test-tube' aria-hidden="true"></i></span>
-        <span class="dash-action-text"><span class="dash-action-title">Metallurgical tests</span><span class="dash-action-desc">Enter leaching, optimization or carbon activity data</span></span>
-        <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
-      </a>
-      <a href="{% url 'chemist:reassay_samples' %}" class="dash-action">
-        <span class="dash-action-icon"><i class='bx bx-refresh' aria-hidden="true"></i></span>
-        <span class="dash-action-text"><span class="dash-action-title">Reassay samples</span><span class="dash-action-desc">Handle samples returned by QC for reassay</span></span>
-        <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
-      </a>
-      <a href="{% url 'chemist:qc_approved' %}" class="dash-action">
-        <span class="dash-action-icon"><i class='bx bx-check-shield' aria-hidden="true"></i></span>
-        <span class="dash-action-text"><span class="dash-action-title">QC approved</span><span class="dash-action-desc">View records already approved by Quality Control</span></span>
-        <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
-      </a>
-    </nav>
-  </aside>
+  <div class="dash-col">
+    <section class="dash-panel">
+      <div class="dash-panel-head">
+        <h3>Waiting on QC</h3>
+        <span>Submitted by you</span>
+      </div>
+      <ul class="dash-qc-list">
+        <li>
+          <span>Submitted to QC</span>
+          <span class="dash-qc-value">{{ in_qc_count }}</span>
+        </li>
+        <li>
+          <span>Reassay submitted</span>
+          <span class="dash-qc-value">{{ reassay_submitted_count }}</span>
+        </li>
+      </ul>
+    </section>
+
+    <aside class="dash-panel dash-quick">
+      <div class="dash-panel-head">
+        <h3>Quick actions</h3>
+      </div>
+      <nav class="dash-actions" aria-label="Quick actions">
+        <a href="{% url 'chemist:mineral_analysis_search' %}" class="dash-action">
+          <span class="dash-action-icon">
+            <svg
+              class="icon"
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="1"></circle>
+              <path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"></path>
+              <path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z"></path>
+            </svg>
+          </span>
+          <span class="dash-action-text"><span class="dash-action-title">Mineral analysis</span><span class="dash-action-desc">Search a reference and enter mineral analysis results</span></span>
+          <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
+        </a>
+        <a href="{% url 'chemist:metallurgical_tests_search' %}" class="dash-action">
+          <span class="dash-action-icon"><i class='bx bx-test-tube' aria-hidden="true"></i></span>
+          <span class="dash-action-text"><span class="dash-action-title">Metallurgical tests</span><span class="dash-action-desc">Enter leaching, optimization or carbon activity data</span></span>
+          <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
+        </a>
+        <a href="{% url 'chemist:reassay_samples' %}" class="dash-action">
+          <span class="dash-action-icon"><i class='bx bx-refresh' aria-hidden="true"></i></span>
+          <span class="dash-action-text"><span class="dash-action-title">Reassay samples</span><span class="dash-action-desc">Handle samples returned by QC for reassay</span></span>
+          <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
+        </a>
+        <a href="{% url 'chemist:qc_approved' %}" class="dash-action">
+          <span class="dash-action-icon"><i class='bx bx-check-shield' aria-hidden="true"></i></span>
+          <span class="dash-action-text"><span class="dash-action-title">QC approved</span><span class="dash-action-desc">View records already approved by Quality Control</span></span>
+          <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
+        </a>
+      </nav>
+    </aside>
+  </div>
 </div>
 {% endblock %}
 
