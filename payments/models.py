@@ -3,6 +3,9 @@ from decimal import Decimal
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Sum
+
+from samples.models import SampleService, Service
 
 
 class Payment(models.Model):
@@ -72,13 +75,34 @@ class Payment(models.Model):
     def outstanding_balance(self):
         return self.net_amount_payable - self.total_amount_paid
 
+    @property
+    def unpriced_quotation_count(self):
+        return SampleService.objects.filter(
+            sample__submission=self.submission,
+            service__pricing_type=Service.QUOTATION,
+            quoted_price__isnull=True,
+        ).count()
+
     def recalculate_gross_amount(self):
-        total = Decimal("0.00")
-        for sample in self.submission.samples.all():
-            for ss in sample.sample_services.all():
-                if ss.line_price:
-                    total += ss.line_price
-        self.gross_amount = total
+        total = SampleService.objects.filter(
+            sample__submission=self.submission
+        ).aggregate(total=Sum("charged_price"))["total"]
+        self.gross_amount = total or Decimal("0.00")
+
+    def refresh_from_charges(self):
+        self.recalculate_gross_amount()
+        if self.payment_status == self.PAID and self.outstanding_balance > 0:
+            self.payment_status = (
+                self.PARTIALLY_PAID if self.total_amount_paid > 0 else self.UNPAID
+            )
+        self.save()
+
+    @classmethod
+    def ensure_for(cls, submission):
+        payment, created = cls.objects.get_or_create(submission=submission)
+        if created:
+            payment.refresh_from_charges()
+        return payment
 
     def expected_status(self):
         if self.total_amount_paid <= 0:
@@ -124,6 +148,12 @@ class Payment(models.Model):
 
         if self.payment_status not in valid:
             raise ValidationError("PAYMENT STATUS DOES NOT MATCH THE PAYMENT AMOUNT")
+
+        if self.payment_status == self.PAID and self.unpriced_quotation_count:
+            raise ValidationError(
+                "A quotation amount has not been entered for every quoted service. "
+                "The payment cannot be marked Paid yet."
+            )
 
 
 class PaymentTransaction(models.Model):

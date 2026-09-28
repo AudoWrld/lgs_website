@@ -46,15 +46,7 @@ def payment_list(request):
         )
 
     if submission:
-        payment, _ = Payment.objects.get_or_create(submission=submission)
-        payment.recalculate_gross_amount()
-        if payment.payment_status == Payment.PAID and payment.outstanding_balance > 0:
-            payment.payment_status = (
-                Payment.PARTIALLY_PAID
-                if payment.total_amount_paid > 0
-                else Payment.UNPAID
-            )
-        payment.save(update_fields=["gross_amount", "payment_status"])
+        payment = Payment.ensure_for(submission)
 
         if request.method == "POST":
             if payment.payment_status == Payment.PAID:
@@ -133,15 +125,7 @@ def payment_list(request):
         first_sub = submissions[0] if submissions else None
         if first_sub:
             submission = first_sub
-            payment, _ = Payment.objects.get_or_create(submission=submission)
-            payment.recalculate_gross_amount()
-            if payment.payment_status == Payment.PAID and payment.outstanding_balance > 0:
-                payment.payment_status = (
-                    Payment.PARTIALLY_PAID
-                    if payment.total_amount_paid > 0
-                    else Payment.UNPAID
-                )
-            payment.save(update_fields=["gross_amount", "payment_status"])
+            payment = Payment.ensure_for(submission)
             update_form = PaymentUpdateForm(
                 initial={
                     "discount": payment.discount,
