@@ -1,18 +1,44 @@
 {% extends "chemist/base_chemist.html" %}
-{% load static %}
+{% load static l10n %}
 
-{% block title %}{{ sample.slug }} — {{ entry.get_test_type_display }} — LGS Chemist{% endblock %}
+{% block title %}{{ lab_id }} — {{ entry.get_test_type_display }} — LGS Chemist{% endblock %}
 {% block page_title %}{{ entry.get_test_type_display }}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
 <link rel="stylesheet" href="{% static 'chemist/css/chemist_entry.css' %}">
+<style>
+  .entry-table th,
+  .entry-table td {
+    vertical-align: middle !important;
+    white-space: nowrap;
+  }
+
+  .entry-table td {
+    padding-top: 0.45rem !important;
+    padding-bottom: 0.45rem !important;
+  }
+
+  .entry-table input,
+  .entry-table select {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 120px;
+    height: 2.25rem !important;
+    margin: 0;
+  }
+
+  .entry-table input[type="text"] {
+    min-width: 200px;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="entry-header">
   <div class="entry-header-main">
-    <span class="entry-id-badge"><i class='bx bx-test-tube' aria-hidden="true"></i> {{ sample.slug }}</span>
+    <span class="entry-id-badge"><i class='bx bx-test-tube' aria-hidden="true"></i> {{ lab_id }}</span>
     <h2>{{ entry.get_test_type_display }}</h2>
     <p>Parameters loaded automatically from Reception registration. No calculation formula applies.</p>
   </div>
@@ -48,9 +74,9 @@
           {% for row in rows %}
           <tr>
             <td class="entry-param-label">{{ row.source_parameter.display_label }}</td>
-            <td><input type="number" step="any" name="row{{ row.id }}_weight_volume" value="{{ row.weight_volume|default_if_none:'' }}"></td>
+            <td><input type="number" step="any" min="0.0001" name="row{{ row.id }}_weight_volume" aria-label="Weight / Volume, {{ row.source_parameter.display_label }}" value="{{ row.weight_volume|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
             <td>
-              <select name="row{{ row.id }}_si_unit">
+              <select name="row{{ row.id }}_si_unit" aria-label="SI unit, {{ row.source_parameter.display_label }}" {% if read_only %}disabled{% endif %}>
                 <option value="">—</option>
                 <option value="kg" {% if row.si_unit == "kg" %}selected{% endif %}>kg</option>
                 <option value="g" {% if row.si_unit == "g" %}selected{% endif %}>g</option>
@@ -58,10 +84,10 @@
                 <option value="L" {% if row.si_unit == "L" %}selected{% endif %}>L</option>
               </select>
             </td>
-            <td><input type="number" step="any" name="row{{ row.id }}_recovery_12h" value="{{ row.gold_recovery_12h|default_if_none:'' }}"></td>
-            <td><input type="number" step="any" name="row{{ row.id }}_recovery_24h" value="{{ row.gold_recovery_24h|default_if_none:'' }}"></td>
-            <td><input type="number" step="any" name="row{{ row.id }}_recovery_48h" value="{{ row.gold_recovery_48h|default_if_none:'' }}"></td>
-            <td><input type="text" name="row{{ row.id }}_remarks" value="{{ row.remarks }}"></td>
+            <td><input type="number" step="any" min="0" max="100" name="row{{ row.id }}_recovery_12h" aria-label="Gold recovery 12h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_12h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" max="100" name="row{{ row.id }}_recovery_24h" aria-label="Gold recovery 24h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_24h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" max="100" name="row{{ row.id }}_recovery_48h" aria-label="Gold recovery 48h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_48h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="text" name="row{{ row.id }}_remarks" aria-label="Remarks, {{ row.source_parameter.display_label }}" value="{{ row.remarks }}" {% if read_only %}disabled{% endif %}></td>
           </tr>
           {% endfor %}
         </tbody>
@@ -69,9 +95,8 @@
     </div>
   </div>
   {% else %}
-  <div class="empty-state">
-    <span class="empty-state-icon"><i class='bx bx-error' aria-hidden="true"></i></span>
-    <p>No parameters have been assigned to this sample by Reception yet.</p>
+  <div class="card entry-card">
+    <p class="entry-empty">No parameters have been assigned to this sample by Reception yet.</p>
   </div>
   {% endif %}
 
@@ -79,14 +104,16 @@
     <a href="{% url 'chemist:metallurgical_tests_samples' reference=sample.submission.reference %}" class="btn btn-outline">
       <i class='bx bx-arrow-back' aria-hidden="true"></i> Back
     </a>
+    {% if not read_only and rows %}
     <div class="entry-actions-right">
-      <button type="submit" name="save_draft" class="btn btn-secondary">
+      <button type="submit" name="save_draft" value="1" class="btn btn-secondary">
         <i class='bx bx-save' aria-hidden="true"></i> Save
       </button>
-      <button type="submit" name="submit_qc" value="1" class="btn btn-primary">
+      <button type="submit" name="submit_qc" value="1" class="btn btn-primary" {% if entry.status != "READY_FOR_SUBMISSION" %}disabled{% endif %}>
         <i class='bx bx-check' aria-hidden="true"></i> Submit to QC
       </button>
     </div>
+    {% endif %}
   </div>
 </form>
 {% endblock %}
