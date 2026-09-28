@@ -1,0 +1,147 @@
+.approved-id {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-head);
+  font-weight: 600;
+  color: var(--navy);
+  white-space: nowrap;
+}
+
+.approved-table td {
+  vertical-align: middle;
+}
+
+.approved-dialog {
+  width: min(420px, calc(100% - 2rem));
+  padding: 0;
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--success-text);
+  border-radius: 0;
+  background: var(--white);
+  color: var(--charcoal);
+  box-shadow: 0 24px 60px rgba(13, 46, 68, 0.28);
+}
+
+.approved-dialog::backdrop {
+  background: rgba(13, 46, 68, 0.55);
+}
+
+.approved-dialog[open] {
+  animation: approved-pop 0.22s ease-out;
+}
+
+.approved-body {
+  padding: 2rem 1.75rem 1.25rem;
+  text-align: center;
+}
+
+.approved-tick {
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 1rem;
+}
+
+.approved-tick circle {
+  fill: none;
+  stroke: var(--success-text);
+  stroke-width: 3;
+  stroke-dasharray: 176;
+  stroke-dashoffset: 176;
+}
+
+.approved-tick path {
+  fill: none;
+  stroke: var(--success-text);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+}
+
+.approved-dialog[open] .approved-tick circle {
+  animation: approved-draw 0.55s ease-out 0.05s forwards;
+}
+
+.approved-dialog[open] .approved-tick path {
+  animation: approved-draw 0.4s ease-out 0.5s forwards;
+}
+
+.approved-body h2 {
+  margin: 0 0 0.35rem;
+  color: var(--success-text);
+  font-size: 1.25rem;
+}
+
+.approved-body p {
+  margin: 0 0 1.25rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.approved-details {
+  margin: 0;
+  border: 1px solid var(--line);
+  background: var(--off-white);
+  text-align: left;
+}
+
+.approved-details div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.875rem;
+}
+
+.approved-details div:last-child {
+  border-bottom: none;
+}
+
+.approved-details dt {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.approved-details dd {
+  margin: 0;
+  color: var(--navy);
+  font-family: var(--font-head);
+  font-weight: 600;
+  text-align: right;
+}
+
+.approved-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  padding: 1rem 1.75rem 1.5rem;
+}
+
+@keyframes approved-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes approved-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .approved-dialog[open],
+  .approved-dialog[open] .approved-tick circle,
+  .approved-dialog[open] .approved-tick path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
