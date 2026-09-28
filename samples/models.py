@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -233,6 +235,45 @@ class Sample(models.Model):
         if errors:
             raise ValidationError(errors)
 
+    def calculate_service_charges(self):
+        lines = list(self.sample_services.select_related("service"))
+        charges = {}
+        fixed = []
+        for line in lines:
+            if line.service.pricing_type == Service.QUOTATION:
+                charges[line.pk] = line.quoted_price
+            else:
+                fixed.append(line)
+
+        def elements(service):
+            return frozenset(
+                name
+                for name, flag in (
+                    ("au", service.tests_gold),
+                    ("cu", service.tests_copper),
+                    ("ag", service.tests_silver),
+                    ("s", service.tests_sulphur),
+                )
+                if flag
+            )
+
+        ordered = sorted(
+            fixed,
+            key=lambda line: (
+                -len(elements(line.service)),
+                -(line.service.unit_price or Decimal("0")),
+            ),
+        )
+        covered = set()
+        for line in ordered:
+            line_elements = elements(line.service)
+            if line_elements and line_elements <= covered:
+                charges[line.pk] = Decimal("0.00")
+                continue
+            covered |= line_elements
+            charges[line.pk] = line.service.unit_price or Decimal("0.00")
+        return charges
+
     def set_analysis_status(self, new_status, sync_submission=True):
         if new_status not in dict(self.ANALYSIS_STATUS_CHOICES):
             raise ValidationError(f"'{new_status}' is not a valid analysis status.")
@@ -256,6 +297,9 @@ class SampleService(models.Model):
     quoted_price = models.DecimalField(
         max_digits=12, decimal_places=2, null=True, blank=True
     )
+    charged_price = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True, editable=False
+    )
 
     class Meta:
         constraints = [
@@ -269,6 +313,8 @@ class SampleService(models.Model):
 
     @property
     def line_price(self):
+        if self.charged_price is not None:
+            return self.charged_price
         if self.service.pricing_type == Service.QUOTATION:
             return self.quoted_price
         return self.service.unit_price
@@ -276,6 +322,17 @@ class SampleService(models.Model):
     def clean(self):
         if self.service.pricing_type == Service.FIXED and self.quoted_price is not None:
             raise ValidationError("Fixed-price services cannot carry a quoted price.")
+
+    def save(self, *args, **kwargs):
+        is_quotation = self.service.pricing_type == Service.QUOTATION
+        if is_quotation:
+            self.charged_price = self.quoted_price
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None and "charged_price" not in update_fields:
+                kwargs["update_fields"] = [*update_fields, "charged_price"]
+        super().save(*args, **kwargs)
+        if is_quotation and self.sample.submission.is_submitted:
+            self.sample.submission.refresh_payment_gross()
 
 
 class SampleServiceParameter(models.Model):
