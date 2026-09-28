@@ -43,7 +43,11 @@
     <p>Parameters loaded automatically from Reception registration. No calculation formula applies.</p>
   </div>
   <div class="entry-header-status">
-    {% if entry.status == "READY_FOR_SUBMISSION" %}
+    {% if sample.analysis_status == "REASSAY_SUBMITTED" %}
+      <span class="badge badge-success">Reassay Submitted</span>
+    {% elif sample.analysis_status == "REASSAY_REQUIRED" %}
+      <span class="badge badge-warning">Reassay Required</span>
+    {% elif entry.status == "READY_FOR_SUBMISSION" %}
       <span class="badge badge-success">Ready for Submission</span>
     {% elif entry.status == "SUBMITTED_TO_QC" %}
       <span class="badge badge-success">Submitted to QC</span>
