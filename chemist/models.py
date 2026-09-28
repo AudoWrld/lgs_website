@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 
 from samples.models import Sample, SampleServiceParameter, Service
+from worksheet.models import Worksheet, WorksheetRow
 
 CYANIDE_TYPES = (Service.CYANIDE_CONVENTIONAL, Service.CYANIDE_OPTIMIZATION)
 METALLURGICAL_TYPES = CYANIDE_TYPES + (Service.CARBON_ACTIVITY,)
@@ -52,6 +53,68 @@ def get_metallurgical_type(sample):
         .first()
     )
     return sample_service.service.metallurgical_type if sample_service else None
+
+
+def latest_mineral_worksheet(submission):
+    return (
+        Worksheet.objects.filter(
+            submission=submission, worksheet_type=Worksheet.MINERAL_ANALYSIS
+        )
+        .order_by("-generated_at", "-id")
+        .first()
+    )
+
+
+def worksheet_rows_for_sample(sample):
+    worksheet = latest_mineral_worksheet(sample.submission)
+    if worksheet is None:
+        return []
+    return list(
+        worksheet.rows.filter(
+            lab_sample_mapping__sample=sample,
+            row_type__in=[WorksheetRow.SAMPLE_ROW, WorksheetRow.REPLICATE_ROW],
+        )
+        .select_related("worksheet", "lab_sample_mapping")
+        .order_by("row_number")
+    )
+
+
+def worksheet_label(row, position=None):
+    mapping = row.lab_sample_mapping
+    if mapping is None:
+        return ""
+    prefix, _, suffix = mapping.lab_sample_id.rpartition("-")
+    number = row.replicate_number or position
+    letter = chr(64 + number) if number else ""
+    return f"{prefix}-{suffix.lstrip('0') or '0'}{letter}"
+
+
+def format_lab_sample_id(raw):
+    prefix, _, suffix = (raw or "").rpartition("-")
+    if not prefix:
+        return raw or ""
+    return f"{prefix}-{suffix.lstrip('0') or '0'}"
+
+
+def lab_sample_id_for(sample):
+    mapping = getattr(sample, "lab_mapping", None)
+    if mapping is None:
+        return sample.slug.upper()
+    return format_lab_sample_id(mapping.lab_sample_id)
+
+
+def worksheet_elements(worksheet):
+    tokens = {
+        token.strip().upper()
+        for token in (worksheet.elements or "").replace("/", ",").split(",")
+        if token.strip()
+    }
+    return {
+        "gold": "AU" in tokens,
+        "copper": "CU" in tokens,
+        "silver": "AG" in tokens,
+        "sulphur": "S" in tokens,
+    }
 
 
 class BaseEntry(models.Model):
@@ -197,7 +260,6 @@ class MineralAnalysisEntry(BaseEntry):
     sample = models.ForeignKey(
         Sample, on_delete=models.CASCADE, related_name="mineral_analysis_entries"
     )
-    crm_registered = models.BooleanField(default=False)
 
     class Meta:
         verbose_name_plural = "Mineral Analysis Entries"
@@ -232,15 +294,31 @@ class MineralAnalysisEntry(BaseEntry):
     def show_weight_column(self):
         return self.sample.sample_type != Sample.PROCESS_SOLUTION
 
+    @cached_property
+    def worksheet_rows(self):
+        return worksheet_rows_for_sample(self.sample)
+
     @property
     def required_replicate_count(self):
-        return self.sample.replicate_count
+        return len(self.worksheet_rows) or self.sample.replicate_count
 
     def ensure_replicates(self):
-        needed = self.required_replicate_count
+        rows = self.worksheet_rows
         with transaction.atomic():
+            if rows:
+                for number, row in enumerate(rows, start=1):
+                    replicate, created = MineralAnalysisReplicate.objects.get_or_create(
+                        entry=self,
+                        replicate_number=number,
+                        defaults={"worksheet_row": row},
+                    )
+                    if not created and replicate.worksheet_row_id != row.pk:
+                        replicate.worksheet_row = row
+                        replicate.save(update_fields=["worksheet_row", "updated_at"])
+                return
+
             existing = set(self.replicates.values_list("replicate_number", flat=True))
-            for number in range(1, needed + 1):
+            for number in range(1, self.sample.replicate_count + 1):
                 if number not in existing:
                     MineralAnalysisReplicate.objects.create(
                         entry=self, replicate_number=number
@@ -275,10 +353,8 @@ class MineralAnalysisEntry(BaseEntry):
                 return False
             if elements["sulphur"] and replicate.sulphur is None:
                 return False
-        return True
 
-    def after_submit(self):
-        CRMSequenceCounter.register_sample_and_maybe_insert_crm(self)
+        return True
 
 
 class MineralAnalysisReplicate(models.Model):
@@ -288,6 +364,13 @@ class MineralAnalysisReplicate(models.Model):
         MineralAnalysisEntry, on_delete=models.CASCADE, related_name="replicates"
     )
     replicate_number = models.PositiveSmallIntegerField()
+    worksheet_row = models.ForeignKey(
+        "worksheet.WorksheetRow",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
 
     weight = _input_field(10, 4)
     au_aas = _input_field(12, 6)
@@ -314,6 +397,19 @@ class MineralAnalysisReplicate(models.Model):
 
     def __str__(self):
         return f"{self.entry.sample.slug} — Rep {self.replicate_number}"
+
+    @property
+    def serial_number(self):
+        row = self.worksheet_row
+        if row is None:
+            return self.replicate_number
+        return row.display_number or row.row_number
+
+    @property
+    def label(self):
+        if self.worksheet_row is None:
+            return str(self.replicate_number)
+        return worksheet_label(self.worksheet_row, self.replicate_number)
 
     def calculate(self):
         self.gold_ppm = None
@@ -369,68 +465,34 @@ class MineralAnalysisReplicate(models.Model):
         super().save(*args, **kwargs)
 
 
-class CRMSequenceCounter(models.Model):
-    samples_since_last_crm = models.PositiveIntegerField(default=0)
-    total_crm_inserted = models.PositiveIntegerField(default=0)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        verbose_name = "CRM Sequence Counter"
-
-    def save(self, *args, **kwargs):
-        self.pk = 1
-        super().save(*args, **kwargs)
-
-    @classmethod
-    def get_singleton(cls):
-        obj, _ = cls.objects.get_or_create(pk=1)
-        return obj
-
-    @classmethod
-    def register_sample_and_maybe_insert_crm(cls, mineral_entry):
-        if mineral_entry.is_reassay or mineral_entry.crm_registered:
-            return None
-        if mineral_entry.sample.sample_type == Sample.PROCESS_SOLUTION:
-            return None
-        if not any(mineral_entry.registered_elements.values()):
-            return None
-
-        with transaction.atomic():
-            cls.objects.get_or_create(pk=1)
-            counter = cls.objects.select_for_update().get(pk=1)
-            counter.samples_since_last_crm += 1
-
-            crm_entry = None
-            if counter.samples_since_last_crm >= 2:
-                counter.samples_since_last_crm = 0
-                counter.total_crm_inserted += 1
-                crm_entry = CRMEntry.objects.create(
-                    sequence_number=counter.total_crm_inserted,
-                    inserted_after_entry=mineral_entry,
-                )
-
-            counter.save(
-                update_fields=[
-                    "samples_since_last_crm",
-                    "total_crm_inserted",
-                    "updated_at",
-                ]
-            )
-
-            mineral_entry.crm_registered = True
-            mineral_entry.save(update_fields=["crm_registered", "updated_at"])
-
-        return crm_entry
-
-
 class CRMEntry(models.Model):
-    sequence_number = models.PositiveIntegerField(unique=True)
-    inserted_after_entry = models.ForeignKey(
-        MineralAnalysisEntry,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="crm_entries_after",
+    RESULT_FIELDS = ()
+
+    DRAFT = "DRAFT"
+    READY_FOR_SUBMISSION = "READY_FOR_SUBMISSION"
+    SUBMITTED_TO_QC = "SUBMITTED_TO_QC"
+
+    STATUS_CHOICES = [
+        (DRAFT, "Draft"),
+        (READY_FOR_SUBMISSION, "Ready for Submission"),
+        (SUBMITTED_TO_QC, "Submitted to QC"),
+    ]
+
+    DATA_FIELDS = (
+        "weight",
+        "au_aas",
+        "au_df",
+        "cu_aas",
+        "cu_df",
+        "ag_aas",
+        "ag_df",
+        "sulphur",
+    )
+
+    worksheet_row = models.OneToOneField(
+        "worksheet.WorksheetRow",
+        on_delete=models.CASCADE,
+        related_name="crm_entry",
     )
 
     weight = _input_field(10, 4)
@@ -442,16 +504,84 @@ class CRMEntry(models.Model):
     ag_df = _input_field(10, 4)
     sulphur = _input_field(10, 4)
 
+    entered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="crm_entries",
+        limit_choices_to={"role": "CHEMIST"},
+    )
+    status = models.CharField(
+        max_length=25, choices=STATUS_CHOICES, default=DRAFT, db_index=True
+    )
+    submitted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["sequence_number"]
+        ordering = ["worksheet_row__row_number"]
         verbose_name = "CRM Entry"
         verbose_name_plural = "CRM Entries"
 
     def __str__(self):
-        return f"CRM #{self.sequence_number}"
+        return f"CRM {self.serial_number}"
+
+    @property
+    def serial_number(self):
+        row = self.worksheet_row
+        return row.display_number or row.row_number
+
+    @property
+    def has_data(self):
+        return any(getattr(self, field) is not None for field in self.DATA_FIELDS)
+
+    def is_complete(self, elements, needs_weight=True):
+        if needs_weight and (self.weight is None or self.weight <= 0):
+            return False
+        if elements["gold"] and (self.au_aas is None or self.au_df is None):
+            return False
+        if elements["copper"] and (self.cu_aas is None or self.cu_df is None):
+            return False
+        if elements["silver"] and (self.ag_aas is None or self.ag_df is None):
+            return False
+        if elements["sulphur"] and self.sulphur is None:
+            return False
+        return True
+
+    @property
+    def is_locked(self):
+        return self.status == self.SUBMITTED_TO_QC
+
+    def refresh_status(self, elements, user=None):
+        if self.is_locked:
+            return self.status
+        self.status = (
+            self.READY_FOR_SUBMISSION if self.is_complete(elements) else self.DRAFT
+        )
+        fields = ["status", "updated_at"]
+        if user is not None and user.is_authenticated:
+            self.entered_by = user
+            fields.append("entered_by")
+        self.save(update_fields=fields)
+        return self.status
+
+    def submit_to_qc(self, elements, user=None):
+        with transaction.atomic():
+            current = type(self).objects.select_for_update().get(pk=self.pk)
+            if current.status == self.SUBMITTED_TO_QC:
+                raise ValidationError("This CRM has already been submitted to QC.")
+            if not self.is_complete(elements):
+                raise ValidationError(
+                    "All CRM fields must be completed before submitting to QC."
+                )
+            self.status = self.SUBMITTED_TO_QC
+            self.submitted_at = timezone.now()
+            fields = ["status", "submitted_at", "updated_at"]
+            if user is not None and user.is_authenticated:
+                self.entered_by = user
+                fields.append("entered_by")
+            self.save(update_fields=fields)
 
 
 class MetallurgicalTestEntry(BaseEntry):
