@@ -11,6 +11,17 @@
   .mineral-sample-id {
     text-transform: uppercase;
   }
+
+  .list-sn {
+    font-family: var(--font-head);
+    font-weight: 700;
+    color: var(--navy);
+    white-space: nowrap;
+  }
+
+  .list-row-crm td {
+    background: #f1ede3;
+  }
 </style>
 {% endblock %}
 
@@ -22,7 +33,7 @@
       <span class="list-chip-label">Reference</span>
     </div>
     <div class="list-chip">
-      <span class="list-chip-value">{{ samples|length }}</span>
+      <span class="list-chip-value">{{ sample_count }}</span>
       <span class="list-chip-label">Lab Sample IDs</span>
     </div>
   </div>
@@ -42,11 +53,12 @@
     <span class="empty-state-icon"><i class='bx bx-error' aria-hidden="true"></i></span>
     <p>No submission found for reference '{{ reference }}'.</p>
   </div>
-  {% elif samples %}
+  {% elif items %}
   <div class="table-wrap">
     <table class="table">
       <thead>
         <tr>
+          <th>S/N</th>
           <th>Lab Sample ID</th>
           <th>Status</th>
           <th>Last Updated</th>
@@ -54,12 +66,44 @@
         </tr>
       </thead>
       <tbody>
-        {% for sample in samples %}
+        {% for item in items %}
+        {% if item.kind == "crm" %}
+        <tr class="list-row-crm">
+          <td class="list-sn">{{ item.number }}</td>
+          <td>
+            <div class="list-cell-id">
+              <span class="list-id-dot{% if item.state == 'submitted' %} is-submitted{% endif %}"></span>
+              CRM
+            </div>
+          </td>
+          <td>
+            {% if item.state == "submitted" %}
+              <span class="badge badge-success">Submitted to QC</span>
+            {% elif item.state == "complete" %}
+              <span class="badge badge-warning">Ready for Submission</span>
+            {% elif item.state == "partial" %}
+              <span class="badge badge-warning">Draft</span>
+            {% else %}
+              <span class="badge badge-danger">Pending</span>
+            {% endif %}
+          </td>
+          <td class="list-cell-muted">—</td>
+          <td class="list-cell-action">
+            <a href="{% url 'chemist:mineral_crm_entry' row_id=item.row_id %}" class="btn btn-outline btn-sm">
+              <i class='bx bx-edit' aria-hidden="true"></i> Open
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        {% with sample=item.sample %}
         <tr>
+          <td class="list-sn">
+            {% if item.first is None %}—{% elif item.first == item.last %}{{ item.first }}{% else %}{{ item.first }}–{{ item.last }}{% endif %}
+          </td>
           <td>
             <div class="list-cell-id mineral-sample-id">
               <span class="list-id-dot{% if sample.analysis_status == 'QC_APPROVED' %} is-approved{% elif sample.analysis_status == 'SUBMITTED_TO_QC' %} is-submitted{% endif %}"></span>
-              {{ sample.slug }}
+              {{ item.lab_id }}
             </div>
           </td>
           <td>
@@ -82,6 +126,8 @@
             </a>
           </td>
         </tr>
+        {% endwith %}
+        {% endif %}
         {% endfor %}
       </tbody>
     </table>

@@ -1,18 +1,46 @@
 {% extends "chemist/base_chemist.html" %}
 {% load static l10n %}
 
-{% block title %}{{ sample.lab_sample_id }} — Mineral Analysis — LGS Chemist{% endblock %}
+{% block title %}{{ lab_id }} — Mineral Analysis — LGS Chemist{% endblock %}
 {% block page_title %}Mineral Analysis Entry{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
 <link rel="stylesheet" href="{% static 'chemist/css/chemist_entry.css' %}">
+<style>
+  .entry-lab-id {
+    font-family: var(--font-head);
+    font-weight: 600;
+    color: var(--navy);
+    white-space: nowrap;
+  }
+
+  .entry-table th,
+  .entry-table td {
+    vertical-align: middle !important;
+    white-space: nowrap;
+  }
+
+  .entry-table td {
+    padding-top: 0.45rem !important;
+    padding-bottom: 0.45rem !important;
+  }
+
+  .entry-table input {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 120px;
+    height: 2.25rem !important;
+    margin: 0;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="entry-header">
   <div class="entry-header-main">
-    <span class="entry-id-badge"><i class='bx bx-flask' aria-hidden="true"></i> {{ sample.lab_sample_id }}</span>
+    <span class="entry-id-badge"><i class='bx bx-flask' aria-hidden="true"></i> {{ lab_id }}</span>
     <h2>Mineral Analysis Data Entry</h2>
     <p>{{ replicates|length }} replicate row{{ replicates|length|pluralize }} generated automatically.</p>
   </div>
@@ -37,7 +65,7 @@
   </a>
 </div>
 {% else %}
-<form method="post">
+<form method="post" data-preview-url="{% url 'chemist:mineral_analysis_preview' slug=sample.slug %}">
   {% csrf_token %}
   <div class="card entry-card">
     <div class="table-wrap">
@@ -45,6 +73,7 @@
         <thead>
           <tr>
             <th>S/N</th>
+            <th>Lab Sample ID</th>
             {% if entry.show_weight_column %}<th>Weight</th>{% endif %}
             {% if elements.gold %}<th>Au AAS</th><th>Au DF</th><th class="entry-col-result">Gold (ppm)</th>{% endif %}
             {% if elements.copper %}<th>Cu AAS</th><th>Cu DF</th><th class="entry-col-result">Copper (ppm)</th>{% endif %}
@@ -55,30 +84,32 @@
         <tbody>
           {% for replicate in replicates %}
           <tr>
-            <td class="entry-sn">{{ replicate.replicate_number }}</td>
+            <td class="entry-sn">{{ replicate.serial_number }}</td>
+            <td class="entry-lab-id">{{ replicate.label }}</td>
             {% if entry.show_weight_column %}
-            <td><input type="number" step="any" min="0.0001" name="rep{{ replicate.replicate_number }}_weight" aria-label="Weight, replicate {{ replicate.replicate_number }}" value="{{ replicate.weight|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0.0001" name="rep{{ replicate.replicate_number }}_weight" aria-label="Weight, {{ replicate.label }}" value="{{ replicate.weight|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
             {% endif %}
             {% if elements.gold %}
-            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_au_aas" aria-label="Au AAS, replicate {{ replicate.replicate_number }}" value="{{ replicate.au_aas|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
-            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_au_df" aria-label="Au DF, replicate {{ replicate.replicate_number }}" value="{{ replicate.au_df|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
-            <td class="entry-col-result">{% if replicate.gold_ppm is not None %}{{ replicate.gold_ppm|floatformat:4 }}{% else %}—{% endif %}</td>
+            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_au_aas" aria-label="Au AAS, {{ replicate.label }}" value="{{ replicate.au_aas|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_au_df" aria-label="Au DF, {{ replicate.label }}" value="{{ replicate.au_df|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td class="entry-col-result" data-result="gold" data-rep="{{ replicate.replicate_number }}">{% if replicate.gold_ppm is not None %}{{ replicate.gold_ppm|floatformat:4 }}{% else %}—{% endif %}</td>
             {% endif %}
             {% if elements.copper %}
-            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_cu_aas" aria-label="Cu AAS, replicate {{ replicate.replicate_number }}" value="{{ replicate.cu_aas|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
-            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_cu_df" aria-label="Cu DF, replicate {{ replicate.replicate_number }}" value="{{ replicate.cu_df|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
-            <td class="entry-col-result">{% if replicate.copper_ppm is not None %}{{ replicate.copper_ppm|floatformat:4 }}{% else %}—{% endif %}</td>
+            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_cu_aas" aria-label="Cu AAS, {{ replicate.label }}" value="{{ replicate.cu_aas|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_cu_df" aria-label="Cu DF, {{ replicate.label }}" value="{{ replicate.cu_df|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td class="entry-col-result" data-result="copper" data-rep="{{ replicate.replicate_number }}">{% if replicate.copper_ppm is not None %}{{ replicate.copper_ppm|floatformat:4 }}{% else %}—{% endif %}</td>
             {% endif %}
             {% if elements.silver %}
-            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_ag_aas" aria-label="Ag AAS, replicate {{ replicate.replicate_number }}" value="{{ replicate.ag_aas|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
-            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_ag_df" aria-label="Ag DF, replicate {{ replicate.replicate_number }}" value="{{ replicate.ag_df|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
-            <td class="entry-col-result">{% if replicate.silver_ppm is not None %}{{ replicate.silver_ppm|floatformat:4 }}{% else %}—{% endif %}</td>
+            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_ag_aas" aria-label="Ag AAS, {{ replicate.label }}" value="{{ replicate.ag_aas|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_ag_df" aria-label="Ag DF, {{ replicate.label }}" value="{{ replicate.ag_df|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td class="entry-col-result" data-result="silver" data-rep="{{ replicate.replicate_number }}">{% if replicate.silver_ppm is not None %}{{ replicate.silver_ppm|floatformat:4 }}{% else %}—{% endif %}</td>
             {% endif %}
             {% if elements.sulphur %}
-            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_sulphur" aria-label="Sulphur, replicate {{ replicate.replicate_number }}" value="{{ replicate.sulphur|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_sulphur" aria-label="Sulphur, {{ replicate.label }}" value="{{ replicate.sulphur|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
             {% endif %}
           </tr>
           {% endfor %}
+
         </tbody>
       </table>
     </div>
@@ -101,4 +132,49 @@
   </div>
 </form>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    var form = document.querySelector("form[data-preview-url]");
+    if (!form) return;
+
+    var url = form.getAttribute("data-preview-url");
+    var token = form.querySelector("input[name=csrfmiddlewaretoken]").value;
+    var timer = null;
+    var latest = 0;
+
+    function render(results) {
+      Object.keys(results).forEach(function (rep) {
+        ["gold", "copper", "silver"].forEach(function (key) {
+          var cell = form.querySelector('[data-result="' + key + '"][data-rep="' + rep + '"]');
+          if (!cell) return;
+          var value = results[rep][key];
+          cell.textContent = value === null ? "\u2014" : value;
+        });
+      });
+    }
+
+    function refresh() {
+      var mine = ++latest;
+      fetch(url, {
+        method: "POST",
+        headers: { "X-CSRFToken": token },
+        body: new FormData(form),
+        credentials: "same-origin"
+      })
+        .then(function (response) { return response.ok ? response.json() : null; })
+        .then(function (data) {
+          if (data && mine === latest) render(data.results);
+        })
+        .catch(function () {});
+    }
+
+    form.addEventListener("input", function () {
+      clearTimeout(timer);
+      timer = setTimeout(refresh, 250);
+    });
+  })();
+</script>
 {% endblock %}

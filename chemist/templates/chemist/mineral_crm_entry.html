@@ -1,0 +1,128 @@
+{% extends "chemist/base_chemist.html" %}
+{% load static l10n %}
+
+{% block title %}CRM {{ crm.serial_number }} — {{ submission.reference }} — LGS Chemist{% endblock %}
+{% block page_title %}CRM Entry{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'chemist/css/chemist_entry.css' %}">
+<style>
+  .entry-lab-id {
+    font-family: var(--font-head);
+    font-weight: 600;
+    color: var(--navy);
+    white-space: nowrap;
+  }
+  .entry-table th,
+  .entry-table td {
+    vertical-align: middle !important;
+    white-space: nowrap;
+  }
+
+  .entry-table td {
+    padding-top: 0.45rem !important;
+    padding-bottom: 0.45rem !important;
+  }
+
+  .entry-table input {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 120px;
+    height: 2.25rem !important;
+    margin: 0;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="entry-header">
+  <div class="entry-header-main">
+    <span class="entry-id-badge"><i class='bx bx-shield-quarter' aria-hidden="true"></i> {{ submission.reference }} — CRM</span>
+    <h2>CRM Data Entry</h2>
+    <p>Certified reference material inserted by the system after every two samples.</p>
+  </div>
+  <div class="entry-header-status">
+    {% if crm.status == "SUBMITTED_TO_QC" %}
+      <span class="badge badge-success">Submitted to QC</span>
+    {% elif crm.status == "READY_FOR_SUBMISSION" %}
+      <span class="badge badge-warning">Ready for Submission</span>
+    {% elif crm.has_data %}
+      <span class="badge badge-warning">Draft</span>
+    {% else %}
+      <span class="badge badge-danger">Pending</span>
+    {% endif %}
+  </div>
+</div>
+
+{% if not elements.gold and not elements.copper and not elements.silver and not elements.sulphur %}
+<div class="card entry-card">
+  <p class="entry-empty">This worksheet has no elements configured for CRM. Please contact Reception.</p>
+</div>
+<div class="entry-actions">
+  <a href="{% url 'chemist:mineral_analysis_samples' reference=submission.reference %}" class="btn btn-outline">
+    <i class='bx bx-arrow-back' aria-hidden="true"></i> Back
+  </a>
+</div>
+{% else %}
+<form method="post">
+  {% csrf_token %}
+  <div class="card entry-card">
+    <div class="table-wrap">
+      <table class="table entry-table">
+        <thead>
+          <tr>
+            <th>S/N</th>
+            <th>Lab Sample ID</th>
+            <th>Weight</th>
+            {% if elements.gold %}<th>Au AAS</th><th>Au DF</th>{% endif %}
+            {% if elements.copper %}<th>Cu AAS</th><th>Cu DF</th>{% endif %}
+            {% if elements.silver %}<th>Ag AAS</th><th>Ag DF</th>{% endif %}
+            {% if elements.sulphur %}<th>S (%)</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="entry-sn">{{ crm.serial_number }}</td>
+            <td class="entry-lab-id">CRM</td>
+            <td><input type="number" step="any" min="0.0001" name="crm_weight" aria-label="Weight, CRM" value="{{ crm.weight|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            {% if elements.gold %}
+            <td><input type="number" step="any" min="0" name="crm_au_aas" aria-label="Au AAS, CRM" value="{{ crm.au_aas|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" name="crm_au_df" aria-label="Au DF, CRM" value="{{ crm.au_df|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            {% endif %}
+            {% if elements.copper %}
+            <td><input type="number" step="any" min="0" name="crm_cu_aas" aria-label="Cu AAS, CRM" value="{{ crm.cu_aas|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" name="crm_cu_df" aria-label="Cu DF, CRM" value="{{ crm.cu_df|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            {% endif %}
+            {% if elements.silver %}
+            <td><input type="number" step="any" min="0" name="crm_ag_aas" aria-label="Ag AAS, CRM" value="{{ crm.ag_aas|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" name="crm_ag_df" aria-label="Ag DF, CRM" value="{{ crm.ag_df|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            {% endif %}
+            {% if elements.sulphur %}
+            <td><input type="number" step="any" min="0" name="crm_sulphur" aria-label="Sulphur, CRM" value="{{ crm.sulphur|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            {% endif %}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="entry-actions">
+    <a href="{% url 'chemist:mineral_analysis_samples' reference=submission.reference %}" class="btn btn-outline">
+      <i class='bx bx-arrow-back' aria-hidden="true"></i> Back
+    </a>
+    {% if not read_only %}
+    <div class="entry-actions-right">
+      <button type="submit" name="save_draft" value="1" class="btn btn-secondary">
+        <i class='bx bx-save' aria-hidden="true"></i> Save
+      </button>
+      <button type="submit" name="submit_qc" value="1" class="btn btn-primary" {% if crm.status != "READY_FOR_SUBMISSION" %}disabled{% endif %}>
+        <i class='bx bx-check' aria-hidden="true"></i> Submit to QC
+      </button>
+    </div>
+    {% endif %}
+  </div>
+</form>
+{% endif %}
+{% endblock %}
