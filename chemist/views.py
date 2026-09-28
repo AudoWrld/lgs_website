@@ -539,7 +539,7 @@ def metallurgical_test_entry(request, slug):
         return _no_entry(request)
 
     entry.ensure_parameter_rows()
-    rows = list(entry.rows.select_related("source_parameter"))
+    rows = list(entry.rows.select_related("source_parameter", "worksheet_row"))
     read_only = _is_read_only(sample, entry)
 
     def render_entry():
@@ -706,7 +706,7 @@ def reassay_samples(request):
         visible.filter(
             analysis_status__in=[Sample.REASSAY_REQUIRED, Sample.REASSAY_SUBMITTED]
         )
-        .select_related("submission")
+        .select_related("submission", "lab_mapping")
         .order_by("-updated_at")
     )
 
@@ -718,13 +718,17 @@ def reassay_samples(request):
     elif status == "submitted":
         samples = samples.filter(analysis_status=Sample.REASSAY_SUBMITTED)
 
+    items = [
+        {"sample": sample, "lab_id": lab_sample_id_for(sample)} for sample in samples
+    ]
+
     required_count = visible.filter(analysis_status=Sample.REASSAY_REQUIRED).count()
     submitted_count = visible.filter(analysis_status=Sample.REASSAY_SUBMITTED).count()
 
     context = {
         "reference": reference,
         "status": status,
-        "samples": samples,
+        "items": items,
         "required_count": required_count,
         "submitted_count": submitted_count,
         "total_count": required_count + submitted_count,
@@ -741,21 +745,29 @@ def reassay_entry(request, slug):
 @chemist_required
 def qc_approved(request):
     reference = request.GET.get("reference", "").strip()
-
     visible = _visible_samples()
 
     samples = (
         visible.filter(analysis_status=Sample.QC_APPROVED)
-        .select_related("submission")
+        .select_related("submission", "lab_mapping")
         .order_by("-updated_at")
     )
 
     if reference:
         samples = samples.filter(submission__reference__iexact=reference)
 
+    items = [
+        {
+            "sample": sample,
+            "lab_id": lab_sample_id_for(sample),
+            "route": _route_name(sample),
+        }
+        for sample in samples
+    ]
+
     context = {
         "reference": reference,
-        "samples": samples,
+        "items": items,
         "total_count": visible.filter(analysis_status=Sample.QC_APPROVED).count(),
     }
     return render(request, "chemist/qc_approved.html", context)
