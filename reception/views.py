@@ -987,9 +987,7 @@ def _form_context(request, submission, consume_password=True):
     client = submission.client
     samples = submission.samples.all()
 
-    payment, _ = Payment.objects.get_or_create(submission=submission)
-    payment.recalculate_gross_amount()
-    payment.save(update_fields=["gross_amount"])
+    payment = Payment.ensure_for(submission)
 
     net = payment.net_amount_payable
     paid_percent = 0
