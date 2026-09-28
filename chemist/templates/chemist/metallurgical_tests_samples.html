@@ -7,6 +7,11 @@
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
 <link rel="stylesheet" href="{% static 'chemist/css/chemist_lists.css' %}">
+<style>
+  .metallurgical-sample-id {
+    text-transform: uppercase;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -51,9 +56,11 @@
       <tbody>
         {% for sample in samples %}
         <tr>
-          <td class="list-cell-id">
-            <span class="list-id-dot{% if sample.analysis_status == 'SUBMITTED_TO_QC' or sample.analysis_status == 'QC_APPROVED' %} is-submitted{% endif %}"></span>
-            {{ sample.slug }}
+          <td>
+            <div class="list-cell-id metallurgical-sample-id">
+              <span class="list-id-dot{% if sample.analysis_status == 'QC_APPROVED' %} is-approved{% elif sample.analysis_status == 'SUBMITTED_TO_QC' %} is-submitted{% endif %}"></span>
+              {{ sample.slug }}
+            </div>
           </td>
           <td>
             {% if sample.analysis_status == "QC_APPROVED" %}
