@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -23,6 +23,7 @@ from .models import (
     CRMEntry,
     MetallurgicalTestEntry,
     MineralAnalysisEntry,
+    _quantize,
     format_lab_sample_id,
     get_metallurgical_type,
     lab_sample_id_for,
@@ -51,7 +52,11 @@ METALLURGICAL_FIELDS = (
 CARBON_FIELDS = (
     ("standard_concentration", "standard", "Standard concentration"),
     ("final_concentration_sample", "final_sample", "Final concentration in sample"),
-    ("final_concentration_standard", "final_standard", "Final concentration of standard"),
+    (
+        "final_concentration_standard",
+        "final_standard",
+        "Final concentration of standard",
+    ),
 )
 
 MAX_REPORTED_ERRORS = 10
@@ -83,7 +88,12 @@ class _PostReader:
 def _check(reader, instance, label):
     try:
         instance.clean_fields(
-            exclude=["entry", "source_parameter", "worksheet_row", *instance.RESULT_FIELDS]
+            exclude=[
+                "entry",
+                "source_parameter",
+                "worksheet_row",
+                *instance.RESULT_FIELDS,
+            ]
         )
     except ValidationError as exc:
         for field, field_errors in exc.message_dict.items():
@@ -154,6 +164,12 @@ def _finalize(request, sample, entry, list_route, entry_route):
 
     messages.success(request, "Draft saved.")
     return redirect(entry_route, slug=sample.slug)
+
+
+def _format_result(value):
+    if value is None:
+        return None
+    return format(value, "f")
 
 
 @chemist_required
@@ -251,7 +267,9 @@ def _mineral_worksheet_items(submission):
                 item = {
                     "kind": "sample",
                     "sample": sample,
-                    "lab_id": format_lab_sample_id(row.lab_sample_mapping.lab_sample_id),
+                    "lab_id": format_lab_sample_id(
+                        row.lab_sample_mapping.lab_sample_id
+                    ),
                     "first": number,
                     "last": number,
                 }
@@ -375,20 +393,12 @@ def mineral_analysis_entry(request, slug):
     return render_entry()
 
 
-def _format_result(value):
-    if value is None:
-        return None
-    return format(value, "f")
-
-
 @chemist_required
 @require_POST
 def mineral_analysis_preview(request, slug):
     sample = _get_sample(slug)
     entry = (
-        MineralAnalysisEntry.objects.filter(sample=sample)
-        .order_by("-revision")
-        .first()
+        MineralAnalysisEntry.objects.filter(sample=sample).order_by("-revision").first()
     )
     if entry is None:
         return JsonResponse({"results": {}})
@@ -487,22 +497,32 @@ def metallurgical_tests_search(request):
 def metallurgical_tests_samples(request, reference):
     submission = _find_submission(reference)
 
-    samples = []
+    items = []
     if submission:
         samples = (
             _visible_samples()
+            .filter(submission=submission)
             .filter(
-                submission=submission,
-                sample_services__service__metallurgical_type__in=METALLURGICAL_TYPES,
+                Q(sample_services__service__metallurgical_type__in=METALLURGICAL_TYPES)
+                | Q(metallurgical_test_entries__isnull=False)
+                | Q(carbon_activity_entries__isnull=False)
             )
             .distinct()
             .order_by("id")
         )
+        items = [
+            {
+                "sample": sample,
+                "lab_id": lab_sample_id_for(sample),
+            }
+            for sample in samples
+        ]
 
     context = {
         "reference": reference,
         "submission": submission,
-        "samples": samples,
+        "items": items,
+        "sample_count": len(items),
     }
     return render(request, "chemist/metallurgical_tests_samples.html", context)
 
@@ -583,7 +603,9 @@ def carbon_activity_entry(request, slug):
         return _no_entry(request)
 
     entry.ensure_replicates()
-    replicates = list(entry.replicates.all())
+    replicates = list(
+        entry.replicates.select_related("worksheet_row__lab_sample_mapping")
+    )
     read_only = _is_read_only(sample, entry)
 
     def render_entry():
@@ -633,6 +655,44 @@ def carbon_activity_entry(request, slug):
         )
 
     return render_entry()
+
+
+@chemist_required
+@require_POST
+def carbon_activity_preview(request, slug):
+    sample = _get_sample(slug)
+    entry = (
+        CarbonActivityEntry.objects.filter(sample=sample).order_by("-revision").first()
+    )
+    if entry is None:
+        return JsonResponse({"results": {}, "final": None})
+
+    reader = _PostReader(request.POST)
+    results = {}
+    activities = []
+
+    for replicate in entry.replicates.all():
+        number = replicate.replicate_number
+        prefix = f"rep{number}"
+        for field, key, label in CARBON_FIELDS:
+            setattr(replicate, field, reader.decimal(f"{prefix}_{key}", label))
+        try:
+            replicate.calculate()
+        except ArithmeticError:
+            replicate.activity_percent = None
+        results[str(number)] = {"activity": _format_result(replicate.activity_percent)}
+        if replicate.activity_percent is not None:
+            activities.append(replicate.activity_percent)
+
+    final = None
+    if activities and len(activities) == entry.required_replicate_count:
+        try:
+            average = sum(activities) / Decimal(len(activities))
+            final = _format_result(_quantize(average * Decimal("0.80")))
+        except ArithmeticError:
+            final = None
+
+    return JsonResponse({"results": results, "final": final})
 
 
 @chemist_required
