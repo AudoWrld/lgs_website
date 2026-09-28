@@ -7,6 +7,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
 <link rel="stylesheet" href="{% static 'chemist/css/chemist_lists.css' %}">
+<link rel="stylesheet" href="{% static 'chemist/css/qc_approved.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -36,9 +37,9 @@
 </div>
 
 <div class="card list-card">
-  {% if samples %}
+  {% if items %}
   <div class="table-wrap">
-    <table class="table">
+    <table class="table approved-table">
       <thead>
         <tr>
           <th>Lab Sample ID</th>
@@ -49,21 +50,33 @@
         </tr>
       </thead>
       <tbody>
-        {% for sample in samples %}
+        {% for item in items %}
+        {% with sample=item.sample %}
         <tr>
-          <td class="list-cell-id">
-            <span class="list-id-dot is-approved"></span>
-            {{ sample.slug }}
+          <td>
+            <div class="approved-id">
+              <span class="list-id-dot is-approved"></span>
+              {{ item.lab_id }}
+            </div>
           </td>
           <td>{{ sample.submission.reference }}</td>
           <td><span class="badge badge-success">QC Approved</span></td>
           <td class="list-cell-muted">{{ sample.updated_at|date:"d M Y, H:i" }}</td>
           <td class="list-cell-action">
-            <a href="#" class="btn btn-outline btn-sm">
+            <button
+              type="button"
+              class="btn btn-outline btn-sm"
+              data-approved-open
+              data-lab-id="{{ item.lab_id }}"
+              data-reference="{{ sample.submission.reference }}"
+              data-date="{{ sample.updated_at|date:'d M Y, H:i' }}"
+              data-url="{% url item.route slug=sample.slug %}"
+            >
               <i class='bx bx-show' aria-hidden="true"></i> View
-            </a>
+            </button>
           </td>
         </tr>
+        {% endwith %}
         {% endfor %}
       </tbody>
     </table>
@@ -81,4 +94,59 @@
   </div>
   {% endif %}
 </div>
+
+<dialog class="approved-dialog" id="approved-dialog" aria-labelledby="approved-title">
+  <div class="approved-body">
+    <svg class="approved-tick" viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="28"></circle>
+      <path d="M20 33l8 8 16-17"></path>
+    </svg>
+    <h2 id="approved-title">Approved by QC</h2>
+    <p>This sample has been reviewed and approved. Its results are final.</p>
+    <dl class="approved-details">
+      <div><dt>Lab Sample ID</dt><dd data-fill="lab-id"></dd></div>
+      <div><dt>Reference</dt><dd data-fill="reference"></dd></div>
+      <div><dt>Approved</dt><dd data-fill="date"></dd></div>
+    </dl>
+  </div>
+  <div class="approved-actions">
+    <button type="button" class="btn btn-outline" data-approved-close>Close</button>
+    <a href="#" class="btn btn-primary" data-fill="url">
+      <i class='bx bx-show' aria-hidden="true"></i> View record
+    </a>
+  </div>
+</dialog>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    var dialog = document.getElementById("approved-dialog");
+    if (!dialog) return;
+
+    function fill(name, value) {
+      dialog.querySelectorAll('[data-fill="' + name + '"]').forEach(function (node) {
+        node.textContent = value;
+      });
+    }
+
+    document.querySelectorAll("[data-approved-open]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        fill("lab-id", button.dataset.labId);
+        fill("reference", button.dataset.reference);
+        fill("date", button.dataset.date);
+        dialog.querySelector('a[data-fill="url"]').setAttribute("href", button.dataset.url);
+        dialog.showModal();
+      });
+    });
+
+    dialog.querySelector("[data-approved-close]").addEventListener("click", function () {
+      dialog.close();
+    });
+
+    dialog.addEventListener("click", function (event) {
+      if (event.target === dialog) dialog.close();
+    });
+  })();
+</script>
 {% endblock %}

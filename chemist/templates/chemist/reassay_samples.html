@@ -7,6 +7,21 @@
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
 <link rel="stylesheet" href="{% static 'chemist/css/chemist_lists.css' %}">
+<style>
+  .reassay-id {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--font-head);
+    font-weight: 600;
+    color: var(--navy);
+    white-space: nowrap;
+  }
+
+  .reassay-table td {
+    vertical-align: middle;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -57,9 +72,9 @@
 </div>
 
 <div class="card list-card">
-  {% if samples %}
+  {% if items %}
   <div class="table-wrap">
-    <table class="table">
+    <table class="table reassay-table">
       <thead>
         <tr>
           <th>Lab Sample ID</th>
@@ -70,11 +85,14 @@
         </tr>
       </thead>
       <tbody>
-        {% for sample in samples %}
+        {% for item in items %}
+        {% with sample=item.sample %}
         <tr>
-          <td class="list-cell-id">
-            <span class="list-id-dot{% if sample.analysis_status == 'REASSAY_SUBMITTED' %} is-submitted{% endif %}"></span>
-            {{ sample.slug }}
+          <td>
+            <div class="reassay-id">
+              <span class="list-id-dot{% if sample.analysis_status == 'REASSAY_SUBMITTED' %} is-submitted{% endif %}"></span>
+              {{ item.lab_id }}
+            </div>
           </td>
           <td>{{ sample.submission.reference }}</td>
           <td>
@@ -86,11 +104,18 @@
           </td>
           <td class="list-cell-muted">{{ sample.updated_at|date:"d M Y, H:i" }}</td>
           <td class="list-cell-action">
-            <a href="#" class="btn btn-outline btn-sm">
-              <i class='bx bx-edit' aria-hidden="true"></i> Open
+            {% if sample.analysis_status == "REASSAY_SUBMITTED" %}
+            <a href="{% url 'chemist:reassay_entry' slug=sample.slug %}" class="btn btn-outline btn-sm">
+              <i class='bx bx-show' aria-hidden="true"></i> View
             </a>
+            {% else %}
+            <a href="{% url 'chemist:reassay_entry' slug=sample.slug %}" class="btn btn-primary btn-sm">
+              <i class='bx bx-edit' aria-hidden="true"></i> Start reassay
+            </a>
+            {% endif %}
           </td>
         </tr>
+        {% endwith %}
         {% endfor %}
       </tbody>
     </table>
