@@ -79,6 +79,30 @@ def worksheet_rows_for_sample(sample):
     )
 
 
+def latest_carbon_worksheet(submission):
+    return (
+        Worksheet.objects.filter(
+            submission=submission, worksheet_type=Worksheet.CARBON_ACTIVITY
+        )
+        .order_by("-generated_at", "-id")
+        .first()
+    )
+
+
+def carbon_worksheet_rows_for_sample(sample):
+    worksheet = latest_carbon_worksheet(sample.submission)
+    if worksheet is None:
+        return []
+    return list(
+        worksheet.rows.filter(
+            lab_sample_mapping__sample=sample,
+            row_type__in=[WorksheetRow.SAMPLE_ROW, WorksheetRow.REPLICATE_ROW],
+        )
+        .select_related("worksheet", "lab_sample_mapping")
+        .order_by("row_number")
+    )
+
+
 def worksheet_label(row, position=None):
     mapping = row.lab_sample_mapping
     if mapping is None:
@@ -692,7 +716,7 @@ class MetallurgicalTestRow(models.Model):
 
 
 class CarbonActivityEntry(BaseEntry):
-    INCOMPLETE_MESSAGE = "Both replicates must be completed before submitting to QC."
+    INCOMPLETE_MESSAGE = "All replicates must be completed before submitting to QC."
 
     REPLICATE_COUNT = 2
 
@@ -713,8 +737,29 @@ class CarbonActivityEntry(BaseEntry):
     def __str__(self):
         return f"Carbon Activity — {self.sample.slug} (rev {self.revision})"
 
+    @cached_property
+    def worksheet_rows(self):
+        return carbon_worksheet_rows_for_sample(self.sample)
+
+    @property
+    def required_replicate_count(self):
+        return len(self.worksheet_rows) or self.REPLICATE_COUNT
+
     def ensure_replicates(self):
+        rows = self.worksheet_rows
         with transaction.atomic():
+            if rows:
+                for number, row in enumerate(rows, start=1):
+                    replicate, created = CarbonActivityReplicate.objects.get_or_create(
+                        entry=self,
+                        replicate_number=number,
+                        defaults={"worksheet_row": row},
+                    )
+                    if not created and replicate.worksheet_row_id != row.pk:
+                        replicate.worksheet_row = row
+                        replicate.save(update_fields=["worksheet_row", "updated_at"])
+                return
+
             existing = set(self.replicates.values_list("replicate_number", flat=True))
             for number in range(1, self.REPLICATE_COUNT + 1):
                 if number not in existing:
@@ -724,7 +769,7 @@ class CarbonActivityEntry(BaseEntry):
 
     def is_complete(self):
         rows = list(self.replicates.all())
-        if len(rows) != self.REPLICATE_COUNT:
+        if len(rows) != self.required_replicate_count:
             return False
         return all(
             row.standard_concentration is not None
@@ -740,8 +785,8 @@ class CarbonActivityEntry(BaseEntry):
             for row in self.replicates.all()
             if row.activity_percent is not None
         ]
-        if len(activities) == self.REPLICATE_COUNT:
-            average = sum(activities) / Decimal(self.REPLICATE_COUNT)
+        if activities and len(activities) == self.required_replicate_count:
+            average = sum(activities) / Decimal(len(activities))
             self.final_carbon_activity_percent = _quantize(average * Decimal("0.80"))
         else:
             self.final_carbon_activity_percent = None
@@ -758,6 +803,13 @@ class CarbonActivityReplicate(models.Model):
         CarbonActivityEntry, on_delete=models.CASCADE, related_name="replicates"
     )
     replicate_number = models.PositiveSmallIntegerField()
+    worksheet_row = models.ForeignKey(
+        "worksheet.WorksheetRow",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
 
     standard_concentration = _input_field(10, 4)
     final_concentration_sample = _input_field(10, 4)
@@ -778,6 +830,12 @@ class CarbonActivityReplicate(models.Model):
 
     def __str__(self):
         return f"{self.entry.sample.slug} — Carbon Rep {self.replicate_number}"
+
+    @property
+    def label(self):
+        if self.worksheet_row is None:
+            return f"Replicate {self.replicate_number}"
+        return worksheet_label(self.worksheet_row, self.replicate_number)
 
     def calculate(self):
         std = self.standard_concentration
