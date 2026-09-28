@@ -183,8 +183,24 @@ class Submission(models.Model):
                     "updated_at",
                 ]
             )
+            self.snapshot_charges()
+            self.refresh_payment_gross()
 
         return self
+
+    def snapshot_charges(self):
+        from samples.models import SampleService
+
+        for sample in self.samples.all():
+            for line_pk, price in sample.calculate_service_charges().items():
+                SampleService.objects.filter(pk=line_pk).update(charged_price=price)
+
+    def refresh_payment_gross(self):
+        from payments.models import Payment
+
+        payment, _ = Payment.objects.get_or_create(submission=self)
+        payment.refresh_from_charges()
+        return payment
 
     def sync_status_from_samples(self, save=True):
         if not self.is_submitted:
