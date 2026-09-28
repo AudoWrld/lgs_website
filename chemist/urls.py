@@ -51,6 +51,11 @@ urlpatterns = [
         views.carbon_activity_entry,
         name="carbon_activity_entry",
     ),
+    path(
+        "carbon-activity/entry/<slug:slug>/preview/",
+        views.carbon_activity_preview,
+        name="carbon_activity_preview",
+    ),
     path("reassay/", views.reassay_samples, name="reassay_samples"),
     path("reassay/entry/<slug:slug>/", views.reassay_entry, name="reassay_entry"),
     path("qc-approved/", views.qc_approved, name="qc_approved"),
