@@ -1,7 +1,7 @@
 {% extends "chemist/base_chemist.html" %}
-{% load static %}
+{% load static l10n %}
 
-{% block title %}{{ sample.slug }} — Mineral Analysis — LGS Chemist{% endblock %}
+{% block title %}{{ sample.lab_sample_id }} — Mineral Analysis — LGS Chemist{% endblock %}
 {% block page_title %}Mineral Analysis Entry{% endblock %}
 
 {% block extra_css %}
@@ -12,7 +12,7 @@
 {% block content %}
 <div class="entry-header">
   <div class="entry-header-main">
-    <span class="entry-id-badge"><i class='bx bx-flask' aria-hidden="true"></i> {{ sample.slug }}</span>
+    <span class="entry-id-badge"><i class='bx bx-flask' aria-hidden="true"></i> {{ sample.lab_sample_id }}</span>
     <h2>Mineral Analysis Data Entry</h2>
     <p>{{ replicates|length }} replicate row{{ replicates|length|pluralize }} generated automatically.</p>
   </div>
@@ -27,6 +27,16 @@
   </div>
 </div>
 
+{% if not replicates or not elements.gold and not elements.copper and not elements.silver and not elements.sulphur %}
+<div class="card entry-card">
+  <p class="entry-empty">This sample has no data-entry configuration. Please contact Reception.</p>
+</div>
+<div class="entry-actions">
+  <a href="{% url 'chemist:mineral_analysis_samples' reference=sample.submission.reference %}" class="btn btn-outline">
+    <i class='bx bx-arrow-back' aria-hidden="true"></i> Back
+  </a>
+</div>
+{% else %}
 <form method="post">
   {% csrf_token %}
   <div class="card entry-card">
@@ -47,25 +57,25 @@
           <tr>
             <td class="entry-sn">{{ replicate.replicate_number }}</td>
             {% if entry.show_weight_column %}
-            <td><input type="number" step="any" name="rep{{ replicate.replicate_number }}_weight" value="{{ replicate.weight|default_if_none:'' }}"></td>
+            <td><input type="number" step="any" min="0.0001" name="rep{{ replicate.replicate_number }}_weight" aria-label="Weight, replicate {{ replicate.replicate_number }}" value="{{ replicate.weight|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
             {% endif %}
             {% if elements.gold %}
-            <td><input type="number" step="any" name="rep{{ replicate.replicate_number }}_au_aas" value="{{ replicate.au_aas|default_if_none:'' }}"></td>
-            <td><input type="number" step="any" name="rep{{ replicate.replicate_number }}_au_df" value="{{ replicate.au_df|default_if_none:'' }}"></td>
-            <td class="entry-col-result">{{ replicate.gold_ppm|default_if_none:"—" }}</td>
+            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_au_aas" aria-label="Au AAS, replicate {{ replicate.replicate_number }}" value="{{ replicate.au_aas|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_au_df" aria-label="Au DF, replicate {{ replicate.replicate_number }}" value="{{ replicate.au_df|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td class="entry-col-result">{% if replicate.gold_ppm is not None %}{{ replicate.gold_ppm|floatformat:4 }}{% else %}—{% endif %}</td>
             {% endif %}
             {% if elements.copper %}
-            <td><input type="number" step="any" name="rep{{ replicate.replicate_number }}_cu_aas" value="{{ replicate.cu_aas|default_if_none:'' }}"></td>
-            <td><input type="number" step="any" name="rep{{ replicate.replicate_number }}_cu_df" value="{{ replicate.cu_df|default_if_none:'' }}"></td>
-            <td class="entry-col-result">{{ replicate.copper_ppm|default_if_none:"—" }}</td>
+            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_cu_aas" aria-label="Cu AAS, replicate {{ replicate.replicate_number }}" value="{{ replicate.cu_aas|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_cu_df" aria-label="Cu DF, replicate {{ replicate.replicate_number }}" value="{{ replicate.cu_df|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td class="entry-col-result">{% if replicate.copper_ppm is not None %}{{ replicate.copper_ppm|floatformat:4 }}{% else %}—{% endif %}</td>
             {% endif %}
             {% if elements.silver %}
-            <td><input type="number" step="any" name="rep{{ replicate.replicate_number }}_ag_aas" value="{{ replicate.ag_aas|default_if_none:'' }}"></td>
-            <td><input type="number" step="any" name="rep{{ replicate.replicate_number }}_ag_df" value="{{ replicate.ag_df|default_if_none:'' }}"></td>
-            <td class="entry-col-result">{{ replicate.silver_ppm|default_if_none:"—" }}</td>
+            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_ag_aas" aria-label="Ag AAS, replicate {{ replicate.replicate_number }}" value="{{ replicate.ag_aas|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_ag_df" aria-label="Ag DF, replicate {{ replicate.replicate_number }}" value="{{ replicate.ag_df|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td class="entry-col-result">{% if replicate.silver_ppm is not None %}{{ replicate.silver_ppm|floatformat:4 }}{% else %}—{% endif %}</td>
             {% endif %}
             {% if elements.sulphur %}
-            <td><input type="number" step="any" name="rep{{ replicate.replicate_number }}_sulphur" value="{{ replicate.sulphur|default_if_none:'' }}"></td>
+            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_sulphur" aria-label="Sulphur, replicate {{ replicate.replicate_number }}" value="{{ replicate.sulphur|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
             {% endif %}
           </tr>
           {% endfor %}
@@ -78,14 +88,17 @@
     <a href="{% url 'chemist:mineral_analysis_samples' reference=sample.submission.reference %}" class="btn btn-outline">
       <i class='bx bx-arrow-back' aria-hidden="true"></i> Back
     </a>
+    {% if not read_only %}
     <div class="entry-actions-right">
-      <button type="submit" name="save_draft" class="btn btn-secondary">
+      <button type="submit" name="save_draft" value="1" class="btn btn-secondary">
         <i class='bx bx-save' aria-hidden="true"></i> Save
       </button>
-      <button type="submit" name="submit_qc" value="1" class="btn btn-primary">
+      <button type="submit" name="submit_qc" value="1" class="btn btn-primary" {% if entry.status != "READY_FOR_SUBMISSION" %}disabled{% endif %}>
         <i class='bx bx-check' aria-hidden="true"></i> Submit to QC
       </button>
     </div>
+    {% endif %}
   </div>
 </form>
+{% endif %}
 {% endblock %}

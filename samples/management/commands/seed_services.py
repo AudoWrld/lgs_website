@@ -9,6 +9,10 @@ SERVICES = [
         "pricing_type": Service.FIXED,
         "unit_price": Decimal("30000.00"),
         "metallurgical_type": Service.NONE,
+        "tests_gold": True,
+        "tests_copper": True,
+        "tests_silver": False,
+        "tests_sulphur": False,
     },
     {
         "name": "Gold, Copper & Silver Analysis",
@@ -16,6 +20,10 @@ SERVICES = [
         "pricing_type": Service.FIXED,
         "unit_price": Decimal("40000.00"),
         "metallurgical_type": Service.NONE,
+        "tests_gold": True,
+        "tests_copper": True,
+        "tests_silver": True,
+        "tests_sulphur": False,
     },
     {
         "name": "Gold, Copper & Sulphur Analysis",
@@ -23,6 +31,10 @@ SERVICES = [
         "pricing_type": Service.FIXED,
         "unit_price": Decimal("40000.00"),
         "metallurgical_type": Service.NONE,
+        "tests_gold": True,
+        "tests_copper": True,
+        "tests_silver": False,
+        "tests_sulphur": True,
     },
     {
         "name": "Gold, Copper, Silver & Sulphur Analysis",
@@ -30,6 +42,10 @@ SERVICES = [
         "pricing_type": Service.FIXED,
         "unit_price": Decimal("50000.00"),
         "metallurgical_type": Service.NONE,
+        "tests_gold": True,
+        "tests_copper": True,
+        "tests_silver": True,
+        "tests_sulphur": True,
     },
     {
         "name": "Multi-Element Analysis",
@@ -37,6 +53,10 @@ SERVICES = [
         "pricing_type": Service.FIXED,
         "unit_price": Decimal("50000.00"),
         "metallurgical_type": Service.NONE,
+        "tests_gold": False,
+        "tests_copper": False,
+        "tests_silver": False,
+        "tests_sulphur": False,
     },
     {
         "name": "Conventional Cyanide Leaching Test",
@@ -44,6 +64,10 @@ SERVICES = [
         "pricing_type": Service.FIXED,
         "unit_price": Decimal("30000.00"),
         "metallurgical_type": Service.CYANIDE_CONVENTIONAL,
+        "tests_gold": False,
+        "tests_copper": False,
+        "tests_silver": False,
+        "tests_sulphur": False,
     },
     {
         "name": "Cyanide Leaching Parameter Optimization",
@@ -51,6 +75,10 @@ SERVICES = [
         "pricing_type": Service.QUOTATION,
         "unit_price": None,
         "metallurgical_type": Service.CYANIDE_OPTIMIZATION,
+        "tests_gold": False,
+        "tests_copper": False,
+        "tests_silver": False,
+        "tests_sulphur": False,
     },
     {
         "name": "Carbon Activity Test",
@@ -58,6 +86,10 @@ SERVICES = [
         "pricing_type": Service.FIXED,
         "unit_price": Decimal("30000.00"),
         "metallurgical_type": Service.CARBON_ACTIVITY,
+        "tests_gold": False,
+        "tests_copper": False,
+        "tests_silver": False,
+        "tests_sulphur": False,
     },
     {
         "name": "Metallic Screening and Gold Evaluation",
@@ -65,10 +97,16 @@ SERVICES = [
         "pricing_type": Service.QUOTATION,
         "unit_price": None,
         "metallurgical_type": Service.NONE,
+        "tests_gold": True,
+        "tests_copper": False,
+        "tests_silver": False,
+        "tests_sulphur": False,
     },
 ]
 
 STALE_SERVICE_NAMES = ["Mineral Analysis", "Metallurgical Testing"]
+
+ELEMENT_FLAGS = ("tests_gold", "tests_copper", "tests_silver", "tests_sulphur")
 
 
 class Command(BaseCommand):
@@ -92,25 +130,22 @@ class Command(BaseCommand):
         updated_count = 0
 
         for entry in SERVICES:
-            service = Service(
-                name=entry["name"],
-                method_of_analysis=entry["method_of_analysis"],
-                pricing_type=entry["pricing_type"],
-                unit_price=entry["unit_price"],
-                metallurgical_type=entry["metallurgical_type"],
-                is_active=True,
-            )
-            service.full_clean(exclude=["id"], validate_unique=False)
+            defaults = {
+                "method_of_analysis": entry["method_of_analysis"],
+                "pricing_type": entry["pricing_type"],
+                "unit_price": entry["unit_price"],
+                "metallurgical_type": entry["metallurgical_type"],
+                "is_active": True,
+            }
+            for flag in ELEMENT_FLAGS:
+                defaults[flag] = entry[flag]
+
+            candidate = Service(name=entry["name"], **defaults)
+            candidate.full_clean(exclude=["id"], validate_unique=False)
 
             service, created = Service.objects.update_or_create(
                 name=entry["name"],
-                defaults={
-                    "method_of_analysis": entry["method_of_analysis"],
-                    "pricing_type": entry["pricing_type"],
-                    "unit_price": entry["unit_price"],
-                    "metallurgical_type": entry["metallurgical_type"],
-                    "is_active": True,
-                },
+                defaults=defaults,
             )
             if created:
                 created_count += 1
@@ -138,6 +173,6 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 f"Seed complete: {created_count} created, {updated_count} updated, "
-                f"{Service.objects.count()} total active services."
+                f"{Service.objects.filter(is_active=True).count()} total active services."
             )
         )

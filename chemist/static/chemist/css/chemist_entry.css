@@ -149,3 +149,14 @@
     justify-content: center;
   }
 }
+
+.entry-empty {
+  margin: 0;
+  padding: 1.5rem 1.75rem;
+  color: var(--navy);
+}
+
+.entry-table input:disabled {
+  background: #f1ede3;
+  cursor: not-allowed;
+}

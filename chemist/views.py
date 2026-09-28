@@ -1,35 +1,163 @@
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation
+
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.db.models import Count
+from django.db.models.functions import TruncDate
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
 from django.utils import timezone
-from submissions.models import Submission
-from samples.models import Sample, Service
+
 from accounts.decorators import chemist_required
+from samples.models import Sample, Service
+from submissions.models import Submission
+
 from .models import (
+    CYANIDE_TYPES,
+    METALLURGICAL_TYPES,
     CarbonActivityEntry,
-    CRMSequenceCounter,
     MetallurgicalTestEntry,
     MineralAnalysisEntry,
+    get_metallurgical_type,
 )
 
+MINERAL_FIELDS = (
+    ("weight", "Weight"),
+    ("au_aas", "Au AAS"),
+    ("au_df", "Au DF"),
+    ("cu_aas", "Cu AAS"),
+    ("cu_df", "Cu DF"),
+    ("ag_aas", "Ag AAS"),
+    ("ag_df", "Ag DF"),
+    ("sulphur", "S"),
+)
 
-def _parse_decimal(raw):
-    raw = (raw or "").strip()
-    if not raw:
-        return None
+METALLURGICAL_FIELDS = (
+    ("weight_volume", "weight_volume", "Weight / Volume"),
+    ("gold_recovery_12h", "recovery_12h", "Gold recovery at 12 hours"),
+    ("gold_recovery_24h", "recovery_24h", "Gold recovery at 24 hours"),
+    ("gold_recovery_48h", "recovery_48h", "Gold recovery at 48 hours"),
+)
+
+CARBON_FIELDS = (
+    ("standard_concentration", "standard", "Standard concentration"),
+    ("final_concentration_sample", "final_sample", "Final concentration in sample"),
+    (
+        "final_concentration_standard",
+        "final_standard",
+        "Final concentration of standard",
+    ),
+)
+
+MAX_REPORTED_ERRORS = 10
+
+
+class _PostReader:
+    def __init__(self, data):
+        self.data = data
+        self.errors = []
+
+    def decimal(self, key, label):
+        raw = (self.data.get(key) or "").strip()
+        if not raw:
+            return None
+        try:
+            value = Decimal(raw)
+        except InvalidOperation:
+            self.errors.append(f"{label} must be a valid number.")
+            return None
+        if not value.is_finite():
+            self.errors.append(f"{label} must be a valid number.")
+            return None
+        return value
+
+    def text(self, key):
+        return (self.data.get(key) or "").strip()
+
+
+def _check(reader, instance, label):
     try:
-        return Decimal(raw)
-    except InvalidOperation:
-        return None
+        instance.clean_fields(
+            exclude=["entry", "source_parameter", *instance.RESULT_FIELDS]
+        )
+    except ValidationError as exc:
+        for field, field_errors in exc.message_dict.items():
+            name = str(instance._meta.get_field(field).verbose_name).capitalize()
+            for message in field_errors:
+                reader.errors.append(f"{label} {name}: {message}")
+
+
+def _report_errors(request, errors):
+    for error in errors[:MAX_REPORTED_ERRORS]:
+        messages.error(request, error)
+    remaining = len(errors) - MAX_REPORTED_ERRORS
+    if remaining > 0:
+        messages.error(request, f"{remaining} more error(s) not shown.")
+
+
+def _visible_samples():
+    return Sample.objects.filter(submission__is_submitted=True)
+
+
+def _get_sample(slug):
+    return get_object_or_404(_visible_samples(), slug=slug)
+
+
+def _find_submission(reference):
+    return Submission.objects.filter(
+        reference__iexact=reference, is_submitted=True
+    ).first()
+
+
+def _route_name(sample):
+    test_type = get_metallurgical_type(sample)
+    if test_type == Service.CARBON_ACTIVITY:
+        return "chemist:carbon_activity_entry"
+    if test_type in CYANIDE_TYPES:
+        return "chemist:metallurgical_tests_entry"
+    return "chemist:mineral_analysis_entry"
+
+
+def _misrouted(sample, expected):
+    actual = _route_name(sample)
+    if actual != expected:
+        return redirect(actual, slug=sample.slug)
+    return None
+
+
+def _is_read_only(sample, entry):
+    return (
+        entry.status == entry.SUBMITTED_TO_QC
+        or sample.analysis_status not in entry.EDITABLE_SAMPLE_STATUSES
+    )
+
+
+def _no_entry(request):
+    messages.error(request, "This sample is not available for data entry.")
+    return redirect("chemist:chemist_dashboard")
+
+
+def _finalize(request, sample, entry, list_route, entry_route):
+    if "submit_qc" in request.POST:
+        try:
+            entry.submit_to_qc(request.user)
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+            return redirect(entry_route, slug=sample.slug)
+        messages.success(request, f"{sample.lab_sample_id} submitted to QC.")
+        return redirect(list_route, reference=sample.submission.reference)
+
+    messages.success(request, "Draft saved.")
+    return redirect(entry_route, slug=sample.slug)
 
 
 @chemist_required
 def chemist_dashboard(request):
+    visible = _visible_samples()
+
     awaiting_mineral_count = (
-        Sample.objects.filter(
+        visible.filter(
             analysis_status=Sample.SUBMITTED_TO_LAB,
             sample_services__service__metallurgical_type=Service.NONE,
         )
@@ -38,43 +166,39 @@ def chemist_dashboard(request):
     )
 
     awaiting_metallurgical_count = (
-        Sample.objects.filter(
+        visible.filter(
             analysis_status=Sample.SUBMITTED_TO_LAB,
-            sample_services__service__metallurgical_type__in=[
-                Service.CYANIDE_CONVENTIONAL,
-                Service.CYANIDE_OPTIMIZATION,
-                Service.CARBON_ACTIVITY,
-            ],
+            sample_services__service__metallurgical_type__in=METALLURGICAL_TYPES,
         )
         .distinct()
         .count()
     )
 
-    reassay_count = Sample.objects.filter(
-        analysis_status=Sample.REASSAY_REQUIRED
-    ).count()
+    reassay_count = visible.filter(analysis_status=Sample.REASSAY_REQUIRED).count()
+    qc_approved_count = visible.filter(analysis_status=Sample.QC_APPROVED).count()
 
-    qc_approved_count = Sample.objects.filter(
-        analysis_status=Sample.QC_APPROVED
-    ).count()
-
-    recent_samples = Sample.objects.select_related("submission").order_by(
-        "-updated_at"
-    )[:8]
+    recent_samples = visible.select_related("submission").order_by("-updated_at")[:8]
 
     today = timezone.localdate()
-    weekly_chart = []
-    for i in range(6, -1, -1):
-        day = today - timedelta(days=i)
-        count = Sample.objects.filter(
+    days = [today - timedelta(days=offset) for offset in range(6, -1, -1)]
+    per_day = dict(
+        visible.filter(
             analysis_status__in=[
                 Sample.SUBMITTED_TO_QC,
                 Sample.REASSAY_SUBMITTED,
                 Sample.QC_APPROVED,
             ],
-            updated_at__date=day,
-        ).count()
-        weekly_chart.append({"label": day.strftime("%a"), "count": count})
+            updated_at__date__gte=days[0],
+        )
+        .annotate(day=TruncDate("updated_at"))
+        .order_by()
+        .values("day")
+        .annotate(total=Count("id"))
+        .values_list("day", "total")
+    )
+    weekly_chart = [
+        {"label": day.strftime("%a"), "count": per_day.get(day, 0)} for day in days
+    ]
 
     context = {
         "awaiting_mineral_count": awaiting_mineral_count,
@@ -97,12 +221,13 @@ def mineral_analysis_search(request):
 
 @chemist_required
 def mineral_analysis_samples(request, reference):
-    submission = Submission.objects.filter(reference__iexact=reference).first()
+    submission = _find_submission(reference)
 
     samples = []
     if submission:
         samples = (
-            Sample.objects.filter(
+            _visible_samples()
+            .filter(
                 submission=submission,
                 sample_services__service__metallurgical_type=Service.NONE,
             )
@@ -120,48 +245,64 @@ def mineral_analysis_samples(request, reference):
 
 @chemist_required
 def mineral_analysis_entry(request, slug):
-    sample = get_object_or_404(Sample, slug=slug)
-    entry, _ = MineralAnalysisEntry.objects.get_or_create(sample=sample)
+    sample = _get_sample(slug)
+    misrouted = _misrouted(sample, "chemist:mineral_analysis_entry")
+    if misrouted:
+        return misrouted
+
+    entry = MineralAnalysisEntry.current_for(sample, request.user)
+    if entry is None:
+        return _no_entry(request)
+
     entry.ensure_replicates()
+    replicates = list(entry.replicates.all())
+    read_only = _is_read_only(sample, entry)
+
+    def render_entry():
+        context = {
+            "sample": sample,
+            "entry": entry,
+            "elements": entry.registered_elements,
+            "replicates": replicates,
+            "read_only": read_only,
+        }
+        return render(request, "chemist/mineral_analysis_entry.html", context)
 
     if request.method == "POST":
-        for replicate in entry.replicates.all():
-            prefix = f"rep{replicate.replicate_number}"
-            replicate.weight = _parse_decimal(request.POST.get(f"{prefix}_weight"))
-            replicate.au_aas = _parse_decimal(request.POST.get(f"{prefix}_au_aas"))
-            replicate.au_df = _parse_decimal(request.POST.get(f"{prefix}_au_df"))
-            replicate.cu_aas = _parse_decimal(request.POST.get(f"{prefix}_cu_aas"))
-            replicate.cu_df = _parse_decimal(request.POST.get(f"{prefix}_cu_df"))
-            replicate.ag_aas = _parse_decimal(request.POST.get(f"{prefix}_ag_aas"))
-            replicate.ag_df = _parse_decimal(request.POST.get(f"{prefix}_ag_df"))
-            replicate.sulphur = _parse_decimal(request.POST.get(f"{prefix}_sulphur"))
-            replicate.save()
+        if read_only:
+            messages.error(request, "This entry is locked and can no longer be edited.")
+            return redirect("chemist:mineral_analysis_entry", slug=sample.slug)
 
-        entry.refresh_status()
-
-        if "submit_qc" in request.POST:
-            try:
-                entry.submit_to_qc()
-                CRMSequenceCounter.register_sample_and_maybe_insert_crm(entry)
-                messages.success(request, f"{sample.slug} submitted to QC.")
-                return redirect(
-                    "chemist:mineral_analysis_samples",
-                    reference=sample.submission.reference,
+        reader = _PostReader(request.POST)
+        for replicate in replicates:
+            number = replicate.replicate_number
+            prefix = f"rep{number}"
+            for field, label in MINERAL_FIELDS:
+                setattr(
+                    replicate,
+                    field,
+                    reader.decimal(f"{prefix}_{field}", f"Replicate {number} {label}"),
                 )
-            except ValidationError as exc:
-                messages.error(request, " ".join(exc.messages))
-        else:
-            messages.success(request, "Draft saved.")
+            _check(reader, replicate, f"Replicate {number}")
 
-        return redirect("chemist:mineral_analysis_entry", slug=sample.slug)
+        if reader.errors:
+            _report_errors(request, reader.errors)
+            return render_entry()
 
-    context = {
-        "sample": sample,
-        "entry": entry,
-        "elements": entry.registered_elements,
-        "replicates": entry.replicates.all(),
-    }
-    return render(request, "chemist/mineral_analysis_entry.html", context)
+        with transaction.atomic():
+            for replicate in replicates:
+                replicate.save()
+            entry.refresh_status(request.user)
+
+        return _finalize(
+            request,
+            sample,
+            entry,
+            "chemist:mineral_analysis_samples",
+            "chemist:mineral_analysis_entry",
+        )
+
+    return render_entry()
 
 
 @chemist_required
@@ -174,18 +315,15 @@ def metallurgical_tests_search(request):
 
 @chemist_required
 def metallurgical_tests_samples(request, reference):
-    submission = Submission.objects.filter(reference__iexact=reference).first()
+    submission = _find_submission(reference)
 
     samples = []
     if submission:
         samples = (
-            Sample.objects.filter(
+            _visible_samples()
+            .filter(
                 submission=submission,
-                sample_services__service__metallurgical_type__in=[
-                    Service.CYANIDE_CONVENTIONAL,
-                    Service.CYANIDE_OPTIMIZATION,
-                    Service.CARBON_ACTIVITY,
-                ],
+                sample_services__service__metallurgical_type__in=METALLURGICAL_TYPES,
             )
             .distinct()
             .order_by("id")
@@ -199,122 +337,130 @@ def metallurgical_tests_samples(request, reference):
     return render(request, "chemist/metallurgical_tests_samples.html", context)
 
 
-def _get_metallurgical_type(sample):
-    sample_service = (
-        sample.sample_services.filter(
-            service__metallurgical_type__in=[
-                Service.CYANIDE_CONVENTIONAL,
-                Service.CYANIDE_OPTIMIZATION,
-                Service.CARBON_ACTIVITY,
-            ]
-        )
-        .select_related("service")
-        .first()
-    )
-    return sample_service.service.metallurgical_type if sample_service else None
-
-
 @chemist_required
 def metallurgical_test_entry(request, slug):
-    sample = get_object_or_404(Sample, slug=slug)
-    test_type = _get_metallurgical_type(sample)
+    sample = _get_sample(slug)
+    misrouted = _misrouted(sample, "chemist:metallurgical_tests_entry")
+    if misrouted:
+        return misrouted
 
-    if test_type == Service.CARBON_ACTIVITY:
-        return redirect("chemist:carbon_activity_entry", slug=slug)
+    entry = MetallurgicalTestEntry.current_for(sample, request.user)
+    if entry is None:
+        return _no_entry(request)
 
-    entry, _ = MetallurgicalTestEntry.objects.get_or_create(
-        sample=sample, defaults={"test_type": test_type}
-    )
     entry.ensure_parameter_rows()
+    rows = list(entry.rows.select_related("source_parameter"))
+    read_only = _is_read_only(sample, entry)
+
+    def render_entry():
+        context = {
+            "sample": sample,
+            "entry": entry,
+            "rows": rows,
+            "read_only": read_only,
+        }
+        return render(request, "chemist/metallurgical_test_entry.html", context)
 
     if request.method == "POST":
-        for row in entry.rows.all():
+        if read_only:
+            messages.error(request, "This entry is locked and can no longer be edited.")
+            return redirect("chemist:metallurgical_tests_entry", slug=sample.slug)
+
+        reader = _PostReader(request.POST)
+        for row in rows:
             prefix = f"row{row.id}"
-            row.weight_volume = _parse_decimal(
-                request.POST.get(f"{prefix}_weight_volume")
-            )
-            row.si_unit = request.POST.get(f"{prefix}_si_unit", "")
-            row.gold_recovery_12h = _parse_decimal(
-                request.POST.get(f"{prefix}_recovery_12h")
-            )
-            row.gold_recovery_24h = _parse_decimal(
-                request.POST.get(f"{prefix}_recovery_24h")
-            )
-            row.gold_recovery_48h = _parse_decimal(
-                request.POST.get(f"{prefix}_recovery_48h")
-            )
-            row.remarks = request.POST.get(f"{prefix}_remarks", "")
-            row.save()
-
-        entry.refresh_status()
-
-        if "submit_qc" in request.POST:
-            try:
-                entry.submit_to_qc()
-                messages.success(request, f"{sample.slug} submitted to QC.")
-                return redirect(
-                    "chemist:metallurgical_tests_samples",
-                    reference=sample.submission.reference,
+            label = row.source_parameter.display_label
+            for field, key, field_label in METALLURGICAL_FIELDS:
+                setattr(
+                    row,
+                    field,
+                    reader.decimal(f"{prefix}_{key}", f"{label} {field_label}"),
                 )
-            except ValidationError as exc:
-                messages.error(request, " ".join(exc.messages))
-        else:
-            messages.success(request, "Draft saved.")
+            row.si_unit = reader.text(f"{prefix}_si_unit")
+            row.remarks = reader.text(f"{prefix}_remarks")
+            _check(reader, row, label)
 
-        return redirect("chemist:metallurgical_tests_entry", slug=sample.slug)
+        if reader.errors:
+            _report_errors(request, reader.errors)
+            return render_entry()
 
-    context = {
-        "sample": sample,
-        "entry": entry,
-        "rows": entry.rows.select_related("source_parameter").all(),
-    }
-    return render(request, "chemist/metallurgical_test_entry.html", context)
+        with transaction.atomic():
+            for row in rows:
+                row.save()
+            entry.refresh_status(request.user)
+
+        return _finalize(
+            request,
+            sample,
+            entry,
+            "chemist:metallurgical_tests_samples",
+            "chemist:metallurgical_tests_entry",
+        )
+
+    return render_entry()
 
 
 @chemist_required
 def carbon_activity_entry(request, slug):
-    sample = get_object_or_404(Sample, slug=slug)
-    entry, _ = CarbonActivityEntry.objects.get_or_create(sample=sample)
+    sample = _get_sample(slug)
+    misrouted = _misrouted(sample, "chemist:carbon_activity_entry")
+    if misrouted:
+        return misrouted
+
+    entry = CarbonActivityEntry.current_for(sample, request.user)
+    if entry is None:
+        return _no_entry(request)
+
     entry.ensure_replicates()
+    replicates = list(entry.replicates.all())
+    read_only = _is_read_only(sample, entry)
+
+    def render_entry():
+        context = {
+            "sample": sample,
+            "entry": entry,
+            "replicates": replicates,
+            "read_only": read_only,
+        }
+        return render(request, "chemist/carbon_activity_entry.html", context)
 
     if request.method == "POST":
-        for replicate in entry.replicates.all():
-            prefix = f"rep{replicate.replicate_number}"
-            replicate.standard_concentration = _parse_decimal(
-                request.POST.get(f"{prefix}_standard")
-            )
-            replicate.final_concentration_sample = _parse_decimal(
-                request.POST.get(f"{prefix}_final_sample")
-            )
-            replicate.final_concentration_standard = _parse_decimal(
-                request.POST.get(f"{prefix}_final_standard")
-            )
-            replicate.remarks = request.POST.get(f"{prefix}_remarks", "")
-            replicate.save()
+        if read_only:
+            messages.error(request, "This entry is locked and can no longer be edited.")
+            return redirect("chemist:carbon_activity_entry", slug=sample.slug)
 
-        entry.refresh_status()
-
-        if "submit_qc" in request.POST:
-            try:
-                entry.submit_to_qc()
-                messages.success(request, f"{sample.slug} submitted to QC.")
-                return redirect(
-                    "chemist:metallurgical_tests_samples",
-                    reference=sample.submission.reference,
+        reader = _PostReader(request.POST)
+        for replicate in replicates:
+            number = replicate.replicate_number
+            prefix = f"rep{number}"
+            for field, key, label in CARBON_FIELDS:
+                setattr(
+                    replicate,
+                    field,
+                    reader.decimal(f"{prefix}_{key}", f"Replicate {number} {label}"),
                 )
-            except ValidationError as exc:
-                messages.error(request, " ".join(exc.messages))
-        else:
-            messages.success(request, "Draft saved.")
+            replicate.remarks = reader.text(f"{prefix}_remarks")
+            _check(reader, replicate, f"Replicate {number}")
 
-        return redirect("chemist:carbon_activity_entry", slug=sample.slug)
+        if reader.errors:
+            _report_errors(request, reader.errors)
+            return render_entry()
 
-    context = {
-        "sample": sample,
-        "entry": entry,
-        "replicates": entry.replicates.all(),
-    }
-    return render(request, "chemist/carbon_activity_entry.html", context)
+        with transaction.atomic():
+            for replicate in replicates:
+                replicate.save()
+            entry.recalculate_final_activity()
+            entry.refresh_status(request.user)
+
+        return _finalize(
+            request,
+            sample,
+            entry,
+            "chemist:metallurgical_tests_samples",
+            "chemist:carbon_activity_entry",
+        )
+
+    return render_entry()
 
 
 @chemist_required
@@ -322,8 +468,10 @@ def reassay_samples(request):
     reference = request.GET.get("reference", "").strip()
     status = request.GET.get("status", "all")
 
+    visible = _visible_samples()
+
     samples = (
-        Sample.objects.filter(
+        visible.filter(
             analysis_status__in=[Sample.REASSAY_REQUIRED, Sample.REASSAY_SUBMITTED]
         )
         .select_related("submission")
@@ -338,12 +486,8 @@ def reassay_samples(request):
     elif status == "submitted":
         samples = samples.filter(analysis_status=Sample.REASSAY_SUBMITTED)
 
-    required_count = Sample.objects.filter(
-        analysis_status=Sample.REASSAY_REQUIRED
-    ).count()
-    submitted_count = Sample.objects.filter(
-        analysis_status=Sample.REASSAY_SUBMITTED
-    ).count()
+    required_count = visible.filter(analysis_status=Sample.REASSAY_REQUIRED).count()
+    submitted_count = visible.filter(analysis_status=Sample.REASSAY_SUBMITTED).count()
 
     context = {
         "reference": reference,
@@ -358,22 +502,18 @@ def reassay_samples(request):
 
 @chemist_required
 def reassay_entry(request, slug):
-    sample = get_object_or_404(Sample, slug=slug)
-    test_type = _get_metallurgical_type(sample)
-
-    if test_type == Service.CARBON_ACTIVITY:
-        return redirect("chemist:carbon_activity_entry", slug=slug)
-    if test_type in (Service.CYANIDE_CONVENTIONAL, Service.CYANIDE_OPTIMIZATION):
-        return redirect("chemist:metallurgical_tests_entry", slug=slug)
-    return redirect("chemist:mineral_analysis_entry", slug=slug)
+    sample = _get_sample(slug)
+    return redirect(_route_name(sample), slug=sample.slug)
 
 
 @chemist_required
 def qc_approved(request):
     reference = request.GET.get("reference", "").strip()
 
+    visible = _visible_samples()
+
     samples = (
-        Sample.objects.filter(analysis_status=Sample.QC_APPROVED)
+        visible.filter(analysis_status=Sample.QC_APPROVED)
         .select_related("submission")
         .order_by("-updated_at")
     )
@@ -384,8 +524,6 @@ def qc_approved(request):
     context = {
         "reference": reference,
         "samples": samples,
-        "total_count": Sample.objects.filter(
-            analysis_status=Sample.QC_APPROVED
-        ).count(),
+        "total_count": visible.filter(analysis_status=Sample.QC_APPROVED).count(),
     }
     return render(request, "chemist/qc_approved.html", context)
