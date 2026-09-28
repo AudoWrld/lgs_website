@@ -12,14 +12,14 @@ urlpatterns = [
         name="mineral_analysis_search",
     ),
     path(
-        "mineral-analysis/<path:reference>/",
-        views.mineral_analysis_samples,
-        name="mineral_analysis_samples",
-    ),
-    path(
         "mineral-analysis/entry/<slug:slug>/",
         views.mineral_analysis_entry,
         name="mineral_analysis_entry",
+    ),
+    path(
+        "mineral-analysis/<path:reference>/",
+        views.mineral_analysis_samples,
+        name="mineral_analysis_samples",
     ),
     path(
         "metallurgical-tests/",
@@ -27,14 +27,14 @@ urlpatterns = [
         name="metallurgical_tests_search",
     ),
     path(
-        "metallurgical-tests/<path:reference>/",
-        views.metallurgical_tests_samples,
-        name="metallurgical_tests_samples",
-    ),
-    path(
         "metallurgical-tests/entry/<slug:slug>/",
         views.metallurgical_test_entry,
         name="metallurgical_tests_entry",
+    ),
+    path(
+        "metallurgical-tests/<path:reference>/",
+        views.metallurgical_tests_samples,
+        name="metallurgical_tests_samples",
     ),
     path(
         "carbon-activity/entry/<slug:slug>/",
