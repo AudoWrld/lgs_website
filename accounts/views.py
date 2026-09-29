@@ -39,6 +39,8 @@ def post_login_redirect(request):
         return redirect("reception:reception_dashboard")
     if user.is_chemist:
         return redirect("chemist:chemist_dashboard")
+    if user.is_qc:
+        return redirect("qc:qc_dashboard")
     if user.is_administrator or user.is_superuser:
         return redirect("administrator_dashboard")
 
