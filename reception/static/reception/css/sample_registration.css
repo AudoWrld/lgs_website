@@ -1,9 +1,14 @@
 .rc-page {
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  padding: 0 0 1.5rem;
+  height: calc(100vh - var(--topbar-height, 64px) - 30px);
+  height: calc(100dvh - var(--topbar-height, 64px) - 30px);
+  min-height: 560px;
 }
 
 .rc-summary {
+  flex: none;
   display: grid;
   grid-template-columns: 1.4fr 1.2fr 1.2fr 1fr auto;
   gap: 0;
@@ -76,6 +81,7 @@
 }
 
 .rc-page-actions {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -127,12 +133,12 @@
 }
 
 .rc-sample-layout {
+  flex: 1 1 auto;
+  min-height: 0;
   display: grid;
   grid-template-columns: 360px minmax(0, 1fr);
   gap: 1rem;
   align-items: stretch;
-  height: calc(100vh - var(--topbar-height) - 200px);
-  min-height: 520px;
 }
 
 .rc-card {
@@ -144,10 +150,6 @@
   border: 1px solid var(--line);
   border-radius: 0;
   overflow: hidden;
-}
-
-.rc-form-card {
-  height: 100%;
 }
 
 .rc-card-head {
@@ -306,10 +308,6 @@
   margin: 0;
   font-size: var(--fs-small);
   color: #7b858c;
-}
-
-.rc-list-card {
-  height: 100%;
 }
 
 .rc-table-wrap {
@@ -547,9 +545,13 @@
 }
 
 @media (max-width: 960px) {
+  .rc-page {
+    height: auto;
+    min-height: 0;
+  }
+
   .rc-sample-layout {
     grid-template-columns: 1fr;
-    height: auto;
     min-height: 0;
   }
 
