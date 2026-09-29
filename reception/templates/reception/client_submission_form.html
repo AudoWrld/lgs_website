@@ -13,10 +13,10 @@
 {% block content %}
 <div class="cs-split{% if submission or not_found %} has-selection{% endif %}" data-ref="{{ submission.reference }}">
 
-  <aside class="dash-panel cs-list-panel">
+  <aside class="dash-panel cs-list-panel" aria-label="Submissions list">
     <div class="dash-panel-head">
       <h3><i class='bx bx-list-ul' aria-hidden="true"></i> Submissions</h3>
-      <span id="cs-count">{{ match_count }} found</span>
+      <span id="cs-count" aria-live="polite">{{ match_count }} found</span>
     </div>
 
     <form method="get" class="cs-search" id="cs-search-form" role="search">
@@ -33,7 +33,7 @@
       <ul class="cs-list" id="cs-list">
         {% for item in submissions %}
           <li>
-            <a href="?ref={{ item.reference|urlencode:'' }}{% if query %}&q={{ query|urlencode:'' }}{% endif %}" class="cs-item{% if submission and item.pk == submission.pk %} is-active{% endif %}"{% if submission and item.pk == submission.pk %} aria-current="true"{% endif %}>
+            <a href="?ref={{ item.reference|urlencode:'' }}{% if query %}&q={{ query|urlencode:'' }}{% endif %}" class="cs-item{% if submission and item.pk == submission.pk %} is-active{% endif %}"{% if submission and item.pk == submission.pk %} aria-current="page"{% endif %}>
               <span class="cs-item-top">
                 <span class="cs-item-ref">{{ item.reference }}</span>
                 <span class="cs-badge cs-status-{{ item.status|lower }}">{{ item.get_status_display }}</span>
@@ -55,7 +55,7 @@
     </div>
   </aside>
 
-  <section class="cs-detail" id="cs-detail">
+  <section class="cs-detail" id="cs-detail" aria-label="Submission details">
     {% if submission and payment %}
 
     <div class="cs-toolbar">
@@ -78,17 +78,15 @@
 
     <article class="cs-sheet">
 
-      <!-- Header: logo on top, centered -->
       <header class="cs-header">
         <img src="{% static 'core/img/lgs-logo.png' %}" alt="LGS Mineral Assay Laboratory" class="cs-logo">
-        <h1>LGS Mineral Assay Laboratory</h1>
+        <h1 id="cs-sheet-title" tabindex="-1">LGS Mineral Assay Laboratory</h1>
         <span class="cs-header-sub">Client Submission Form</span>
         <span class="cs-header-ref">Client Reference: <strong>{{ submission.reference }}</strong></span>
       </header>
 
       <div class="cs-body">
 
-        <!-- Client details -->
         <section class="cs-section">
           <h2 class="cs-section-title">Client Details</h2>
           <table class="cs-info">
@@ -113,7 +111,6 @@
           </table>
         </section>
 
-        <!-- Sample details -->
         <section class="cs-section">
           <h2 class="cs-section-title">Sample Details</h2>
           <table class="cs-info">
@@ -140,7 +137,6 @@
           </table>
         </section>
 
-        <!-- Payment -->
         <section class="cs-section">
           <h2 class="cs-section-title">Payment <span class="cs-title-note">(All amounts in TZS)</span></h2>
           <table class="cs-info">
@@ -197,7 +193,6 @@
           {% endif %}
         </section>
 
-        <!-- Portal login -->
         <section class="cs-section">
           <h2 class="cs-section-title">Client Portal Login</h2>
           <table class="cs-info">
@@ -208,7 +203,7 @@
                   <span class="cs-credential">
                     <span>{{ portal_username|default:"—" }}</span>
                     {% if portal_username %}
-                    <button type="button" class="cs-copy no-print" data-copy="{{ portal_username }}" aria-label="Copy username"><i class='bx bx-copy' aria-hidden="true"></i></button>
+                    <button type="button" class="cs-copy no-print" data-copy="{{ portal_username }}" data-label="Username" aria-label="Copy username"><i class='bx bx-copy' aria-hidden="true"></i></button>
                     {% endif %}
                   </span>
                 </td>
@@ -217,7 +212,7 @@
                   <span class="cs-credential">
                     {% if temp_password %}
                     <span class="cs-temp-password">{{ temp_password }}</span>
-                    <button type="button" class="cs-copy no-print" data-copy="{{ temp_password }}" aria-label="Copy password"><i class='bx bx-copy' aria-hidden="true"></i></button>
+                    <button type="button" class="cs-copy no-print" data-copy="{{ temp_password }}" data-label="Password" aria-label="Copy password"><i class='bx bx-copy' aria-hidden="true"></i></button>
                     {% else %}
                     <span class="cs-password-unavailable">No portal account yet.</span>
                     {% endif %}
@@ -240,6 +235,15 @@
 
     </article>
 
+    {% elif submission %}
+
+    <div class="dash-panel cs-block">
+      <div class="cs-alert" role="alert">
+        <p><strong>Payment record missing</strong> for {{ submission.reference }}.</p>
+        <p>The form cannot be generated until a payment record exists. Contact management.</p>
+      </div>
+    </div>
+
     {% elif not_found %}
 
     <div class="dash-panel cs-block">
@@ -261,6 +265,8 @@
     {% endif %}
   </section>
 
+  <p class="visually-hidden" id="cs-live" role="status" aria-live="polite"></p>
+
 </div>
 {% endblock %}
 
@@ -274,9 +280,11 @@
     var listWrap = document.getElementById("cs-list-wrap");
     var count = document.getElementById("cs-count");
     var detail = document.getElementById("cs-detail");
+    var live = document.getElementById("cs-live");
     if (!split || !searchForm || !input || !refInput || !listWrap || !count || !detail) return;
 
     var timer;
+    var liveTimer;
     var detailSerial = 0;
     var listSerial = 0;
     var headers = { "X-Requested-With": "XMLHttpRequest" };
@@ -287,6 +295,13 @@
       if (q) params.set("q", q);
       var s = params.toString();
       return location.pathname + (s ? "?" + s : "");
+    }
+
+    function announce(message) {
+      if (!live) return;
+      clearTimeout(liveTimer);
+      live.textContent = message;
+      liveTimer = setTimeout(function () { live.textContent = ""; }, 1800);
     }
 
     function centerActive() {
@@ -309,22 +324,34 @@
       if (next) next.scrollTop = top;
     }
 
-    function applyDetail(doc, scroll) {
+    function applyDetail(doc, opts) {
       var nextSplit = doc.querySelector(".cs-split");
       detail.innerHTML = doc.getElementById("cs-detail").innerHTML;
       split.classList.toggle("has-selection", nextSplit.classList.contains("has-selection"));
       refInput.value = nextSplit.getAttribute("data-ref") || "";
       detail.scrollTop = 0;
-      if (scroll && window.innerWidth <= 900) {
+      if (opts.scroll && window.innerWidth <= 900) {
         detail.scrollIntoView({ behavior: "smooth", block: "start" });
       }
       centerActive();
+      if (opts.focus) {
+        var target = document.getElementById("cs-sheet-title") || detail;
+        if (target === detail) detail.setAttribute("tabindex", "-1");
+        target.focus({ preventScroll: true });
+      }
     }
 
     function load(url, opts) {
       var isDetail = !!opts.detail;
-      var id = isDetail ? ++detailSerial : ++listSerial;
-      if (isDetail) detail.classList.add("is-loading");
+      var id;
+      if (isDetail) {
+        id = ++detailSerial;
+        ++listSerial;
+        detail.classList.add("is-loading");
+        detail.setAttribute("aria-busy", "true");
+      } else {
+        id = ++listSerial;
+      }
 
       fetch(url, { headers: headers, credentials: "same-origin" })
         .then(function (r) { return r.text(); })
@@ -336,8 +363,9 @@
           if (isDetail) {
             if (id !== detailSerial) return;
             applyList(doc);
-            applyDetail(doc, opts.scroll);
+            applyDetail(doc, opts);
             detail.classList.remove("is-loading");
+            detail.removeAttribute("aria-busy");
             if (opts.history === "push") history.pushState(null, "", url);
           } else {
             if (id !== listSerial || opts.ref !== refInput.value) return;
@@ -349,6 +377,7 @@
           if (!isDetail) return;
           if (id !== detailSerial) return;
           detail.classList.remove("is-loading");
+          detail.removeAttribute("aria-busy");
           location.href = url;
         });
     }
@@ -375,20 +404,27 @@
       if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       e.preventDefault();
       if (a.classList.contains("is-active")) return;
-      load(a.href, { detail: true, history: "push", scroll: true });
+      clearTimeout(timer);
+      var ref = new URL(a.href, location.href).searchParams.get("ref") || "";
+      load(buildUrl(ref, input.value.trim()), { detail: true, history: "push", scroll: true, focus: true });
     });
 
     detail.addEventListener("click", function (e) {
       var btn = e.target.closest(".cs-copy");
       if (!btn) return;
       var value = btn.getAttribute("data-copy") || "";
+      var label = btn.getAttribute("data-label") || "Value";
+      var original = btn.getAttribute("aria-label");
 
       function done() {
         btn.classList.add("is-copied");
+        btn.setAttribute("aria-label", label + " copied");
         var icon = btn.querySelector("i");
         if (icon) icon.className = "bx bx-check";
+        announce(label + " copied to clipboard");
         setTimeout(function () {
           btn.classList.remove("is-copied");
+          btn.setAttribute("aria-label", original);
           if (icon) icon.className = "bx bx-copy";
         }, 1400);
       }
@@ -408,6 +444,7 @@
     });
 
     window.addEventListener("popstate", function () {
+      clearTimeout(timer);
       input.value = new URLSearchParams(location.search).get("q") || "";
       load(location.pathname + location.search, { detail: true });
     });
