@@ -300,6 +300,15 @@ class SampleService(models.Model):
     charged_price = models.DecimalField(
         max_digits=12, decimal_places=2, null=True, blank=True, editable=False
     )
+    quoted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        editable=False,
+        related_name="+",
+    )
+    quoted_at = models.DateTimeField(null=True, blank=True, editable=False)
 
     class Meta:
         constraints = [
