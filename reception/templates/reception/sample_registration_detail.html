@@ -12,7 +12,7 @@
 {% block content %}
 <div class="rc-page">
 
-  <section class="rc-summary">
+  <section class="rc-summary" aria-label="Submission summary">
     <div class="rc-summary-item rc-summary-ref">
       <span class="rc-summary-label">Submission Reference</span>
       <span class="rc-summary-ref-value">{{ submission.reference }}</span>
@@ -57,18 +57,18 @@
   </section>
 
   {% if submission.is_submitted %}
-  <div class="rc-page-actions" aria-label="Submission actions">
+  <div class="rc-page-actions" role="group" aria-label="Submission actions">
     <a href="{% url 'reception:payment_detail' submission.reference %}" class="btn btn-outline rc-page-action">
-      <i class='bx bx-check-circle'></i> Check Payment Status
+      <i class='bx bx-check-circle' aria-hidden="true"></i> Check Payment Status
     </a>
-    <a href="{% url 'reception:worksheet_pdf' submission.reference %}" class="btn btn-outline rc-page-action" rel="noopener">
-      <i class='bx bx-printer'></i> Print Worksheet
+    <a href="{% url 'reception:worksheet_pdf' submission.reference %}" target="_blank" rel="noopener" class="btn btn-outline rc-page-action">
+      <i class='bx bx-printer' aria-hidden="true"></i> Print Worksheet
     </a>
-    <a href="{% url 'reception:client_submission_form_pdf' submission.reference %}?view=1" class="btn btn-outline rc-page-action" rel="noopener">
-      <i class='bx bx-file'></i> Client Submission Form
+    <a href="{% url 'reception:client_submission_form_pdf' submission.reference %}?view=1" target="_blank" rel="noopener" class="btn btn-outline rc-page-action">
+      <i class='bx bx-file' aria-hidden="true"></i> Client Submission Form
     </a>
     <a href="{% url 'reception:coa_reporting_preference' submission.reference %}" class="btn btn-outline rc-page-action">
-      <i class='bx bx-list-check'></i> COA Reporting Preference
+      <i class='bx bx-list-check' aria-hidden="true"></i> COA Reporting Preference
     </a>
   </div>
   {% endif %}
@@ -104,8 +104,8 @@
         </div>
 
         <div class="rc-field">
-          <label>Requested Service(s)</label>
-          <div class="rc-checkbox-list" id="rc-service-checkboxes">
+          <label id="rc-services-label">Requested Service(s)</label>
+          <div class="rc-checkbox-list" id="rc-service-checkboxes" role="group" aria-labelledby="rc-services-label">
             {% for checkbox in form.services %}
               <label class="rc-checkbox-item">{{ checkbox.tag }}<span>{{ checkbox.choice_label }}</span></label>
             {% endfor %}
@@ -113,10 +113,9 @@
           {% if form.services.errors %}<span class="rc-field-error">{{ form.services.errors.0 }}</span>{% endif %}
         </div>
 
-        <!-- Appears automatically only when Cyanide Conventional Leaching Test is selected above -->
         <div class="rc-field rc-metallurgical-section rc-leaching-section" style="display:none;">
-          <label>Leaching Parameters</label>
-          <div class="rc-checkbox-list">
+          <label id="rc-leaching-label">Leaching Parameters</label>
+          <div class="rc-checkbox-list" role="group" aria-labelledby="rc-leaching-label">
             {% for checkbox in form.leaching_parameters %}
               <label class="rc-checkbox-item">{{ checkbox.tag }}<span>{{ checkbox.choice_label }}</span></label>
             {% endfor %}
@@ -125,15 +124,14 @@
 
           <div class="rc-custom-param-list" data-role="leaching-custom-list"></div>
           <button type="button" class="btn btn-outline btn-sm rc-add-custom-param">
-            <i class='bx bx-plus'></i> Add Another Parameter
+            <i class='bx bx-plus' aria-hidden="true"></i> Add Another Parameter
           </button>
           {{ form.leaching_custom_parameters }}
         </div>
 
-        <!-- Appears automatically only when Cyanide Leaching Parameter Optimization is selected above -->
         <div class="rc-field rc-metallurgical-section rc-optimization-section" style="display:none;">
-          <label>Optimization Parameters</label>
-          <div class="rc-checkbox-list">
+          <label id="rc-optimization-label">Optimization Parameters</label>
+          <div class="rc-checkbox-list" role="group" aria-labelledby="rc-optimization-label">
             {% for checkbox in form.optimization_parameters %}
               <label class="rc-checkbox-item">{{ checkbox.tag }}<span>{{ checkbox.choice_label }}</span></label>
             {% endfor %}
@@ -142,14 +140,14 @@
 
           <div class="rc-custom-param-list" data-role="optimization-custom-list"></div>
           <button type="button" class="btn btn-outline btn-sm rc-add-custom-param">
-            <i class='bx bx-plus'></i> Add Another Parameter
+            <i class='bx bx-plus' aria-hidden="true"></i> Add Another Parameter
           </button>
           {{ form.optimization_custom_parameters }}
         </div>
 
         <div class="rc-form-actions">
           <button type="submit" class="btn btn-primary rc-submit">
-            <i class='bx {% if editing_sample %}bx-save{% else %}bx-plus{% endif %}'></i>
+            <i class='bx {% if editing_sample %}bx-save{% else %}bx-plus{% endif %}' aria-hidden="true"></i>
             {% if editing_sample %}Save Changes{% else %}Add Sample{% endif %}
           </button>
           {% if editing_sample %}
@@ -161,7 +159,7 @@
     {% else %}
     <div class="rc-card rc-form-card">
       <div class="rc-locked">
-        <i class='bx bx-lock-alt'></i>
+        <i class='bx bx-lock-alt' aria-hidden="true"></i>
         <h3>Submission Submitted</h3>
         <p>This submission was finalized and can no longer be changed.</p>
       </div>
@@ -179,14 +177,15 @@
       {% if samples %}
       <div class="rc-table-wrap">
         <table class="rc-sample-table">
+          <caption class="visually-hidden">Registered samples for {{ submission.reference }}</caption>
           <thead>
             <tr>
-              <th class="rc-col-sn">S/N</th>
-              <th>Sample ID</th>
-              <th>Type</th>
-              <th>Service(s)</th>
-              <th>Method of Analysis</th>
-              <th class="rc-col-actions">Actions</th>
+              <th scope="col" class="rc-col-sn">S/N</th>
+              <th scope="col">Sample ID</th>
+              <th scope="col">Type</th>
+              <th scope="col">Service(s)</th>
+              <th scope="col">Method of Analysis</th>
+              <th scope="col" class="rc-col-actions">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -217,10 +216,10 @@
               <td class="rc-row-actions">
                 {% if not submission.is_submitted %}
                   <a href="{% url 'reception:sample_edit' submission.slug sample.slug %}" class="rc-action rc-edit-link rc-edit-trigger" aria-label="Edit {{ sample.client_sample_id }}" title="Edit sample">
-                    <i class='bx bx-edit'></i><span>Edit</span>
+                    <i class='bx bx-edit' aria-hidden="true"></i><span>Edit</span>
                   </a>
-                  <a href="{% url 'reception:sample_remove' submission.slug sample.slug %}" onclick="return confirm('Remove sample {{ sample.client_sample_id }}?');" class="rc-action rc-remove-link" aria-label="Remove {{ sample.client_sample_id }}" title="Remove sample">
-                    <i class='bx bx-trash'></i><span>Remove</span>
+                  <a href="{% url 'reception:sample_remove' submission.slug sample.slug %}" data-confirm="Remove sample {{ sample.client_sample_id }}?" class="rc-action rc-remove-link" aria-label="Remove {{ sample.client_sample_id }}" title="Remove sample">
+                    <i class='bx bx-trash' aria-hidden="true"></i><span>Remove</span>
                   </a>
                 {% else %}
                   <span class="rc-locked-label">Submitted</span>
@@ -233,7 +232,7 @@
       </div>
       {% else %}
       <div class="rc-empty-state">
-        <i class='bx bx-flask'></i>
+        <i class='bx bx-flask' aria-hidden="true"></i>
         <p>No samples registered yet under this reference.</p>
       </div>
       {% endif %}
@@ -243,7 +242,7 @@
         <p>Review all samples before submitting. A submitted reference can no longer be edited.</p>
         <form method="post" action="{% url 'reception:submission_submit_review' submission.pk %}">
           {% csrf_token %}
-          <button type="submit" class="btn btn-primary"><i class='bx bx-send'></i> Submit Submission</button>
+          <button type="submit" class="btn btn-primary"><i class='bx bx-send' aria-hidden="true"></i> Submit Submission</button>
         </form>
       </div>
       {% endif %}
@@ -253,9 +252,9 @@
 </div>
 
 <div class="rc-modal" id="rc-modal" hidden>
-  <div class="rc-modal-dialog" role="dialog" aria-modal="true" aria-label="Edit sample">
+  <div class="rc-modal-dialog" id="rc-modal-dialog" role="dialog" aria-modal="true" aria-label="Edit sample" tabindex="-1">
     <button type="button" class="rc-modal-close" id="rc-modal-close" aria-label="Close">
-      <i class='bx bx-x'></i>
+      <i class='bx bx-x' aria-hidden="true"></i>
     </button>
     <div class="rc-modal-body" id="rc-modal-body"></div>
   </div>
@@ -264,6 +263,76 @@
 
 {% block extra_js %}
 <script src="{% static 'reception/js/metallurgical_linking.js' %}"></script>
+<script>
+  (function () {
+    var page = document.querySelector('.rc-page');
+    if (!page) return;
+    var bottomGap = 20;
+
+    function findScroller() {
+      var el = page.parentElement;
+      while (el && el !== document.body && el !== document.documentElement) {
+        var oy = window.getComputedStyle(el).overflowY;
+        if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight) return el;
+        el = el.parentElement;
+      }
+      return document.scrollingElement || document.documentElement;
+    }
+
+    function fit() {
+      if (window.innerWidth <= 960) {
+        page.style.removeProperty('--rc-fit-height');
+        return;
+      }
+      var top = page.getBoundingClientRect().top + window.pageYOffset;
+      var height = Math.max(560, Math.floor(window.innerHeight - top - bottomGap));
+      page.style.setProperty('--rc-fit-height', height + 'px');
+      for (var i = 0; i < 4; i++) {
+        var scroller = findScroller();
+        var over = scroller.scrollHeight - scroller.clientHeight;
+        if (over <= 0 || height <= 560) break;
+        height = Math.max(560, height - over);
+        page.style.setProperty('--rc-fit-height', height + 'px');
+      }
+    }
+
+    var pending = null;
+    function schedule() {
+      if (pending) window.cancelAnimationFrame(pending);
+      pending = window.requestAnimationFrame(fit);
+    }
+
+    window.addEventListener('resize', schedule);
+    window.addEventListener('load', schedule);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+    fit();
+  })();
+</script>
+<script>
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest('.rc-remove-link');
+    if (!link) return;
+    if (!window.confirm(link.getAttribute('data-confirm') || 'Remove this sample?')) {
+      e.preventDefault();
+    }
+  });
+
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!form || !form.closest || form.closest('#rc-modal')) return;
+    var button = form.querySelector('button[type="submit"]');
+    if (button) {
+      setTimeout(function () { button.disabled = true; }, 0);
+    }
+  });
+
+  window.addEventListener('pageshow', function (e) {
+    if (!e.persisted) return;
+    document.querySelectorAll('button[type="submit"]:disabled').forEach(function (button) {
+      button.disabled = false;
+    });
+  });
+</script>
 {% if form %}
 <script>
   document.addEventListener('DOMContentLoaded', function () {
@@ -284,19 +353,26 @@
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     var modal = document.getElementById('rc-modal');
+    var dialog = document.getElementById('rc-modal-dialog');
     var body = document.getElementById('rc-modal-body');
     var closeBtn = document.getElementById('rc-modal-close');
     var currentUrl = '';
+    var lastTrigger = null;
 
     function openModal() {
       modal.hidden = false;
       document.body.style.overflow = 'hidden';
+      closeBtn.focus();
     }
 
     function closeModal() {
       modal.hidden = true;
       body.innerHTML = '';
+      dialog.removeAttribute('aria-labelledby');
+      dialog.setAttribute('aria-label', 'Edit sample');
       document.body.style.overflow = '';
+      if (lastTrigger && document.body.contains(lastTrigger)) lastTrigger.focus();
+      lastTrigger = null;
     }
 
     function prepare() {
@@ -306,6 +382,17 @@
       body.querySelectorAll('label[for]').forEach(function (el) {
         el.setAttribute('for', 'edit-' + el.getAttribute('for'));
       });
+      body.querySelectorAll('[aria-labelledby]').forEach(function (el) {
+        el.setAttribute('aria-labelledby', 'edit-' + el.getAttribute('aria-labelledby'));
+      });
+
+      var heading = body.querySelector('h3');
+      if (heading) {
+        heading.id = 'rc-modal-title';
+        dialog.setAttribute('aria-labelledby', 'rc-modal-title');
+        dialog.removeAttribute('aria-label');
+      }
+
       var typeField = body.querySelector('[name="sample_type"]');
       var otherWrap = body.querySelector('[id="edit-rc-other-type-field"]');
       function toggle() {
@@ -329,19 +416,22 @@
       }
       body.innerHTML = card.outerHTML;
       prepare();
+      var first = body.querySelector('input:not([type="hidden"]), select, textarea');
+      if (first) first.focus();
     }
 
     document.querySelectorAll('.rc-edit-trigger').forEach(function (link) {
       link.addEventListener('click', function (e) {
         e.preventDefault();
+        lastTrigger = link;
         currentUrl = link.getAttribute('href');
-        body.innerHTML = '<p class="rc-modal-loading">Loading…</p>';
+        body.innerHTML = '<p class="rc-modal-loading" role="status">Loading…</p>';
         openModal();
         fetch(currentUrl, { credentials: 'same-origin' })
           .then(function (r) { return r.text(); })
           .then(render)
           .catch(function () {
-            body.innerHTML = '<p class="rc-modal-loading">Could not load the form. Close and try again.</p>';
+            body.innerHTML = '<p class="rc-modal-loading" role="alert">Could not load the form. Close and try again.</p>';
           });
       });
     });
@@ -386,7 +476,26 @@
     });
 
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && !modal.hidden) closeModal();
+      if (modal.hidden) return;
+      if (e.key === 'Escape') {
+        closeModal();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      var focusable = Array.prototype.filter.call(
+        dialog.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])'),
+        function (el) { return el.offsetParent !== null; }
+      );
+      if (!focusable.length) return;
+      var first = focusable[0];
+      var last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     });
   });
 </script>
