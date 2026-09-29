@@ -23,3 +23,14 @@ def chemist_required(view):
         return view(request, *args, **kwargs)
 
     return wrapped
+
+
+def qc_required(view):
+    @wraps(view)
+    @login_required(login_url="accounts:login")
+    def wrapped(request, *args, **kwargs):
+        if not request.user.is_qc:
+            raise PermissionDenied("Quality Control access is required.")
+        return view(request, *args, **kwargs)
+
+    return wrapped
