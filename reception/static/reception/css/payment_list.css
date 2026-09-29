@@ -318,6 +318,76 @@
   overflow-wrap: anywhere;
 }
 
+.ps-quote-panel {
+  border-left: 3px solid var(--orange);
+}
+
+.ps-quote-body {
+  padding: 1.1rem 1.25rem;
+  overflow-x: auto;
+}
+
+.ps-quote-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.ps-quote-table th {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 2px solid var(--line);
+  color: #6b7680;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ps-quote-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.ps-quote-table tr:last-child td {
+  border-bottom: none;
+}
+
+.ps-quote-fixed {
+  font-family: var(--font-head);
+  font-weight: 700;
+  color: var(--navy);
+  font-variant-numeric: tabular-nums;
+}
+
+.ps-quote-input input {
+  width: 100%;
+  min-width: 140px;
+  height: 38px;
+  padding: 0 0.7rem;
+  font-family: var(--font-body);
+  font-size: var(--fs-small);
+  color: var(--charcoal);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.ps-quote-input input:focus {
+  outline: none;
+  border-color: var(--navy);
+}
+
+.ps-quote-input.has-error input {
+  border-color: #a4342a;
+}
+
+.ps-quote-form .ps-actions {
+  border-top: 1px solid var(--line);
+}
+
 .ps-form {
   display: flex;
   flex: 1;
@@ -463,6 +533,10 @@
   margin: 0;
 }
 
+.ps-quote-form .ps-alert {
+  margin: 1.1rem 1.25rem 0;
+}
+
 .ps-alert p {
   margin: 0;
 }
@@ -579,6 +653,10 @@
 
   .ps-actions .btn {
     width: 100%;
+  }
+
+  .ps-quote-table {
+    font-size: 0.8rem;
   }
 }
 

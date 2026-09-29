@@ -28,7 +28,6 @@ class PaymentUpdateForm(forms.Form):
         decimal_places=2,
         min_value=Decimal("0.00"),
         required=False,
-        initial=Decimal("0.00"),
         widget=forms.NumberInput(attrs={"placeholder": "0.00", "step": "0.01"}),
     )
 

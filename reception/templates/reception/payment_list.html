@@ -116,11 +116,108 @@
       </dl>
     </div>
 
+    {% if quotation_lines %}
+    <div class="dash-panel ps-block ps-quote-panel">
+      <div class="dash-panel-head">
+        <h3><i class='bx bx-receipt' aria-hidden="true"></i> By-quotation services</h3>
+        <span>{% if unpriced_count %}{{ unpriced_count }} awaiting an approved amount{% else %}All priced{% endif %}</span>
+      </div>
+
+      {% if unpriced_count %}
+      <form method="post" class="ps-quote-form" data-ref="{{ submission.reference }}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_quotations">
+
+        {% if quote_message %}
+        <div class="ps-alert" role="alert"><p>{{ quote_message }}</p></div>
+        {% endif %}
+
+        <div class="ps-quote-body">
+          <table class="ps-quote-table">
+            <thead>
+              <tr>
+                <th>Lab sample</th>
+                <th>Service</th>
+                <th>Status</th>
+                <th>Approved amount (TZS)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for line in quotation_lines %}
+              <tr>
+                <td>{{ line.sample.client_sample_id }}</td>
+                <td>{{ line.service.name }}</td>
+                <td>
+                  {% if line.quoted_price is not None %}
+                  <span class="ps-badge ps-status-paid">Priced</span>
+                  {% else %}
+                  <span class="ps-badge ps-status-unpaid">By quotation</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if line.quoted_price is not None %}
+                  <span class="ps-quote-fixed">{{ line.quoted_price|floatformat:"2g" }}</span>
+                  {% else %}
+                  <div class="ps-quote-input{% if line.form_error %} has-error{% endif %}">
+                    <input
+                      type="text"
+                      inputmode="decimal"
+                      name="quote_{{ line.pk }}"
+                      value="{{ line.form_value }}"
+                      placeholder="e.g. 45,000"
+                      aria-label="Approved amount for {{ line.service.name }} on {{ line.sample.client_sample_id }}"
+                    >
+                    {% if line.form_error %}<span class="ps-error">{{ line.form_error }}</span>{% endif %}
+                  </div>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="ps-actions">
+          <button type="submit" class="btn btn-primary"><i class='bx bx-save' aria-hidden="true"></i> Save Approved Amounts</button>
+        </div>
+      </form>
+      {% else %}
+      <div class="ps-quote-body">
+        <table class="ps-quote-table">
+          <thead>
+            <tr>
+              <th>Lab sample</th>
+              <th>Service</th>
+              <th>Approved amount (TZS)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for line in quotation_lines %}
+            <tr>
+              <td>{{ line.sample.client_sample_id }}</td>
+              <td>{{ line.service.name }}</td>
+              <td><span class="ps-quote-fixed">{{ line.quoted_price|floatformat:"2g" }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
     {% if payment.payment_status == "PAID" %}
     <div class="dash-panel ps-block">
       <div class="ps-notice">
         <i class='bx bx-check-circle' aria-hidden="true"></i>
         <span>This submission is fully paid. Payment updates are no longer available.</span>
+      </div>
+    </div>
+    {% elif unpriced_count %}
+    <div class="dash-panel ps-block">
+      <div class="ps-notice">
+        <i class='bx bx-lock' aria-hidden="true"></i>
+        <span>Price the by-quotation services above before recording a payment.</span>
       </div>
     </div>
     {% else %}
@@ -130,13 +227,19 @@
         <span>New payment is added to the total paid</span>
       </div>
 
-      <form method="post" class="ps-form" novalidate data-gross="{{ payment.gross_amount|unlocalize }}" data-paid="{{ payment.total_amount_paid|unlocalize }}">
+      <form method="post" class="ps-form" novalidate data-gross="{{ payment.gross_amount|unlocalize }}" data-paid="{{ payment.total_amount_paid|unlocalize }}" data-ref="{{ submission.reference }}">
         {% csrf_token %}
 
         <div class="ps-form-body">
           {% if update_form.non_field_errors %}
           <div class="ps-alert" role="alert">
             {% for error in update_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+          </div>
+          {% endif %}
+
+          {% if unpriced_count %}
+          <div class="ps-alert" role="alert">
+            <p>{{ unpriced_count }} by-quotation service{{ unpriced_count|pluralize }} still need{{ unpriced_count|pluralize:"s," }} an approved amount before this payment can be marked Paid.</p>
           </div>
           {% endif %}
 
@@ -407,13 +510,24 @@
       load(a.href, { detail: true, history: "push", scroll: true });
     });
 
+    function buildPostUrl(f) {
+      var ref = (f.getAttribute("data-ref") || refInput.value || split.getAttribute("data-ref") || "").trim();
+      var q = input.value.trim();
+      var params = new URLSearchParams();
+      if (ref) params.set("ref", ref);
+      if (q) params.set("q", q);
+      var s = params.toString();
+      return location.pathname + (s ? "?" + s : "");
+    }
+
     detail.addEventListener("submit", function (e) {
       var f = e.target;
-      if (!f.classList || !f.classList.contains("ps-form")) return;
+      if (!f.classList) return;
+      if (!f.classList.contains("ps-form") && !f.classList.contains("ps-quote-form")) return;
       e.preventDefault();
       var btn = f.querySelector("button[type=submit]");
       if (btn) btn.disabled = true;
-      load(location.pathname + location.search, { detail: true, body: new FormData(f) });
+      load(buildPostUrl(f), { detail: true, body: new FormData(f) });
     });
 
     window.addEventListener("popstate", function () {
