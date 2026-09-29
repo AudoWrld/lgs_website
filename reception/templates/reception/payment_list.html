@@ -14,10 +14,10 @@
 {% block content %}
 <div class="ps-split{% if submission or not_found %} has-selection{% endif %}" data-ref="{{ submission.reference }}">
 
-  <aside class="dash-panel ps-list-panel">
+  <aside class="dash-panel ps-list-panel" aria-label="Submissions list">
     <div class="dash-panel-head">
       <h3><i class='bx bx-list-ul' aria-hidden="true"></i> Submissions</h3>
-      <span id="ps-count">{{ match_count }} found</span>
+      <span id="ps-count" aria-live="polite">{{ match_count }} found</span>
     </div>
 
     <form method="get" class="ps-search" id="ps-search-form" role="search">
@@ -34,7 +34,7 @@
       <ul class="ps-list" id="ps-list">
         {% for item in submissions %}
         <li>
-          <a href="?ref={{ item.reference|urlencode:'' }}{% if query %}&q={{ query|urlencode:'' }}{% endif %}" class="ps-item{% if submission and item.pk == submission.pk %} is-active{% endif %}"{% if submission and item.pk == submission.pk %} aria-current="true"{% endif %}>
+          <a href="?ref={{ item.reference|urlencode:'' }}{% if query %}&q={{ query|urlencode:'' }}{% endif %}" class="ps-item{% if submission and item.pk == submission.pk %} is-active{% endif %}"{% if submission and item.pk == submission.pk %} aria-current="page"{% endif %}>
             <span class="ps-item-top">
               <span class="ps-item-ref">{{ item.reference }}</span>
               {% if item.payment %}
@@ -60,7 +60,7 @@
     </div>
   </aside>
 
-  <section class="ps-detail" id="ps-detail">
+  <section class="ps-detail" id="ps-detail" aria-label="Payment details">
     {% if flash %}
     <div class="dash-panel ps-block">
       <div class="ps-notice" role="status">
@@ -76,7 +76,7 @@
       <div class="ps-position-head">
         <div>
           <span class="ps-label">Submission reference</span>
-          <h2 class="ps-ref">{{ submission.reference }}</h2>
+          <h2 class="ps-ref" id="ps-sheet-title" tabindex="-1">{{ submission.reference }}</h2>
         </div>
         <div>
           <span class="ps-label">Client</span>
@@ -292,6 +292,15 @@
     </div>
     {% endif %}
 
+    {% elif submission %}
+
+    <div class="dash-panel ps-block">
+      <div class="ps-alert" role="alert">
+        <p><strong>Payment record missing</strong> for {{ submission.reference }}.</p>
+        <p>Contact management to create the payment record.</p>
+      </div>
+    </div>
+
     {% elif not_found %}
 
     <div class="dash-panel ps-block">
@@ -428,28 +437,43 @@
       if (next) next.scrollTop = top;
     }
 
-    function applyDetail(doc, scroll) {
+    function applyDetail(doc, opts) {
       var nextSplit = doc.querySelector(".ps-split");
       detail.innerHTML = doc.getElementById("ps-detail").innerHTML;
       split.classList.toggle("has-selection", nextSplit.classList.contains("has-selection"));
       refInput.value = nextSplit.getAttribute("data-ref") || "";
       detail.scrollTop = 0;
-      if (scroll && window.innerWidth <= 900) {
+      if (opts.scroll && window.innerWidth <= 900) {
         detail.scrollIntoView({ behavior: "smooth", block: "start" });
       }
       initDetail();
       centerActive();
+      if (opts.focus) {
+        var target = document.getElementById("ps-sheet-title");
+        if (!target) {
+          target = detail;
+          detail.setAttribute("tabindex", "-1");
+        }
+        target.focus({ preventScroll: true });
+      }
     }
 
     function load(url, opts) {
       var isDetail = !!opts.detail;
-      var id = isDetail ? ++detailSerial : ++listSerial;
+      var id;
       var init = { headers: headers, credentials: "same-origin" };
       if (opts.body) {
         init.method = "POST";
         init.body = opts.body;
       }
-      if (isDetail) detail.classList.add("is-loading");
+      if (isDetail) {
+        id = ++detailSerial;
+        ++listSerial;
+        detail.classList.add("is-loading");
+        detail.setAttribute("aria-busy", "true");
+      } else {
+        id = ++listSerial;
+      }
 
       fetch(url, init)
         .then(function (r) { return r.text(); })
@@ -461,8 +485,9 @@
           if (isDetail) {
             if (id !== detailSerial) return;
             applyList(doc);
-            applyDetail(doc, opts.scroll);
+            applyDetail(doc, opts);
             detail.classList.remove("is-loading");
+            detail.removeAttribute("aria-busy");
             if (opts.history === "push") history.pushState(null, "", url);
             else if (opts.history === "replace") history.replaceState(null, "", url);
           } else {
@@ -475,6 +500,7 @@
           if (!isDetail) return;
           if (id !== detailSerial) return;
           detail.classList.remove("is-loading");
+          detail.removeAttribute("aria-busy");
           if (opts.body) {
             var btn = detail.querySelector(".ps-actions button");
             if (btn) btn.disabled = false;
@@ -507,17 +533,14 @@
       if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       e.preventDefault();
       if (a.classList.contains("is-active")) return;
-      load(a.href, { detail: true, history: "push", scroll: true });
+      clearTimeout(timer);
+      var ref = new URL(a.href, location.href).searchParams.get("ref") || "";
+      load(buildUrl(ref, input.value.trim()), { detail: true, history: "push", scroll: true, focus: true });
     });
 
     function buildPostUrl(f) {
       var ref = (f.getAttribute("data-ref") || refInput.value || split.getAttribute("data-ref") || "").trim();
-      var q = input.value.trim();
-      var params = new URLSearchParams();
-      if (ref) params.set("ref", ref);
-      if (q) params.set("q", q);
-      var s = params.toString();
-      return location.pathname + (s ? "?" + s : "");
+      return buildUrl(ref, input.value.trim());
     }
 
     detail.addEventListener("submit", function (e) {
@@ -525,12 +548,14 @@
       if (!f.classList) return;
       if (!f.classList.contains("ps-form") && !f.classList.contains("ps-quote-form")) return;
       e.preventDefault();
+      clearTimeout(timer);
       var btn = f.querySelector("button[type=submit]");
       if (btn) btn.disabled = true;
-      load(buildPostUrl(f), { detail: true, body: new FormData(f) });
+      load(buildPostUrl(f), { detail: true, body: new FormData(f), focus: true });
     });
 
     window.addEventListener("popstate", function () {
+      clearTimeout(timer);
       input.value = new URLSearchParams(location.search).get("q") || "";
       load(location.pathname + location.search, { detail: true });
     });
