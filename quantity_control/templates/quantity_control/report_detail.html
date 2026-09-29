@@ -1,0 +1,82 @@
+{% extends 'quantity_control/base_qc.html' %}
+{% load static %}
+
+{% block title %}QC Review — {{ submission.reference }}{% endblock %}
+{% block page_title %}QC Review{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'chemist/css/chemist_lists.css' %}">
+<style>
+  .qc-sheet { padding: 1.5rem 1.75rem; }
+  .qc-sheet h2 { margin: 0 0 0.25rem; color: var(--navy); font-family: var(--font-head); font-size: 1.4rem; }
+  .qc-sheet .qc-sub { color: #7b858c; font-size: 0.85rem; margin-bottom: 1.25rem; }
+  .qc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+  .qc-cell { border: 1px solid var(--line); padding: 0.85rem 1rem; }
+  .qc-cell-label { display: block; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #7b858c; }
+  .qc-cell-value { display: block; margin-top: 0.2rem; font-family: var(--font-head); font-weight: 700; color: var(--charcoal); }
+  .qc-table td { vertical-align: middle; }
+  .qc-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dash-panel ps-block">
+  <div class="qc-sheet">
+    <h2>{{ submission.reference }}</h2>
+    <p class="qc-sub">{{ submission.client.client_name }} · {{ submission.receiving_date|date:"d M Y" }}</p>
+
+    <div class="qc-grid">
+      <div class="qc-cell">
+        <span class="qc-cell-label">Samples</span>
+        <span class="qc-cell-value">{{ samples|length }}</span>
+      </div>
+      <div class="qc-cell">
+        <span class="qc-cell-label">Submission status</span>
+        <span class="qc-cell-value">{{ submission.get_status_display }}</span>
+      </div>
+      <div class="qc-cell">
+        <span class="qc-cell-label">COA status</span>
+        <span class="qc-cell-value">{% if coa %}{{ coa.get_status_display }}{% else %}Not generated{% endif %}</span>
+      </div>
+      <div class="qc-cell">
+        <span class="qc-cell-label">COA number</span>
+        <span class="qc-cell-value">{% if coa %}{{ coa.coa_number }}{% else %}—{% endif %}</span>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table qc-table">
+        <thead>
+          <tr>
+            <th>Lab Sample ID</th>
+            <th>Client Sample ID</th>
+            <th>Type</th>
+            <th>Analysis Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sample in samples %}
+          <tr>
+            <td><strong>{{ sample.slug|upper }}</strong></td>
+            <td>{{ sample.client_sample_id }}</td>
+            <td>{{ sample.get_sample_type_display }}</td>
+            <td>
+              <span class="badge badge-{% if sample.analysis_status == 'QC_APPROVED' %}success{% elif sample.analysis_status == 'SUBMITTED_TO_QC' %}warning{% elif sample.analysis_status == 'REASSAY_SUBMITTED' %}info{% else %}secondary{% endif %}">
+                {{ sample.get_analysis_status_display }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="qc-actions">
+      <a href="{% url 'qc:approved_reports' %}" class="btn btn-outline btn-sm"><i class='bx bx-arrow-left' aria-hidden="true"></i> Back to list</a>
+      <a href="{% url 'qc:pending_review' %}" class="btn btn-outline btn-sm">Pending Review</a>
+      <a href="{% url 'qc:reassay_review' %}" class="btn btn-outline btn-sm">Reassay Review</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

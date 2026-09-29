@@ -1,0 +1,99 @@
+{% extends 'quantity_control/base_qc.html' %}
+{% load static %}
+
+{% block title %}Pending Review — LGS Quality Control{% endblock %}
+{% block page_title %}Pending Review{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'chemist/css/chemist_lists.css' %}">
+<style>
+  .qc-id {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--font-head);
+    font-weight: 600;
+    color: var(--navy);
+    white-space: nowrap;
+  }
+
+  .qc-table td {
+    vertical-align: middle;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="list-toolbar">
+  <div class="list-toolbar-stats">
+    <div class="list-chip">
+      <span class="list-chip-value">{{ total_count }}</span>
+      <span class="list-chip-label">Total</span>
+    </div>
+  </div>
+
+  <form method="get" class="list-search">
+    <div class="list-search-field">
+      <i class='bx bx-search-alt' aria-hidden="true"></i>
+      <input type="text" name="reference" value="{{ reference }}" placeholder="Search Client Reference Number" />
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    {% if reference %}
+    <a href="?{% if status != 'all' %}status={{ status }}{% endif %}" class="btn btn-outline btn-sm">Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="card list-card">
+  {% if items %}
+  <div class="table-wrap">
+    <table class="table qc-table">
+      <thead>
+        <tr>
+          <th>Lab Sample ID</th>
+          <th>Reference</th>
+          <th>Client</th>
+          <th>Last Updated</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        {% with sample=item.sample %}
+        <tr>
+          <td>
+            <div class="qc-id">
+              <span class="list-id-dot is-submitted"></span>
+              {{ item.lab_id }}
+            </div>
+          </td>
+          <td>{{ sample.submission.reference }}</td>
+          <td>{{ sample.submission.client.client_name }}</td>
+          <td class="list-cell-muted">{{ sample.updated_at|date:"d M Y, H:i" }}</td>
+          <td class="list-cell-action">
+            <a href="{% url 'qc:report_detail' reference=sample.submission.reference %}" class="btn btn-outline btn-sm">
+              <i class='bx bx-show' aria-hidden="true"></i> Review
+            </a>
+          </td>
+        </tr>
+        {% endwith %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "quantity_control/_pagination.html" %}
+  {% else %}
+  <div class="empty-state">
+    <span class="empty-state-icon"><i class='bx bx-inbox' aria-hidden="true"></i></span>
+    <p>
+      {% if reference %}
+        No samples found for reference '{{ reference }}'.
+      {% else %}
+        No samples are currently awaiting QC review.
+      {% endif %}
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

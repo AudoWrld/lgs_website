@@ -1,0 +1,86 @@
+{% extends 'quantity_control/base_qc.html' %}
+{% load static %}
+
+{% block title %}Generated Reports — LGS Quality Control{% endblock %}
+{% block page_title %}Generated Reports{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'chemist/css/chemist_lists.css' %}">
+<style>
+  .qc-table td { vertical-align: middle; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="list-toolbar">
+  <div class="list-toolbar-stats">
+    <div class="list-chip">
+      <span class="list-chip-value">{{ total_count }}</span>
+      <span class="list-chip-label">Total</span>
+    </div>
+  </div>
+
+  <form method="get" class="list-search">
+    <div class="list-search-field">
+      <i class='bx bx-search-alt' aria-hidden="true"></i>
+      <input type="text" name="reference" value="{{ reference }}" placeholder="Search Client Reference Number" />
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    {% if reference %}
+    <a href="?{% if status != 'all' %}status={{ status }}{% endif %}" class="btn btn-outline btn-sm">Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="card list-card">
+  {% if items %}
+  <div class="table-wrap">
+    <table class="table qc-table">
+      <thead>
+        <tr>
+          <th>COA Number</th>
+          <th>Reference</th>
+          <th>Client</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for coa in items %}
+        <tr>
+          <td><strong>{{ coa.coa_number }}</strong></td>
+          <td>{{ coa.submission.reference }}</td>
+          <td>{{ coa.submission.client.client_name }}</td>
+          <td>
+            <span class="badge badge-{% if coa.status == 'APPROVED' %}success{% elif coa.status == 'RELEASED' %}info{% elif coa.status == 'QC_REVIEW' %}warning{% else %}secondary{% endif %}">
+              {{ coa.get_status_display }}
+            </span>
+          </td>
+          <td class="list-cell-muted">{{ coa.created_at|date:"d M Y, H:i" }}</td>
+          <td class="list-cell-action">
+            <a href="{% url 'qc:report_detail' reference=coa.submission.reference %}" class="btn btn-outline btn-sm">
+              <i class='bx bx-show' aria-hidden="true"></i> View
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "quantity_control/_pagination.html" %}
+  {% else %}
+  <div class="empty-state">
+    <span class="empty-state-icon"><i class='bx bx-file' aria-hidden="true"></i></span>
+    <p>
+      {% if reference %}
+        No reports found for reference '{{ reference }}'.
+      {% else %}
+        No reports have been generated yet.
+      {% endif %}
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
