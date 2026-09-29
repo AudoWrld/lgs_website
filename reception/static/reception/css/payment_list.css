@@ -1,5 +1,18 @@
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .ps-split {
   --ps-offset: 110px;
+  --ps-muted: #5f6b73;
   display: grid;
   grid-template-columns: 350px minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
@@ -8,17 +21,22 @@
   height: calc(100vh - var(--ps-offset));
   height: calc(100dvh - var(--ps-offset));
   min-height: 520px;
+  overflow: hidden;
 }
 
 .ps-detail {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
   min-width: 0;
   min-height: 0;
   height: 100%;
   overflow-y: auto;
   transition: opacity 0.15s ease;
+}
+
+.ps-detail:focus {
+  outline: none;
 }
 
 .ps-detail.is-loading {
@@ -34,7 +52,7 @@
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  min-height: 300px;
+  min-height: 280px;
 }
 
 .ps-form-panel .dash-panel-head {
@@ -68,7 +86,7 @@
 }
 
 .ps-search {
-  padding: 0.85rem 1rem;
+  padding: 0.65rem 1rem;
   border-bottom: 1px solid var(--line);
 }
 
@@ -81,14 +99,14 @@
   top: 50%;
   left: 0.8rem;
   transform: translateY(-50%);
-  color: #7b858c;
+  color: var(--ps-muted);
   font-size: 1.15rem;
   pointer-events: none;
 }
 
 .ps-search-field input {
   width: 100%;
-  height: 40px;
+  height: 36px;
   padding: 0 0.85rem 0 2.4rem;
   font-family: var(--font-body);
   font-size: var(--fs-small);
@@ -103,6 +121,11 @@
   border-color: var(--navy);
 }
 
+.ps-search-field input:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 1px;
+}
+
 .ps-list {
   flex: 1;
   min-height: 0;
@@ -115,8 +138,8 @@
 .ps-item {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.8rem 1rem;
+  gap: 0.15rem;
+  padding: 0.6rem 1rem;
   border-bottom: 1px solid var(--line);
   color: var(--charcoal);
   text-decoration: none;
@@ -164,16 +187,16 @@
 }
 
 .ps-item-sub {
-  color: #7b858c;
+  color: var(--ps-muted);
   font-size: 0.75rem;
 }
 
 .ps-list-note {
   margin: 0;
-  padding: 0.7rem 1rem;
+  padding: 0.55rem 1rem;
   border-top: 1px solid var(--line);
   background: var(--off-white);
-  color: #7b858c;
+  color: var(--ps-muted);
   font-size: 0.75rem;
 }
 
@@ -182,7 +205,9 @@
   align-items: center;
   flex: none;
   padding: 0.15rem 0.5rem;
+  background: #edf0f2;
   border-radius: 0;
+  color: #56636b;
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.03em;
@@ -191,8 +216,8 @@
 }
 
 .ps-badge-lg {
-  padding: 0.35rem 0.8rem;
-  font-size: 0.75rem;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.72rem;
 }
 
 .ps-status-paid {
@@ -224,17 +249,17 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1.25rem;
+  gap: 1rem;
   flex-wrap: wrap;
-  padding: 1.1rem 1.25rem;
+  padding: 0.75rem 1.25rem;
   border-bottom: 1px solid var(--line);
 }
 
 .ps-label {
   display: block;
-  margin-bottom: 0.25rem;
-  color: #6b7680;
-  font-size: 0.72rem;
+  margin-bottom: 0.15rem;
+  color: var(--ps-muted);
+  font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -244,12 +269,21 @@
   margin: 0;
   color: var(--navy);
   font-family: var(--font-head);
-  font-size: 1.35rem;
+  font-size: 1.15rem;
   font-weight: 700;
 }
 
+.ps-ref:focus {
+  outline: none;
+}
+
+.ps-ref:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
 .ps-client {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 500;
 }
 
@@ -259,7 +293,7 @@
 }
 
 .ps-figure {
-  padding: 1rem 1.25rem;
+  padding: 0.6rem 1.25rem;
   border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }
@@ -272,7 +306,7 @@
   display: block;
   color: var(--navy);
   font-family: var(--font-head);
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -288,25 +322,25 @@
 
 .ps-currency {
   margin: 0;
-  padding: 0.55rem 1.25rem;
+  padding: 0.4rem 1.25rem;
   background: var(--off-white);
   border-bottom: 1px solid var(--line);
-  color: #7b858c;
+  color: var(--ps-muted);
   font-size: 0.75rem;
 }
 
 .ps-current {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
+  gap: 0.75rem;
   margin: 0;
-  padding: 1.1rem 1.25rem;
+  padding: 0.7rem 1.25rem;
 }
 
 .ps-current dt {
-  margin-bottom: 0.25rem;
-  color: #6b7680;
-  font-size: 0.72rem;
+  margin-bottom: 0.15rem;
+  color: var(--ps-muted);
+  font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -314,7 +348,7 @@
 
 .ps-current dd {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   overflow-wrap: anywhere;
 }
 
@@ -323,8 +357,9 @@
 }
 
 .ps-quote-body {
-  padding: 1.1rem 1.25rem;
-  overflow-x: auto;
+  max-height: 34vh;
+  padding: 0.7rem 1.25rem;
+  overflow: auto;
 }
 
 .ps-quote-table {
@@ -334,10 +369,10 @@
 }
 
 .ps-quote-table th {
-  padding: 0.5rem 0.75rem;
+  padding: 0.4rem 0.75rem;
   border-bottom: 2px solid var(--line);
-  color: #6b7680;
-  font-size: 0.72rem;
+  color: var(--ps-muted);
+  font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.05em;
   text-align: left;
@@ -346,7 +381,7 @@
 }
 
 .ps-quote-table td {
-  padding: 0.6rem 0.75rem;
+  padding: 0.4rem 0.75rem;
   border-bottom: 1px solid var(--line);
   vertical-align: middle;
 }
@@ -365,7 +400,7 @@
 .ps-quote-input input {
   width: 100%;
   min-width: 140px;
-  height: 38px;
+  height: 34px;
   padding: 0 0.7rem;
   font-family: var(--font-body);
   font-size: var(--fs-small);
@@ -381,7 +416,7 @@
 }
 
 .ps-quote-input.has-error input {
-  border-color: #a4342a;
+  border-color: var(--error-text);
 }
 
 .ps-quote-form .ps-actions {
@@ -399,16 +434,16 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: 0.75rem;
   min-height: 0;
-  padding: 1.25rem;
+  padding: 0.85rem 1.25rem;
   overflow-y: auto;
 }
 
 .ps-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.1rem;
+  gap: 0.75rem;
   align-items: start;
 }
 
@@ -422,9 +457,9 @@
 
 .ps-field label {
   display: block;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.25rem;
   color: #5a656c;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -434,7 +469,7 @@
 .ps-field select,
 .ps-field textarea {
   width: 100%;
-  height: 42px;
+  height: 36px;
   padding: 0 0.85rem;
   font-family: var(--font-body);
   font-size: var(--fs-small);
@@ -446,8 +481,8 @@
 
 .ps-field textarea {
   height: auto;
-  min-height: 5rem;
-  padding: 0.7rem 0.85rem;
+  min-height: 3.5rem;
+  padding: 0.5rem 0.85rem;
   resize: vertical;
 }
 
@@ -468,6 +503,13 @@
   border-color: var(--navy);
 }
 
+.ps-field input:focus-visible,
+.ps-field select:focus-visible,
+.ps-field textarea:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 1px;
+}
+
 .ps-field input:disabled {
   background: var(--off-white);
   cursor: not-allowed;
@@ -476,22 +518,22 @@
 .ps-field.has-error input,
 .ps-field.has-error select,
 .ps-field.has-error textarea {
-  border-color: #a4342a;
+  border-color: var(--error-text);
 }
 
 .ps-error {
   display: block;
-  margin-top: 0.4rem;
-  color: #a4342a;
+  margin-top: 0.3rem;
+  color: var(--error-text);
   font-size: 0.8rem;
 }
 
 .ps-live-check {
   margin: 0;
-  padding: 0.6rem 0.9rem;
-  background: #fdf0ee;
-  border-left: 4px solid #a4342a;
-  color: #a4342a;
+  padding: 0.5rem 0.9rem;
+  background: var(--error-bg);
+  border-left: 4px solid var(--error-text);
+  color: var(--error-text);
   font-size: var(--fs-small);
   font-weight: 600;
 }
@@ -504,7 +546,7 @@
   display: flex;
   flex: none;
   justify-content: flex-end;
-  padding: 0.9rem 1.25rem;
+  padding: 0.65rem 1.25rem;
   border-top: 1px solid var(--line);
   background: var(--off-white);
 }
@@ -514,18 +556,18 @@
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  height: 42px;
+  height: 38px;
   padding: 0 1.25rem;
   border-radius: 0;
 }
 
 .ps-alert {
-  margin: 1.25rem;
-  padding: 0.75rem 1rem;
-  background: #fdf0ee;
+  margin: 1rem;
+  padding: 0.6rem 1rem;
+  background: var(--error-bg);
   border: 1px solid #f0c5bd;
-  border-left: 4px solid #a4342a;
-  color: #a4342a;
+  border-left: 4px solid var(--error-text);
+  color: var(--error-text);
   font-size: var(--fs-small);
 }
 
@@ -534,7 +576,7 @@
 }
 
 .ps-quote-form .ps-alert {
-  margin: 1.1rem 1.25rem 0;
+  margin: 0.75rem 1.25rem 0;
 }
 
 .ps-alert p {
@@ -542,14 +584,14 @@
 }
 
 .ps-alert p + p {
-  margin-top: 0.35rem;
+  margin-top: 0.3rem;
 }
 
 .ps-notice {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 1.1rem 1.25rem;
+  padding: 0.75rem 1.25rem;
   background: rgba(30, 122, 77, 0.08);
   color: #1e7a4d;
   font-size: var(--fs-small);
@@ -557,7 +599,7 @@
 }
 
 .ps-notice i {
-  font-size: 1.4rem;
+  font-size: 1.3rem;
 }
 
 .ps-empty {
@@ -565,30 +607,24 @@
   flex-direction: column;
   align-items: center;
   gap: 0.6rem;
-  padding: 4rem 1rem;
+  padding: 3rem 1rem;
   text-align: center;
 }
 
 .ps-empty p {
   margin: 0;
-  color: #5a6a72;
+  color: var(--ps-muted);
   font-size: 0.9rem;
 }
 
 .ps-empty-small {
-  padding: 2rem 1rem;
+  padding: 1.5rem 1rem;
 }
 
 .ps-required {
   margin-left: 0.2rem;
-  color: #a4342a;
+  color: var(--error-text);
   font-weight: 700;
-}
-
-.ps-required-note {
-  margin: 0;
-  color: #7b858c;
-  font-size: 0.75rem;
 }
 
 @media (max-width: 1100px) {
@@ -618,6 +654,10 @@
     max-height: 50vh;
   }
 
+  .ps-split {
+    overflow: visible;
+  }
+
   .ps-detail {
     height: auto;
     overflow: visible;
@@ -635,6 +675,10 @@
   .ps-form-body {
     flex: none;
     overflow: visible;
+  }
+
+  .ps-quote-body {
+    max-height: none;
   }
 
   .ps-split.has-selection .ps-detail {
