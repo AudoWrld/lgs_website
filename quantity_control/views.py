@@ -1,18 +1,15 @@
 from datetime import timedelta
-
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-
+from types import SimpleNamespace
 from accounts.decorators import qc_required
 from coa.models import COA
 from samples.models import Sample
 from submissions.models import Submission
-
 from .templatetags.qc_extras import register
-
 
 PAGE_SIZE = 12
 
@@ -26,6 +23,22 @@ def _paginate(request, queryset):
     params = request.GET.copy()
     params.pop("page", None)
     return page, params.urlencode()
+
+
+def _lab_id(sample):
+    mapping = getattr(sample, "lab_mapping", None)
+    if mapping is None:
+        return sample.slug.upper()
+    prefix, _, suffix = mapping.lab_sample_id.rpartition("-")
+    if not prefix:
+        return mapping.lab_sample_id
+    return f"{prefix}-{suffix.lstrip('0') or '0'}"
+
+
+def _with_lab_id(queryset):
+    return [
+        SimpleNamespace(sample=sample, lab_id=_lab_id(sample)) for sample in queryset
+    ]
 
 
 @qc_required
@@ -66,21 +79,16 @@ def qc_dashboard(request):
         .values_list("day", "total")
     )
     weekly_chart = [
-        {
-            "label": day.strftime("%a"),
-            "count": per_day.get(day, 0),
-            "height": min(160, (per_day.get(day, 0) or 0) * 8),
-        }
-        for day in days
+        {"label": day.strftime("%a"), "count": per_day.get(day, 0)} for day in days
     ]
 
     context = {
         "pending_count": pending.count(),
         "reassay_count": reassay.count(),
         "approved_count": approved.count(),
-        "pending_samples": list(pending[:8]),
-        "reassay_samples": list(reassay[:8]),
-        "approved_samples": list(approved[:8]),
+        "pending_samples": _with_lab_id(pending[:5]),
+        "reassay_samples": _with_lab_id(reassay[:5]),
+        "approved_samples": _with_lab_id(approved[:5]),
         "weekly_chart": weekly_chart,
     }
     return render(request, "quantity_control/qc_dashboard.html", context)
@@ -102,9 +110,13 @@ def _sample_items(samples):
 @qc_required
 def pending_review(request):
     reference = request.GET.get("reference", "").strip()
-    samples = Sample.objects.filter(
-        submission__is_submitted=True, analysis_status=Sample.SUBMITTED_TO_QC
-    ).select_related("submission", "lab_mapping").order_by("-updated_at", "-id")
+    samples = (
+        Sample.objects.filter(
+            submission__is_submitted=True, analysis_status=Sample.SUBMITTED_TO_QC
+        )
+        .select_related("submission", "lab_mapping")
+        .order_by("-updated_at", "-id")
+    )
 
     if reference:
         samples = samples.filter(submission__reference__iexact=reference)
@@ -123,10 +135,14 @@ def pending_review(request):
 @qc_required
 def reassay_review(request):
     reference = request.GET.get("reference", "").strip()
-    samples = Sample.objects.filter(
-        submission__is_submitted=True,
-        analysis_status=Sample.REASSAY_SUBMITTED,
-    ).select_related("submission", "lab_mapping").order_by("-updated_at", "-id")
+    samples = (
+        Sample.objects.filter(
+            submission__is_submitted=True,
+            analysis_status=Sample.REASSAY_SUBMITTED,
+        )
+        .select_related("submission", "lab_mapping")
+        .order_by("-updated_at", "-id")
+    )
 
     if reference:
         samples = samples.filter(submission__reference__iexact=reference)
@@ -145,9 +161,13 @@ def reassay_review(request):
 @qc_required
 def approved_reports(request):
     reference = request.GET.get("reference", "").strip()
-    samples = Sample.objects.filter(
-        submission__is_submitted=True, analysis_status=Sample.QC_APPROVED
-    ).select_related("submission", "lab_mapping").order_by("-updated_at", "-id")
+    samples = (
+        Sample.objects.filter(
+            submission__is_submitted=True, analysis_status=Sample.QC_APPROVED
+        )
+        .select_related("submission", "lab_mapping")
+        .order_by("-updated_at", "-id")
+    )
 
     if reference:
         samples = samples.filter(submission__reference__iexact=reference)
@@ -185,15 +205,16 @@ def generated_reports(request):
 @qc_required
 def report_detail(request, reference):
     submission = get_object_or_404(
-        Submission.objects.filter(is_submitted=True, reference__iexact=reference)
-        .select_related("client")
+        Submission.objects.filter(
+            is_submitted=True, reference__iexact=reference
+        ).select_related("client")
     )
-    samples = list(
-        submission.samples.select_related("lab_mapping").order_by("id")
+    samples = list(submission.samples.select_related("lab_mapping").order_by("id"))
+    coa = (
+        COA.objects.filter(submission=submission)
+        .select_related("group", "approved_by")
+        .first()
     )
-    coa = COA.objects.filter(submission=submission).select_related(
-        "group", "approved_by"
-    ).first()
     context = {
         "submission": submission,
         "samples": samples,
