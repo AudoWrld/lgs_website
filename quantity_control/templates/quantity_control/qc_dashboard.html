@@ -1,7 +1,13 @@
 {% extends 'quantity_control/base_qc.html' %}
+{% load static %}
 
 {% block title %}Dashboard — LGS Quality Control{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'quantity_control/css/qc_dashboard.css' %}">
+{% endblock %}
 
 {% block content %}
 {% firstof request.user.first_name request.user.get_full_name "there" as display_name %}
@@ -17,17 +23,25 @@
     <h1 class="dash-hero-title"><span data-greeting>Welcome back</span>, {{ display_name }}</h1>
     <p class="dash-hero-sub">
       {% if pending_count or reassay_count %}
-        {{ pending_count }} submitted to QC and {{ reassay_count }} reassay result{{ reassay_count|pluralize:"s" }} await your review.
+        {{ pending_count }} result{{ pending_count|pluralize }} submitted to QC and {{ reassay_count }} reassay result{{ reassay_count|pluralize }} await your review.
       {% else %}
         You're all caught up. Nothing needs your attention right now.
       {% endif %}
     </p>
   </div>
+  <div class="dash-hero-actions">
+    <a href="{% url 'qc:pending_review' %}" class="dash-hero-btn dash-hero-btn--primary">
+      <i class='bx bx-list-check' aria-hidden="true"></i> Pending Review
+    </a>
+    <a href="{% url 'qc:reassay_review' %}" class="dash-hero-btn dash-hero-btn--ghost">
+      <i class='bx bx-refresh' aria-hidden="true"></i> Reassay Results
+    </a>
+  </div>
 </section>
 
 <section class="dash-stats" aria-label="QC at a glance">
   <div class="dash-stat-card{% if pending_count %} dash-stat-warning{% endif %}">
-    <span class="dash-stat-icon"><i class='bx bx-inbox' aria-hidden="true"></i></span>
+    <span class="dash-stat-icon"><i class='bx bx-list-check' aria-hidden="true"></i></span>
     <div class="dash-stat-body">
       <span class="dash-stat-label">Pending Review</span>
       <span class="dash-stat-value">{{ pending_count }}</span>
@@ -52,80 +66,112 @@
   </div>
 </section>
 
-{% if weekly_chart %}
-<section class="dash-chart" aria-label="Weekly QC throughput">
-  <h2 class="dash-chart-title">Last 7 days</h2>
-  <div class="dash-chart-bars">
-    {% for day in weekly_chart %}
-    <div class="dash-chart-col">
-      <span class="dash-chart-count">{{ day.count }}</span>
-      <span class="dash-chart-bar" style="height:{{ day.height }}px"></span>
-      <span class="dash-chart-label">{{ day.label }}</span>
-    </div>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
-
 <div class="dash-grid">
-  <section class="dash-panel dash-block">
-    <div class="dash-panel-head">
-      <h3><i class='bx bx-inbox' aria-hidden="true"></i> Submitted to QC</h3>
-      <a href="{% url 'qc:pending_review' %}" class="dash-link">View all</a>
-    </div>
-    {% if pending_samples %}
-    <ul class="dash-list">
-      {% for item in pending_samples %}
-      <li class="dash-list-item">
-        <span class="dash-list-ref">{{ item.sample.submission.reference }}</span>
-        <span class="dash-list-text">{{ item.lab_id }} · {{ item.sample.client_sample_id }}</span>
-        <span class="dash-list-meta">{{ item.sample.updated_at|date:"d M Y H:i" }}</span>
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p class="dash-empty">No samples awaiting QC review.</p>
-    {% endif %}
-  </section>
+  <div class="dash-col">
+    <section class="dash-panel">
+      <div class="dash-panel-head">
+        <h3><i class='bx bx-line-chart' aria-hidden="true"></i> Results reviewed this week</h3>
+        <span>Last 7 days</span>
+      </div>
+      <div class="dash-graph">
+        <canvas id="dash-graph-canvas" aria-hidden="true"></canvas>
+      </div>
+      <ul class="dash-graph-data">
+        {% for item in weekly_chart %}
+        <li data-label="{{ item.label }}" data-count="{{ item.count }}">{{ item.label }}: {{ item.count }}</li>
+        {% endfor %}
+      </ul>
+    </section>
 
-  <section class="dash-panel dash-block">
-    <div class="dash-panel-head">
-      <h3><i class='bx bx-refresh' aria-hidden="true"></i> Reassay Results</h3>
-      <a href="{% url 'qc:reassay_review' %}" class="dash-link">View all</a>
-    </div>
-    {% if reassay_samples %}
-    <ul class="dash-list">
-      {% for item in reassay_samples %}
-      <li class="dash-list-item">
-        <span class="dash-list-ref">{{ item.sample.submission.reference }}</span>
-        <span class="dash-list-text">{{ item.lab_id }} · {{ item.sample.client_sample_id }}</span>
-        <span class="dash-list-meta">{{ item.sample.updated_at|date:"d M Y H:i" }}</span>
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p class="dash-empty">No reassay results awaiting review.</p>
-    {% endif %}
-  </section>
-</div>
-
-<section class="dash-panel dash-block">
-  <div class="dash-panel-head">
-    <h3><i class='bx bx-check-circle' aria-hidden="true"></i> Recently Approved</h3>
-    <a href="{% url 'qc:approved_reports' %}" class="dash-link">View all</a>
+    <section class="dash-panel">
+      <div class="dash-panel-head">
+        <h3><i class='bx bx-search-alt' aria-hidden="true"></i> Find a reference</h3>
+        <span>Search by reference, lab ID or COA number</span>
+      </div>
+      <form method="get" action="{% url 'qc:pending_review' %}" class="dash-search" role="search">
+        <label for="qc-search" class="dash-search-label">Client Reference / Laboratory ID / COA Number</label>
+        <input
+          type="text"
+          id="qc-search"
+          name="q"
+          class="dash-search-input"
+          placeholder="e.g. LGS/260929/01 or LGS26092901-01"
+          autocomplete="off"
+        >
+        <div class="dash-search-actions">
+          <button type="submit" class="btn btn-primary">
+            <i class='bx bx-search' aria-hidden="true"></i> Search
+          </button>
+        </div>
+      </form>
+    </section>
   </div>
-  {% if approved_samples %}
-  <ul class="dash-list">
-    {% for item in approved_samples %}
-    <li class="dash-list-item">
-      <span class="dash-list-ref">{{ item.sample.submission.reference }}</span>
-      <span class="dash-list-text">{{ item.lab_id }} · {{ item.sample.client_sample_id }}</span>
-      <span class="dash-list-meta">{{ item.sample.updated_at|date:"d M Y H:i" }}</span>
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p class="dash-empty">No samples have been QC approved yet.</p>
-  {% endif %}
-</section>
+
+  <div class="dash-col">
+    <section class="dash-panel dash-block">
+      <div class="dash-panel-head">
+        <h3><i class='bx bx-list-check' aria-hidden="true"></i> Submitted to QC</h3>
+        <a href="{% url 'qc:pending_review' %}" class="dash-link">View all</a>
+      </div>
+      {% if pending_samples %}
+      <ul class="dash-list">
+        {% for item in pending_samples %}
+        <li class="dash-list-item">
+          <span class="dash-list-ref">{{ item.sample.submission.reference }}</span>
+          <span class="dash-list-text">{{ item.lab_id }} · {{ item.sample.client_sample_id }}</span>
+          <span class="dash-list-meta">{{ item.sample.updated_at|date:"d M Y H:i" }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="dash-empty">No samples awaiting QC review.</p>
+      {% endif %}
+    </section>
+
+    <section class="dash-panel dash-block">
+      <div class="dash-panel-head">
+        <h3><i class='bx bx-refresh' aria-hidden="true"></i> Reassay Results</h3>
+        <a href="{% url 'qc:reassay_review' %}" class="dash-link">View all</a>
+      </div>
+      {% if reassay_samples %}
+      <ul class="dash-list">
+        {% for item in reassay_samples %}
+        <li class="dash-list-item">
+          <span class="dash-list-ref">{{ item.sample.submission.reference }}</span>
+          <span class="dash-list-text">{{ item.lab_id }} · {{ item.sample.client_sample_id }}</span>
+          <span class="dash-list-meta">{{ item.sample.updated_at|date:"d M Y H:i" }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="dash-empty">No reassay results awaiting review.</p>
+      {% endif %}
+    </section>
+
+    <section class="dash-panel dash-block">
+      <div class="dash-panel-head">
+        <h3><i class='bx bx-check-circle' aria-hidden="true"></i> Recently Approved</h3>
+        <a href="{% url 'qc:approved_reports' %}" class="dash-link">View all</a>
+      </div>
+      {% if approved_samples %}
+      <ul class="dash-list">
+        {% for item in approved_samples %}
+        <li class="dash-list-item">
+          <span class="dash-list-ref">{{ item.sample.submission.reference }}</span>
+          <span class="dash-list-text">{{ item.lab_id }} · {{ item.sample.client_sample_id }}</span>
+          <span class="dash-list-meta">{{ item.sample.updated_at|date:"d M Y H:i" }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="dash-empty">No samples have been QC approved yet.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{% static 'quantity_control/js/qc_dashboard.js' %}" defer></script>
 {% endblock %}
