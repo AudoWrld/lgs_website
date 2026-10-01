@@ -3,6 +3,60 @@ document.addEventListener("DOMContentLoaded", function () {
     "(prefers-reduced-motion: reduce)",
   ).matches;
 
+  var zone = "Africa/Dar_es_Salaam";
+  var offset = 0;
+  try {
+    new Intl.DateTimeFormat("en-GB", { timeZone: zone });
+  } catch (e) {
+    zone = "UTC";
+    offset = 3 * 60 * 60 * 1000;
+  }
+
+  var greetingEl = document.querySelector("[data-greeting]");
+  var dateEl = document.querySelector("[data-date]");
+  var timeEl = document.querySelector("[data-time]");
+
+  function greetingFor(hour) {
+    if (hour >= 5 && hour < 12) return "Good morning";
+    if (hour >= 12 && hour < 17) return "Good afternoon";
+    return "Good evening";
+  }
+
+  function tick() {
+    var now = new Date(Date.now() + offset);
+    var hour =
+      parseInt(
+        now.toLocaleTimeString("en-GB", {
+          timeZone: zone,
+          hour: "2-digit",
+          hourCycle: "h23",
+        }),
+        10,
+      ) % 24;
+
+    if (greetingEl) greetingEl.textContent = greetingFor(hour);
+    if (dateEl) {
+      dateEl.textContent = now.toLocaleDateString("en-GB", {
+        timeZone: zone,
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+    }
+    if (timeEl) {
+      timeEl.textContent = now.toLocaleTimeString("en-GB", {
+        timeZone: zone,
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      });
+    }
+  }
+
+  tick();
+  setInterval(tick, 15000);
+
   var canvas = document.getElementById("dash-graph-canvas");
   if (!canvas || typeof Chart === "undefined") return;
 
