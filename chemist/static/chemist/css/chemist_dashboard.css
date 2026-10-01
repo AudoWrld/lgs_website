@@ -69,6 +69,12 @@
   letter-spacing: -0.01em;
 }
 
+.dash-hero-title [data-greeting] {
+  display: inline-block;
+  color: var(--orange);
+  font-weight: 800;
+}
+
 .dash-hero-sub {
   max-width: 60ch;
   margin: 0;

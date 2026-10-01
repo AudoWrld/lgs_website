@@ -4,12 +4,156 @@
 {% block title %}My Results — LGS Client Portal{% endblock %}
 {% block page_title %}My Results{% endblock %}
 
+{% block extra_css %}
+<style>
+  .dash-hero {
+    background: linear-gradient(135deg, #eaf1f6 0%, #ffffff 100%);
+    border: 1px solid #dfe7ed;
+    border-left: 4px solid #f39a2b;
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 8px 24px rgba(18, 62, 91, 0.06);
+  }
+  .dash-hero-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    color: #5b666c;
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+    margin-bottom: 0.6rem;
+  }
+  .dash-hero-meta i {
+    color: #123e5b;
+    font-size: 1rem;
+  }
+  .dash-hero-divider {
+    width: 1px;
+    height: 1rem;
+    background: #d8d1c5;
+    display: inline-block;
+  }
+  .dash-hero-title {
+    margin-bottom: 0.5rem;
+    font-size: clamp(1.8rem, 2.5vw, 2.6rem);
+    color: #123e5b;
+  }
+  .dash-hero-sub {
+    margin: 0;
+    color: #3d4b52;
+    max-width: 52rem;
+  }
+  .card {
+    background: #fff;
+    border: 1px solid #e2ddd1;
+    padding: 1.5rem;
+  }
+  .empty-state {
+    display: grid;
+    place-items: center;
+    text-align: center;
+    min-height: 220px;
+    color: #3d4b52;
+  }
+  .dash-empty-icon {
+    display: inline-flex;
+    width: 3rem;
+    height: 3rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #f7efe3;
+    color: #123e5b;
+    margin-bottom: 0.75rem;
+    font-size: 1.4rem;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
+{% firstof user.first_name user.get_full_name "there" as display_name %}
+
+<section class="dash-hero">
+  <div class="dash-hero-meta">
+    <i class='bx bx-time-five' aria-hidden="true"></i>
+    <span data-date>{% now "l, j F Y" %}</span>
+    <span class="dash-hero-divider" aria-hidden="true"></span>
+    <span><span data-time>{% now "H:i" %}</span> EAT</span>
+  </div>
+  <h1 class="dash-hero-title"><span data-greeting>Welcome back</span>, {{ display_name }}</h1>
+  <p class="dash-hero-sub">
+    Your Certificates of Analysis will appear here as soon as they are released.
+  </p>
+</section>
+
 <div class="card">
   <div class="empty-state">
-    <span class="dash-empty-icon"><i class='bx bx-time-five' aria-hidden="true"></i></span>
-    <h2>Coming Soon</h2>
-    <p>Your results dashboard is being prepared. Once your Certificates of Analysis are released, they'll appear here.</p>
+    <div>
+      <span class="dash-empty-icon"><i class='bx bx-time-five' aria-hidden="true"></i></span>
+      <h2>Coming Soon</h2>
+      <p>Your results dashboard is being prepared. Once your Certificates of Analysis are released, they'll appear here.</p>
+    </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var zone = "Africa/Dar_es_Salaam";
+    var offset = 0;
+    try {
+      new Intl.DateTimeFormat("en-GB", { timeZone: zone });
+    } catch (e) {
+      zone = "UTC";
+      offset = 3 * 60 * 60 * 1000;
+    }
+
+    var greetingEl = document.querySelector("[data-greeting]");
+    var dateEl = document.querySelector("[data-date]");
+    var timeEl = document.querySelector("[data-time]");
+
+    function greetingFor(hour) {
+      if (hour >= 5 && hour < 12) return "Good morning";
+      if (hour >= 12 && hour < 17) return "Good afternoon";
+      return "Good evening";
+    }
+
+    function tick() {
+      var now = new Date(Date.now() + offset);
+      var hour =
+        parseInt(
+          now.toLocaleTimeString("en-GB", {
+            timeZone: zone,
+            hour: "2-digit",
+            hourCycle: "h23",
+          }),
+          10,
+        ) % 24;
+
+      if (greetingEl) greetingEl.textContent = greetingFor(hour);
+      if (dateEl) {
+        dateEl.textContent = now.toLocaleDateString("en-GB", {
+          timeZone: zone,
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        });
+      }
+      if (timeEl) {
+        timeEl.textContent = now.toLocaleTimeString("en-GB", {
+          timeZone: zone,
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23",
+        });
+      }
+    }
+
+    tick();
+    setInterval(tick, 15000);
+  });
+</script>
 {% endblock %}
