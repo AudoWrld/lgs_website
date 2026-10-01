@@ -1,12 +1,12 @@
 {% extends 'quantity_control/base_qc.html' %}
 {% load static %}
 
-{% block title %}Reassay Review — LGS Quality Control{% endblock %}
-{% block page_title %}Reassay Review{% endblock %}
+{% block title %}Reassay Results — LGS Quality Control{% endblock %}
+{% block page_title %}Reassay Results{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
-<link rel="stylesheet" href="{% static 'chemist/css/chemist_lists.css' %}">
+<link rel="stylesheet" href="{% static 'quantity_control/css/qc_lists.css' %}">
 <style>
   .qc-id {
     display: flex;
@@ -17,14 +17,17 @@
     color: var(--navy);
     white-space: nowrap;
   }
-  .qc-table td { vertical-align: middle; }
+
+  .qc-table td {
+    vertical-align: middle;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="list-toolbar">
   <div class="list-toolbar-stats">
-    <div class="list-chip">
+    <div class="list-chip list-chip-warning">
       <span class="list-chip-value">{{ total_count }}</span>
       <span class="list-chip-label">Total</span>
     </div>
@@ -37,7 +40,7 @@
     </div>
     <button type="submit" class="btn btn-primary btn-sm">Search</button>
     {% if reference %}
-    <a href="?{% if status != 'all' %}status={{ status }}{% endif %}" class="btn btn-outline btn-sm">Clear</a>
+    <a href="?" class="btn btn-outline btn-sm">Clear</a>
     {% endif %}
   </form>
 </div>
@@ -61,7 +64,7 @@
         <tr>
           <td>
             <div class="qc-id">
-              <span class="list-id-dot is-submitted"></span>
+              <span class="list-id-dot is-reassay"></span>
               {{ item.lab_id }}
             </div>
           </td>
@@ -69,7 +72,7 @@
           <td>{{ sample.submission.client.client_name }}</td>
           <td class="list-cell-muted">{{ sample.updated_at|date:"d M Y, H:i" }}</td>
           <td class="list-cell-action">
-            <a href="{% url 'qc:report_detail' reference=sample.submission.reference %}" class="btn btn-outline btn-sm">
+            <a href="{% url 'qc:sample_review' slug=sample.slug %}" class="btn btn-outline btn-sm">
               <i class='bx bx-show' aria-hidden="true"></i> Review
             </a>
           </td>
@@ -85,9 +88,9 @@
     <span class="empty-state-icon"><i class='bx bx-refresh' aria-hidden="true"></i></span>
     <p>
       {% if reference %}
-        No reassay results found for reference '{{ reference }}'.
+        No samples found for reference '{{ reference }}'.
       {% else %}
-        No reassay results are awaiting review.
+        No reassay results are currently awaiting QC review.
       {% endif %}
     </p>
   </div>

@@ -6,7 +6,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
-<link rel="stylesheet" href="{% static 'chemist/css/chemist_lists.css' %}">
+<link rel="stylesheet" href="{% static 'quantity_control/css/qc_lists.css' %}">
 <style>
   .qc-id {
     display: flex;
@@ -17,14 +17,17 @@
     color: var(--navy);
     white-space: nowrap;
   }
-  .qc-table td { vertical-align: middle; }
+
+  .qc-table td {
+    vertical-align: middle;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="list-toolbar">
   <div class="list-toolbar-stats">
-    <div class="list-chip">
+    <div class="list-chip list-chip-success">
       <span class="list-chip-value">{{ total_count }}</span>
       <span class="list-chip-label">Total</span>
     </div>
@@ -37,7 +40,7 @@
     </div>
     <button type="submit" class="btn btn-primary btn-sm">Search</button>
     {% if reference %}
-    <a href="?{% if status != 'all' %}status={{ status }}{% endif %}" class="btn btn-outline btn-sm">Clear</a>
+    <a href="?" class="btn btn-outline btn-sm">Clear</a>
     {% endif %}
   </form>
 </div>
@@ -69,8 +72,8 @@
           <td>{{ sample.submission.client.client_name }}</td>
           <td class="list-cell-muted">{{ sample.updated_at|date:"d M Y, H:i" }}</td>
           <td class="list-cell-action">
-            <a href="{% url 'qc:report_detail' reference=sample.submission.reference %}" class="btn btn-outline btn-sm">
-              <i class='bx bx-show' aria-hidden="true"></i> Review
+            <a href="{% url 'qc:sample_review' slug=sample.slug %}" class="btn btn-outline btn-sm">
+              <i class='bx bx-show' aria-hidden="true"></i> View
             </a>
           </td>
         </tr>
@@ -85,7 +88,7 @@
     <span class="empty-state-icon"><i class='bx bx-check-circle' aria-hidden="true"></i></span>
     <p>
       {% if reference %}
-        No approved samples found for reference '{{ reference }}'.
+        No samples found for reference '{{ reference }}'.
       {% else %}
         No samples have been QC approved yet.
       {% endif %}
