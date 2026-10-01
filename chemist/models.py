@@ -208,10 +208,12 @@ class BaseEntry(models.Model):
                     sample=locked, entered_by=owner, **cls.creation_kwargs(locked)
                 )
 
-            if (
+            should_create_reassay_entry = (
                 locked.analysis_status == Sample.REASSAY_REQUIRED
-                and latest.status == cls.SUBMITTED_TO_QC
-            ):
+                and (latest.status == cls.SUBMITTED_TO_QC or not latest.is_reassay)
+            )
+
+            if should_create_reassay_entry:
                 return cls.objects.create(
                     sample=locked,
                     revision=latest.revision + 1,
@@ -262,16 +264,26 @@ class BaseEntry(models.Model):
 
             self.before_submit()
 
+            is_reassay = (
+                self.is_reassay
+                or sample.analysis_status == Sample.REASSAY_REQUIRED
+                or (
+                    self.supersedes_id is not None
+                    and self.supersedes is not None
+                    and self.supersedes.is_reassay
+                )
+            )
+            self.is_reassay = is_reassay
             self.status = self.SUBMITTED_TO_QC
             self.submitted_at = timezone.now()
-            fields = ["status", "submitted_at", "updated_at"]
+            fields = ["status", "submitted_at", "updated_at", "is_reassay"]
             if user is not None and user.is_authenticated:
                 self.entered_by = user
                 fields.append("entered_by")
             self.save(update_fields=fields)
 
             sample.set_analysis_status(
-                Sample.REASSAY_SUBMITTED if self.is_reassay else Sample.SUBMITTED_TO_QC
+                Sample.REASSAY_SUBMITTED if is_reassay else Sample.SUBMITTED_TO_QC
             )
             self.after_submit()
 
