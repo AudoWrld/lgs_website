@@ -1,5 +1,5 @@
 {% extends 'quantity_control/base_qc.html' %}
-{% load static %}
+{% load static l10n %}
 
 {% block title %}{{ lab_id }} — QC Review — LGS Quality Control{% endblock %}
 {% block page_title %}Results Review{% endblock %}
@@ -29,6 +29,12 @@
   </div>
 </div>
 
+{% if report_locked %}
+<div class="qc-section">
+  <p class="qc-empty-note"><i class='bx bx-lock-alt' aria-hidden="true"></i> A Final Report/COA has already been generated for this submission. Results are locked and can no longer be edited here.</p>
+</div>
+{% endif %}
+
 <div class="qc-meta">
   <div class="qc-meta-item">
     <span class="qc-meta-label">Requested Service(s)</span>
@@ -54,192 +60,303 @@
   </div>
 </div>
 
-{% if kind == "mineral" %}
-  <section class="qc-section">
-    <div class="qc-section-head">
-      <h3>Mineral Analysis — Replicate Data</h3>
-    </div>
-    {% if replicates %}
-    <div class="table-wrap">
-      <table class="table qc-table">
-        <thead>
-          <tr>
-            <th>S/N</th>
-            {% if entry.show_weight_column %}<th>Weight</th>{% endif %}
-            {% if elements.gold %}<th>Au AAS</th><th>Au DF</th><th class="qc-col-result">Gold (ppm)</th>{% endif %}
-            {% if elements.copper %}<th>Cu AAS</th><th>Cu DF</th><th class="qc-col-result">Copper (ppm)</th>{% endif %}
-            {% if elements.silver %}<th>Ag AAS</th><th>Ag DF</th><th class="qc-col-result">Silver (ppm)</th>{% endif %}
-            {% if elements.sulphur %}<th>S (%)</th>{% endif %}
-          </tr>
-        </thead>
-        <tbody>
-          {% for replicate in replicates %}
-          <tr>
-            <td>{{ replicate.label }}</td>
-            {% if entry.show_weight_column %}<td>{{ replicate.weight|default_if_none:"—" }}</td>{% endif %}
-            {% if elements.gold %}
-            <td>{{ replicate.au_aas|default_if_none:"—" }}</td>
-            <td>{{ replicate.au_df|default_if_none:"—" }}</td>
-            <td class="qc-col-result">{{ replicate.gold_ppm|default_if_none:"—" }}</td>
-            {% endif %}
-            {% if elements.copper %}
-            <td>{{ replicate.cu_aas|default_if_none:"—" }}</td>
-            <td>{{ replicate.cu_df|default_if_none:"—" }}</td>
-            <td class="qc-col-result">{{ replicate.copper_ppm|default_if_none:"—" }}</td>
-            {% endif %}
-            {% if elements.silver %}
-            <td>{{ replicate.ag_aas|default_if_none:"—" }}</td>
-            <td>{{ replicate.ag_df|default_if_none:"—" }}</td>
-            <td class="qc-col-result">{{ replicate.silver_ppm|default_if_none:"—" }}</td>
-            {% endif %}
-            {% if elements.sulphur %}<td>{{ replicate.sulphur|default_if_none:"—" }}</td>{% endif %}
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <p class="qc-empty-note">No mineral analysis data has been entered for this sample.</p>
-    {% endif %}
-  </section>
+<form method="post">
+  {% csrf_token %}
 
-  {% if crm_entries %}
+  {% if kind == "mineral" %}
+    <section class="qc-section">
+      <div class="qc-section-head">
+        <h3>Mineral Analysis — Replicate Data</h3>
+      </div>
+      {% if replicates %}
+      <div class="table-wrap">
+        <table class="table qc-table">
+          <thead>
+            <tr>
+              <th>S/N</th>
+              {% if entry.show_weight_column %}<th>Weight</th>{% endif %}
+              {% if elements.gold %}<th>Au AAS</th><th>Au DF</th><th class="qc-col-result">Gold (ppm)</th>{% endif %}
+              {% if elements.copper %}<th>Cu AAS</th><th>Cu DF</th><th class="qc-col-result">Copper (ppm)</th>{% endif %}
+              {% if elements.silver %}<th>Ag AAS</th><th>Ag DF</th><th class="qc-col-result">Silver (ppm)</th>{% endif %}
+              {% if elements.sulphur %}<th>S (%)</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for replicate in replicates %}
+            <tr>
+              <td>{{ replicate.label }}</td>
+              {% if entry.show_weight_column %}<td>{{ replicate.weight|default_if_none:"—" }}</td>{% endif %}
+              {% if elements.gold %}
+              <td>{{ replicate.au_aas|default_if_none:"—" }}</td>
+              <td>{{ replicate.au_df|default_if_none:"—" }}</td>
+              <td class="qc-col-result">{{ replicate.gold_ppm|default_if_none:"—" }}</td>
+              {% endif %}
+              {% if elements.copper %}
+              <td>{{ replicate.cu_aas|default_if_none:"—" }}</td>
+              <td>{{ replicate.cu_df|default_if_none:"—" }}</td>
+              <td class="qc-col-result">{{ replicate.copper_ppm|default_if_none:"—" }}</td>
+              {% endif %}
+              {% if elements.silver %}
+              <td>{{ replicate.ag_aas|default_if_none:"—" }}</td>
+              <td>{{ replicate.ag_df|default_if_none:"—" }}</td>
+              <td class="qc-col-result">{{ replicate.silver_ppm|default_if_none:"—" }}</td>
+              {% endif %}
+              {% if elements.sulphur %}<td>{{ replicate.sulphur|default_if_none:"—" }}</td>{% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="qc-empty-note">No mineral analysis data has been entered for this sample.</p>
+      {% endif %}
+    </section>
+
+    {% if crm_entries %}
+    <section class="qc-section">
+      <div class="qc-section-head">
+        <h3>CRM Data</h3>
+      </div>
+      <div class="table-wrap">
+        <table class="table qc-table">
+          <thead>
+            <tr>
+              <th>S/N</th>
+              <th>Weight</th>
+              {% if elements.gold %}<th>Au AAS</th><th>Au DF</th>{% endif %}
+              {% if elements.copper %}<th>Cu AAS</th><th>Cu DF</th>{% endif %}
+              {% if elements.silver %}<th>Ag AAS</th><th>Ag DF</th>{% endif %}
+              {% if elements.sulphur %}<th>S (%)</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for crm in crm_entries %}
+            <tr>
+              <td>CRM {{ crm.serial_number }}</td>
+              <td>{{ crm.weight|default_if_none:"—" }}</td>
+              {% if elements.gold %}<td>{{ crm.au_aas|default_if_none:"—" }}</td><td>{{ crm.au_df|default_if_none:"—" }}</td>{% endif %}
+              {% if elements.copper %}<td>{{ crm.cu_aas|default_if_none:"—" }}</td><td>{{ crm.cu_df|default_if_none:"—" }}</td>{% endif %}
+              {% if elements.silver %}<td>{{ crm.ag_aas|default_if_none:"—" }}</td><td>{{ crm.ag_df|default_if_none:"—" }}</td>{% endif %}
+              {% if elements.sulphur %}<td>{{ crm.sulphur|default_if_none:"—" }}</td>{% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {% endif %}
+
+    {% if entry %}
+    <section class="qc-section">
+      <div class="qc-section-head">
+        <h3>QC Final Reportable Results</h3>
+        <span>Shown on the COA — QC selects and may edit these values</span>
+      </div>
+      <div class="table-wrap">
+        <table class="table qc-table">
+          <thead>
+            <tr>
+              {% if elements.gold %}<th>Gold Test 1 (ppm)</th><th>Gold Test 2 (ppm)</th>{% endif %}
+              {% if elements.copper %}<th>Copper (ppm)</th>{% endif %}
+              {% if elements.silver %}<th>Silver (ppm)</th>{% endif %}
+              {% if elements.sulphur %}<th>Sulphur (%)</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {% if elements.gold %}
+              <td><input type="number" step="any" min="0" name="qc_gold_test_1" aria-label="Gold Test 1" value="{{ qc_review.gold_test_1|default_if_none:''|unlocalize }}" {% if not editable %}disabled{% endif %}></td>
+              <td><input type="number" step="any" min="0" name="qc_gold_test_2" aria-label="Gold Test 2" value="{{ qc_review.gold_test_2|default_if_none:''|unlocalize }}" {% if not editable %}disabled{% endif %}></td>
+              {% endif %}
+              {% if elements.copper %}
+              <td><input type="number" step="any" min="0" name="qc_copper_final" aria-label="Copper final" value="{{ qc_review.copper_final|default_if_none:''|unlocalize }}" {% if not editable %}disabled{% endif %}></td>
+              {% endif %}
+              {% if elements.silver %}
+              <td><input type="number" step="any" min="0" name="qc_silver_final" aria-label="Silver final" value="{{ qc_review.silver_final|default_if_none:''|unlocalize }}" {% if not editable %}disabled{% endif %}></td>
+              {% endif %}
+              {% if elements.sulphur %}
+              <td><input type="number" step="any" min="0" name="qc_sulphur_final" aria-label="Sulphur final" value="{{ qc_review.sulphur_final|default_if_none:''|unlocalize }}" {% if not editable %}disabled{% endif %}></td>
+              {% endif %}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {% endif %}
+
+  {% elif kind == "metallurgical" %}
+    <section class="qc-section">
+      <div class="qc-section-head">
+        <h3>{{ entry.get_test_type_display|default:"Metallurgical Test" }}</h3>
+        <span>Edit values and choose what appears on the COA</span>
+      </div>
+      {% if rows %}
+      <div class="qc-recovery-toggles">
+        <label><input type="checkbox" name="show_recovery_12h" {% if qc_review.show_recovery_12h %}checked{% endif %} {% if not editable %}disabled{% endif %}> Show 12h on COA</label>
+        <label><input type="checkbox" name="show_recovery_24h" {% if qc_review.show_recovery_24h %}checked{% endif %} {% if not editable %}disabled{% endif %}> Show 24h on COA</label>
+        <label><input type="checkbox" name="show_recovery_48h" {% if qc_review.show_recovery_48h %}checked{% endif %} {% if not editable %}disabled{% endif %}> Show 48h on COA</label>
+      </div>
+      <div class="table-wrap">
+        <table class="table qc-table">
+          <thead>
+            <tr>
+              <th>Include</th>
+              <th>Parameter</th>
+              <th>Weight / Volume</th>
+              <th>SI Unit</th>
+              <th>Recovery 12h</th>
+              <th>Recovery 24h</th>
+              <th>Recovery 48h</th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+            <tr>
+              <td><input type="checkbox" name="row{{ row.id }}_included" aria-label="Include {{ row.source_parameter.display_label }} on COA" {% if row.qc_included %}checked{% endif %} {% if not editable %}disabled{% endif %}></td>
+              <td>{{ row.source_parameter.display_label }}</td>
+              <td><input type="number" step="any" min="0" name="row{{ row.id }}_weight_volume" aria-label="Weight/Volume, {{ row.source_parameter.display_label }}" value="{{ row.weight_volume|default_if_none:''|unlocalize }}" {% if not editable %}disabled{% endif %}></td>
+              <td>
+                <select name="row{{ row.id }}_si_unit" aria-label="SI unit, {{ row.source_parameter.display_label }}" {% if not editable %}disabled{% endif %}>
+                  <option value="">—</option>
+                  <option value="kg" {% if row.si_unit == "kg" %}selected{% endif %}>kg</option>
+                  <option value="g" {% if row.si_unit == "g" %}selected{% endif %}>g</option>
+                  <option value="mL" {% if row.si_unit == "mL" %}selected{% endif %}>mL</option>
+                  <option value="L" {% if row.si_unit == "L" %}selected{% endif %}>L</option>
+                </select>
+              </td>
+              <td><input type="number" step="any" min="0" max="100" name="row{{ row.id }}_recovery_12h" aria-label="Recovery 12h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_12h|default_if_none:''|unlocalize }}" {% if not editable %}disabled{% endif %}></td>
+              <td><input type="number" step="any" min="0" max="100" name="row{{ row.id }}_recovery_24h" aria-label="Recovery 24h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_24h|default_if_none:''|unlocalize }}" {% if not editable %}disabled{% endif %}></td>
+              <td><input type="number" step="any" min="0" max="100" name="row{{ row.id }}_recovery_48h" aria-label="Recovery 48h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_48h|default_if_none:''|unlocalize }}" {% if not editable %}disabled{% endif %}></td>
+              <td><input type="text" name="row{{ row.id }}_remarks" aria-label="Remarks, {{ row.source_parameter.display_label }}" value="{{ row.remarks }}" {% if not editable %}disabled{% endif %}></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="qc-empty-note">No parameter data has been entered for this sample.</p>
+      {% endif %}
+    </section>
+  {% elif kind == "carbon" %}
+    <section class="qc-section">
+      <div class="qc-section-head">
+        <h3>Carbon Activity Test</h3>
+      </div>
+      {% if replicates %}
+      <div class="table-wrap">
+        <table class="table qc-table">
+          <thead>
+            <tr>
+              <th>Replicate</th>
+              <th>Standard Concentration (ppm)</th>
+              <th>Final Concentration in Sample</th>
+              <th>Final Concentration of Standard Carbon</th>
+              <th class="qc-col-result">Activity (%)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for replicate in replicates %}
+            <tr>
+              <td>Replicate {{ replicate.replicate_number }}</td>
+              <td>{{ replicate.standard_concentration|default_if_none:"—" }}</td>
+              <td>{{ replicate.final_concentration_sample|default_if_none:"—" }}</td>
+              <td>{{ replicate.final_concentration_standard|default_if_none:"—" }}</td>
+              <td class="qc-col-result">{{ replicate.activity_percent|default_if_none:"—" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="qc-empty-note">No carbon activity data has been entered for this sample.</p>
+      {% endif %}
+    </section>
+
+    {% if entry %}
+    <section class="qc-section">
+      <div class="qc-section-head">
+        <h3>QC Final Reportable Result</h3>
+        <span>Shown on the COA — QC may edit this value</span>
+      </div>
+      <div class="table-wrap">
+        <table class="table qc-table">
+          <thead>
+            <tr><th>Final Carbon Activity (%)</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input type="number" step="any" min="0" name="qc_carbon_final" aria-label="Final carbon activity" value="{{ qc_review.carbon_activity_final|default_if_none:''|unlocalize }}" {% if not editable %}disabled{% endif %}></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {% endif %}
+  {% endif %}
+
+  {% if not entry %}
   <section class="qc-section">
-    <div class="qc-section-head">
-      <h3>CRM Data</h3>
-    </div>
-    <div class="table-wrap">
-      <table class="table qc-table">
-        <thead>
-          <tr>
-            <th>S/N</th>
-            <th>Weight</th>
-            {% if elements.gold %}<th>Au AAS</th><th>Au DF</th>{% endif %}
-            {% if elements.copper %}<th>Cu AAS</th><th>Cu DF</th>{% endif %}
-            {% if elements.silver %}<th>Ag AAS</th><th>Ag DF</th>{% endif %}
-            {% if elements.sulphur %}<th>S (%)</th>{% endif %}
-          </tr>
-        </thead>
-        <tbody>
-          {% for crm in crm_entries %}
-          <tr>
-            <td>CRM {{ crm.serial_number }}</td>
-            <td>{{ crm.weight|default_if_none:"—" }}</td>
-            {% if elements.gold %}<td>{{ crm.au_aas|default_if_none:"—" }}</td><td>{{ crm.au_df|default_if_none:"—" }}</td>{% endif %}
-            {% if elements.copper %}<td>{{ crm.cu_aas|default_if_none:"—" }}</td><td>{{ crm.cu_df|default_if_none:"—" }}</td>{% endif %}
-            {% if elements.silver %}<td>{{ crm.ag_aas|default_if_none:"—" }}</td><td>{{ crm.ag_df|default_if_none:"—" }}</td>{% endif %}
-            {% if elements.sulphur %}<td>{{ crm.sulphur|default_if_none:"—" }}</td>{% endif %}
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+    <p class="qc-empty-note">No chemist entry was found for this sample yet.</p>
   </section>
   {% endif %}
-{% elif kind == "metallurgical" %}
-  <section class="qc-section">
-    <div class="qc-section-head">
-      <h3>{{ entry.get_test_type_display|default:"Metallurgical Test" }}</h3>
-    </div>
-    {% if rows %}
-    <div class="table-wrap">
-      <table class="table qc-table">
-        <thead>
-          <tr>
-            <th>Parameter</th>
-            <th>Weight / Volume</th>
-            <th>SI Unit</th>
-            <th>Recovery 12h</th>
-            <th>Recovery 24h</th>
-            <th>Recovery 48h</th>
-            <th>Remarks</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in rows %}
-          <tr>
-            <td>{{ row.source_parameter.display_label }}</td>
-            <td>{{ row.weight_volume|default_if_none:"—" }}</td>
-            <td>{{ row.si_unit|default:"—" }}</td>
-            <td>{{ row.gold_recovery_12h|default_if_none:"—" }}</td>
-            <td>{{ row.gold_recovery_24h|default_if_none:"—" }}</td>
-            <td>{{ row.gold_recovery_48h|default_if_none:"—" }}</td>
-            <td>{{ row.remarks|default:"—" }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <p class="qc-empty-note">No parameter data has been entered for this sample.</p>
-    {% endif %}
-  </section>
-{% elif kind == "carbon" %}
-  <section class="qc-section">
-    <div class="qc-section-head">
-      <h3>Carbon Activity Test</h3>
-    </div>
-    {% if replicates %}
-    <div class="table-wrap">
-      <table class="table qc-table">
-        <thead>
-          <tr>
-            <th>Replicate</th>
-            <th>Standard Concentration (ppm)</th>
-            <th>Final Concentration in Sample</th>
-            <th>Final Concentration of Standard Carbon</th>
-            <th class="qc-col-result">Activity (%)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for replicate in replicates %}
-          <tr>
-            <td>Replicate {{ replicate.replicate_number }}</td>
-            <td>{{ replicate.standard_concentration|default_if_none:"—" }}</td>
-            <td>{{ replicate.final_concentration_sample|default_if_none:"—" }}</td>
-            <td>{{ replicate.final_concentration_standard|default_if_none:"—" }}</td>
-            <td class="qc-col-result">{{ replicate.activity_percent|default_if_none:"—" }}</td>
-          </tr>
-          {% endfor %}
-          {% if entry.final_carbon_activity_percent is not None %}
-          <tr class="qc-final-row">
-            <td colspan="4">Final Carbon Activity</td>
-            <td class="qc-col-result">{{ entry.final_carbon_activity_percent }}%</td>
-          </tr>
-          {% endif %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <p class="qc-empty-note">No carbon activity data has been entered for this sample.</p>
-    {% endif %}
-  </section>
-{% endif %}
 
-{% if not entry %}
+  <section class="qc-section">
+    <div class="qc-actions">
+      <a href="{% url 'qc:pending_review' %}" class="btn btn-outline">
+        <i class='bx bx-arrow-back' aria-hidden="true"></i> Back
+      </a>
+      <div class="qc-actions-right">
+        {% if editable %}
+        <button type="submit" name="action" value="save_edits" class="btn btn-secondary">
+          <i class='bx bx-save' aria-hidden="true"></i> Save QC Edits
+        </button>
+        {% endif %}
+        {% if reviewable %}
+        <button type="submit" name="action" value="return_reassay" class="btn btn-secondary">
+          <i class='bx bx-refresh' aria-hidden="true"></i> Return for Reassay
+        </button>
+        <button type="submit" name="action" value="approve" class="btn btn-primary">
+          <i class='bx bx-check' aria-hidden="true"></i> Approve
+        </button>
+        {% endif %}
+        {% if not editable and not reviewable %}
+        <span class="list-cell-muted">This sample is not currently awaiting QC action.</span>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+</form>
+
+{% if edit_logs %}
 <section class="qc-section">
-  <p class="qc-empty-note">No chemist entry was found for this sample yet.</p>
+  <div class="qc-section-head">
+    <h3>Edit History</h3>
+  </div>
+  <div class="table-wrap">
+    <table class="table qc-table">
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Previous Value</th>
+          <th>New Value</th>
+          <th>User</th>
+          <th>Date &amp; Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in edit_logs %}
+        <tr>
+          <td>{{ log.field_label }}</td>
+          <td>{{ log.previous_value|default:"—" }}</td>
+          <td>{{ log.new_value|default:"—" }}</td>
+          <td>{{ log.edited_by.get_full_name|default:log.edited_by.email|default:"—" }}</td>
+          <td class="list-cell-muted">{{ log.edited_at|date:"d M Y, H:i" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </section>
 {% endif %}
-
-<section class="qc-section">
-  <form method="post" class="qc-actions">
-    {% csrf_token %}
-    <a href="{% url 'qc:pending_review' %}" class="btn btn-outline">
-      <i class='bx bx-arrow-back' aria-hidden="true"></i> Back
-    </a>
-    {% if reviewable %}
-    <div class="qc-actions-right">
-      <button type="submit" name="action" value="return_reassay" class="btn btn-secondary">
-        <i class='bx bx-refresh' aria-hidden="true"></i> Return for Reassay
-      </button>
-      <button type="submit" name="action" value="approve" class="btn btn-primary">
-        <i class='bx bx-check' aria-hidden="true"></i> Approve
-      </button>
-    </div>
-    {% else %}
-    <span class="list-cell-muted">This sample is not currently awaiting QC review.</span>
-    {% endif %}
-  </form>
-</section>
 {% endblock %}

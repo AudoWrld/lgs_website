@@ -141,6 +141,52 @@
   white-space: nowrap;
 }
 
+.qc-table input[type="number"],
+.qc-table input[type="text"],
+.qc-table select {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 100px;
+  height: 2.25rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.qc-table input[type="text"] {
+  min-width: 160px;
+}
+
+.qc-table input:disabled,
+.qc-table select:disabled {
+  background: #f1ede3;
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.qc-table input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--navy);
+}
+
+.qc-recovery-toggles {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.875rem;
+  color: var(--navy);
+}
+
+.qc-recovery-toggles label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .qc-table td.qc-col-result {
   background: #faf8f3;
   color: var(--navy);
