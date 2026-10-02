@@ -766,7 +766,7 @@ class MetallurgicalTestRow(models.Model):
     gold_recovery_24h = _input_field(8, 4, maximum=Decimal("100"))
     gold_recovery_48h = _input_field(8, 4, maximum=Decimal("100"))
     remarks = models.TextField(blank=True)
-
+    qc_included = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
