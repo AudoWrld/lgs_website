@@ -91,10 +91,9 @@ class Payment(models.Model):
 
     def refresh_from_charges(self):
         self.recalculate_gross_amount()
-        if self.payment_status == self.PAID and self.outstanding_balance > 0:
-            self.payment_status = (
-                self.PARTIALLY_PAID if self.total_amount_paid > 0 else self.UNPAID
-            )
+        expected = self.expected_status()
+        if expected is not None:
+            self.payment_status = expected
         self.save()
 
     @classmethod
@@ -106,7 +105,7 @@ class Payment(models.Model):
 
     def expected_status(self):
         if self.total_amount_paid <= 0:
-            return None
+            return self.UNPAID
         if self.total_amount_paid < self.net_amount_payable:
             return self.PARTIALLY_PAID
         return self.PAID

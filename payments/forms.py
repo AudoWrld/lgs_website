@@ -22,6 +22,15 @@ class PaymentSearchForm(forms.Form):
 
 
 class PaymentUpdateForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["payment_status"].disabled = True
+        self.fields["payment_status"].required = False
+        self.fields["payment_status"].widget.attrs["disabled"] = "disabled"
+        self.fields["payment_status"].help_text = (
+            "This status is calculated automatically from the payment total."
+        )
+
     additional_amount_paid = forms.DecimalField(
         label="Additional Amount Paid",
         max_digits=14,

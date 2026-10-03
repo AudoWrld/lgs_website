@@ -148,7 +148,7 @@ def payment_list(request):
                     payment.total_amount_paid += additional_paid
                     payment.payment_method = cleaned["payment_method"]
                     payment.transaction_reference = cleaned["transaction_reference"]
-                    payment.payment_status = cleaned["payment_status"]
+                    payment.payment_status = payment.expected_status()
                     payment.remarks = cleaned["remarks"]
 
                     try:
@@ -202,7 +202,7 @@ def payment_list(request):
     submissions = list(
         scoped.select_related("client", "payment")
         .annotate(sample_count=Count("samples", distinct=True))
-        .order_by("-created_at")[:LIST_LIMIT]
+        .order_by("-submitted_at", "-created_at")[:LIST_LIMIT]
     )
 
     if submission is None and not reference:
