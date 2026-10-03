@@ -2,6 +2,7 @@ from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 from types import SimpleNamespace
 
+from django.conf import settings
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -26,19 +27,28 @@ from chemist.models import (
 )
 from worksheet.models import WorksheetRow
 
-from .models import QCEditLog, QCReview
+from .models import QCDecision, QCEditLog, QCReview
 
 PAGE_SIZE = 12
+DECIMAL_PLACES = Decimal("0.0001")
+MAX_VALUE = Decimal("99999999")
+
+OVERDUE_HOURS = getattr(settings, "QC_OVERDUE_HOURS", 48)
+COA_NUMBER_FIELD = "coa_number"
+
+REVIEW_STATUSES = (Sample.SUBMITTED_TO_QC, Sample.REASSAY_SUBMITTED)
 
 RECOVERY_FIELDS = (
-    ("gold_recovery_12h", "recovery_12h", "Gold Recovery 12h"),
-    ("gold_recovery_24h", "recovery_24h", "Gold Recovery 24h"),
-    ("gold_recovery_48h", "recovery_48h", "Gold Recovery 48h"),
+    ("gold_recovery_12h", "recovery_12h", "Gold Recovery 12h", "show_recovery_12h"),
+    ("gold_recovery_24h", "recovery_24h", "Gold Recovery 24h", "show_recovery_24h"),
+    ("gold_recovery_48h", "recovery_48h", "Gold Recovery 48h", "show_recovery_48h"),
 )
 
-
-def _visible_submissions():
-    return Submission.objects.filter(is_submitted=True).select_related("client")
+SINGLE_FIELDS = (
+    ("copper", "copper_final", "qc_copper_final", "Copper (ppm)"),
+    ("silver", "silver_final", "qc_silver_final", "Silver (ppm)"),
+    ("sulphur", "sulphur_final", "qc_sulphur_final", "Sulphur (%)"),
+)
 
 
 def _paginate(request, queryset):
@@ -48,41 +58,472 @@ def _paginate(request, queryset):
     return page, params.urlencode()
 
 
-def _lab_id(sample):
-    mapping = getattr(sample, "lab_mapping", None)
-    if mapping is None:
-        return sample.slug.upper()
-    prefix, _, suffix = mapping.lab_sample_id.rpartition("-")
-    if not prefix:
-        return mapping.lab_sample_id
-    return f"{prefix}-{suffix.lstrip('0') or '0'}"
-
-
 def _with_lab_id(queryset):
     return [
-        SimpleNamespace(sample=sample, lab_id=_lab_id(sample)) for sample in queryset
+        SimpleNamespace(sample=sample, lab_id=lab_sample_id_for(sample))
+        for sample in queryset
     ]
+
+
+def _sample_items(samples):
+    return [
+        {
+            "sample": sample,
+            "lab_id": lab_sample_id_for(sample),
+            "submission": sample.submission,
+        }
+        for sample in samples
+    ]
+
+
+def _fmt(value):
+    if value is None:
+        return ""
+    if isinstance(value, Decimal):
+        return format(value.normalize(), "f")
+    return str(value)
+
+
+def _parse_decimal(raw, label, errors):
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    try:
+        value = Decimal(raw)
+    except InvalidOperation:
+        errors.append(f"{label}: enter a valid number.")
+        return None
+    if not value.is_finite() or value < 0:
+        errors.append(f"{label}: enter a valid non-negative number.")
+        return None
+    if value > MAX_VALUE:
+        errors.append(f"{label}: value is too large.")
+        return None
+    return value.quantize(DECIMAL_PLACES)
+
+
+def _load_entry(sample):
+    test_type = get_metallurgical_type(sample)
+    if test_type == Service.CARBON_ACTIVITY:
+        entry = (
+            CarbonActivityEntry.objects.filter(sample=sample)
+            .order_by("-revision")
+            .first()
+        )
+        return "carbon", entry
+    if test_type in (Service.CYANIDE_CONVENTIONAL, Service.CYANIDE_OPTIMIZATION):
+        entry = (
+            MetallurgicalTestEntry.objects.filter(sample=sample)
+            .order_by("-revision")
+            .first()
+        )
+        return "metallurgical", entry
+    entry = (
+        MineralAnalysisEntry.objects.filter(sample=sample).order_by("-revision").first()
+    )
+    return "mineral", entry
+
+
+def _report_locked(sample):
+    coas = COA.objects.filter(submission=sample.submission)
+    if not coas.exists():
+        return False
+    if hasattr(COA, "samples"):
+        return coas.filter(samples=sample).exists()
+    return True
+
+
+def _is_editable(sample, entry):
+    return (
+        entry is not None
+        and sample.analysis_status
+        in (Sample.SUBMITTED_TO_QC, Sample.REASSAY_SUBMITTED, Sample.QC_APPROVED)
+        and not _report_locked(sample)
+    )
+
+
+def _apply_qc_defaults(qc_review, kind, entry):
+    qc_review.gold_test_1 = None
+    qc_review.gold_test_2 = None
+    qc_review.gold_replicate_1_id = None
+    qc_review.gold_replicate_2_id = None
+    qc_review.copper_final = None
+    qc_review.silver_final = None
+    qc_review.sulphur_final = None
+    qc_review.carbon_activity_final = None
+    qc_review.metallurgical_original = None
+
+    if entry is None:
+        return
+
+    if kind == "mineral":
+        elements = entry.registered_elements
+        replicates = list(entry.replicates.all())
+        if elements["gold"]:
+            golds = [(r.id, r.gold_ppm) for r in replicates if r.gold_ppm is not None]
+            if len(golds) >= 1:
+                qc_review.gold_replicate_1_id, qc_review.gold_test_1 = golds[0]
+            if len(golds) >= 2:
+                qc_review.gold_replicate_2_id, qc_review.gold_test_2 = golds[1]
+        if elements["copper"]:
+            values = [r.copper_ppm for r in replicates if r.copper_ppm is not None]
+            qc_review.copper_final = values[0] if values else None
+        if elements["silver"]:
+            values = [r.silver_ppm for r in replicates if r.silver_ppm is not None]
+            qc_review.silver_final = values[0] if values else None
+        if elements["sulphur"]:
+            values = [r.sulphur for r in replicates if r.sulphur is not None]
+            qc_review.sulphur_final = values[0] if values else None
+    elif kind == "carbon":
+        qc_review.carbon_activity_final = entry.final_carbon_activity_percent
+
+
+def _get_qc_review(sample, kind, entry):
+    qc_review, _ = QCReview.objects.get_or_create(sample=sample)
+    revision = entry.revision if entry is not None else None
+    if qc_review.defaults_revision != revision:
+        _apply_qc_defaults(qc_review, kind, entry)
+        qc_review.defaults_revision = revision
+        qc_review.save()
+    return qc_review
+
+
+class _Edit:
+    def __init__(self, request, sample, user, revision):
+        self.request = request
+        self.sample = sample
+        self.user = user
+        self.revision = revision
+        self.logs = []
+        self.errors = []
+        self.rows_to_save = []
+
+    def has(self, key):
+        return key in self.request.POST
+
+    def decimal(self, key, label):
+        return _parse_decimal(self.request.POST.get(key), label, self.errors)
+
+    def log(self, label, old, new):
+        if old == new:
+            return False
+        self.logs.append(
+            QCEditLog(
+                sample=self.sample,
+                entry_revision=self.revision,
+                field_label=label,
+                previous_value=_fmt(old),
+                new_value=_fmt(new),
+                edited_by=self.user,
+            )
+        )
+        return True
+
+
+def _edit_gold_slot(edit, qc_review, slot, replicates, labels):
+    id_field = f"gold_replicate_{slot}_id"
+    value_field = f"gold_test_{slot}"
+    label = f"Gold Test {slot} (ppm)"
+    pick_key = f"qc_gold_replicate_{slot}"
+    value_key = f"qc_gold_test_{slot}"
+
+    if not edit.has(pick_key) and not edit.has(value_key):
+        return
+
+    old_value = getattr(qc_review, value_field)
+    old_id = getattr(qc_review, id_field)
+    new_id = old_id
+
+    raw_pick = (edit.request.POST.get(pick_key) or "").strip()
+    if raw_pick:
+        try:
+            candidate = int(raw_pick)
+        except ValueError:
+            candidate = None
+        replicate = replicates.get(candidate)
+        if replicate is None or replicate.gold_ppm is None:
+            edit.errors.append(f"{label}: choose a valid replicate.")
+        else:
+            new_id = candidate
+
+    if new_id != old_id:
+        new_value = replicates[new_id].gold_ppm
+        edit.log(
+            f"Gold Test {slot} — source replicate",
+            labels.get(old_id, "") if old_id else "",
+            labels.get(new_id, ""),
+        )
+        setattr(qc_review, id_field, new_id)
+    else:
+        new_value = edit.decimal(value_key, label) if edit.has(value_key) else old_value
+
+    edit.log(label, old_value, new_value)
+    setattr(qc_review, value_field, new_value)
+
+
+def _save_mineral_edits(edit, entry, qc_review):
+    elements = entry.registered_elements
+    replicate_list = list(entry.replicates.all())
+    replicates = {r.id: r for r in replicate_list}
+    labels = {r.id: f"Replicate {i}" for i, r in enumerate(replicate_list, 1)}
+
+    if elements.get("gold"):
+        for slot in (1, 2):
+            _edit_gold_slot(edit, qc_review, slot, replicates, labels)
+        id_1, id_2 = qc_review.gold_replicate_1_id, qc_review.gold_replicate_2_id
+        if id_1 is not None and id_1 == id_2:
+            edit.errors.append(
+                "Gold Test 1 and Gold Test 2 must come from different replicates."
+            )
+
+    for element, field_name, post_key, label in SINGLE_FIELDS:
+        if not elements.get(element) or not edit.has(post_key):
+            continue
+        new = edit.decimal(post_key, label)
+        edit.log(label, getattr(qc_review, field_name), new)
+        setattr(qc_review, field_name, new)
+
+
+def _save_carbon_edits(edit, entry, qc_review):
+    if not edit.has("qc_carbon_final"):
+        return
+    new = edit.decimal("qc_carbon_final", "Carbon Activity (%)")
+    edit.log("Carbon Activity (%)", qc_review.carbon_activity_final, new)
+    qc_review.carbon_activity_final = new
+
+
+def _snapshot_metallurgical(entry, qc_review):
+    if qc_review.metallurgical_original is not None:
+        return
+    qc_review.metallurgical_original = [
+        {
+            "row_id": row.id,
+            "parameter": row.source_parameter.display_label,
+            "weight_volume": _fmt(row.weight_volume),
+            "si_unit": row.si_unit,
+            "gold_recovery_12h": _fmt(row.gold_recovery_12h),
+            "gold_recovery_24h": _fmt(row.gold_recovery_24h),
+            "gold_recovery_48h": _fmt(row.gold_recovery_48h),
+            "remarks": row.remarks,
+            "qc_included": row.qc_included,
+        }
+        for row in entry.rows.select_related("source_parameter")
+    ]
+
+
+def _save_metallurgical_edits(edit, entry, qc_review):
+    _snapshot_metallurgical(entry, qc_review)
+
+    for _row_field, _key, label, flag in RECOVERY_FIELDS:
+        old = getattr(qc_review, flag)
+        new = edit.request.POST.get(flag) == "on"
+        edit.log(
+            f"{label} — shown on COA",
+            "Shown" if old else "Hidden",
+            "Shown" if new else "Hidden",
+        )
+        setattr(qc_review, flag, new)
+
+    for row in entry.rows.select_related("source_parameter"):
+        prefix = f"row{row.id}"
+        if not edit.has(f"{prefix}_weight_volume"):
+            continue
+        row_label = row.source_parameter.display_label
+        changed = False
+
+        weight_new = edit.decimal(
+            f"{prefix}_weight_volume", f"{row_label} Weight/Volume"
+        )
+        if edit.log(f"{row_label} — Weight/Volume", row.weight_volume, weight_new):
+            row.weight_volume = weight_new
+            changed = True
+
+        unit_new = (edit.request.POST.get(f"{prefix}_si_unit") or "").strip()
+        if edit.log(f"{row_label} — SI Unit", row.si_unit, unit_new):
+            row.si_unit = unit_new
+            changed = True
+
+        for field_name, key, label, _flag in RECOVERY_FIELDS:
+            new_val = edit.decimal(f"{prefix}_{key}", f"{row_label} {label}")
+            if edit.log(f"{row_label} — {label}", getattr(row, field_name), new_val):
+                setattr(row, field_name, new_val)
+                changed = True
+
+        included_new = edit.request.POST.get(f"{prefix}_included") == "on"
+        if edit.log(
+            f"{row_label} — included on COA",
+            "Yes" if row.qc_included else "No",
+            "Yes" if included_new else "No",
+        ):
+            row.qc_included = included_new
+            changed = True
+
+        remarks_new = (edit.request.POST.get(f"{prefix}_remarks") or "").strip()
+        if edit.log(f"{row_label} — Remarks", row.remarks, remarks_new):
+            row.remarks = remarks_new
+            changed = True
+
+        if changed:
+            edit.rows_to_save.append(row)
+
+
+def _apply_edits(request, sample, kind, entry, qc_review, user):
+    edit = _Edit(request, sample, user, entry.revision)
+    if kind == "mineral":
+        _save_mineral_edits(edit, entry, qc_review)
+    elif kind == "carbon":
+        _save_carbon_edits(edit, entry, qc_review)
+    elif kind == "metallurgical":
+        _save_metallurgical_edits(edit, entry, qc_review)
+    return edit
+
+
+def _commit_edits(edit, qc_review, user):
+    for row in edit.rows_to_save:
+        row.save()
+    qc_review.updated_by = user
+    qc_review.save()
+    if edit.logs:
+        QCEditLog.objects.bulk_create(edit.logs)
+
+
+def _approval_errors(kind, entry, qc_review):
+    if entry is None:
+        return ["No submitted data was found for this sample."]
+    errors = []
+
+    if kind == "mineral":
+        elements = entry.registered_elements
+        if elements.get("gold"):
+            if qc_review.gold_test_1 is None:
+                errors.append("Gold Test 1 (ppm) is required.")
+            if qc_review.gold_test_2 is None:
+                errors.append("Gold Test 2 (ppm) is required.")
+        for element, field_name, _key, label in SINGLE_FIELDS:
+            if elements.get(element) and getattr(qc_review, field_name) is None:
+                errors.append(f"{label} is required.")
+    elif kind == "carbon":
+        if qc_review.carbon_activity_final is None:
+            errors.append("Carbon Activity (%) is required.")
+    elif kind == "metallurgical":
+        shown = [
+            (row_field, label)
+            for row_field, _key, label, flag in RECOVERY_FIELDS
+            if getattr(qc_review, flag)
+        ]
+        if not shown:
+            errors.append("Select at least one recovery period to show on the COA.")
+        rows = [
+            r for r in entry.rows.select_related("source_parameter") if r.qc_included
+        ]
+        if not rows:
+            errors.append("Include at least one parameter on the COA.")
+        for row in rows:
+            for row_field, label in shown:
+                if getattr(row, row_field) is None:
+                    errors.append(
+                        f"{row.source_parameter.display_label}: {label} is required."
+                    )
+    return errors
+
+
+def _flash_errors(request, errors):
+    for error in errors[:10]:
+        messages.error(request, error)
+
+
+def _handle_post(request, sample, kind, entry):
+    action = request.POST.get("action")
+    back = redirect("qc:sample_review", slug=sample.slug)
+    user = request.user if request.user.is_authenticated else None
+
+    if action not in ("save_edits", "approve", "return_reassay"):
+        messages.error(request, "Unknown action.")
+        return back
+
+    with transaction.atomic():
+        locked = Sample.objects.select_for_update().get(pk=sample.pk)
+        qc_review = QCReview.objects.select_for_update().get(sample=locked)
+
+        if action == "save_edits":
+            if not _is_editable(locked, entry):
+                messages.error(request, "This sample can no longer be edited.")
+                return back
+            edit = _apply_edits(request, locked, kind, entry, qc_review, user)
+            if edit.errors:
+                _flash_errors(request, edit.errors)
+                return back
+            _commit_edits(edit, qc_review, user)
+            if edit.logs:
+                messages.success(
+                    request, f"QC edits saved ({len(edit.logs)} change(s))."
+                )
+            else:
+                messages.success(request, "No changes to save.")
+            return back
+
+        if locked.analysis_status not in REVIEW_STATUSES:
+            messages.error(request, "This sample is not awaiting QC review.")
+            return back
+
+        if action == "approve":
+            if request.POST.get("edit_form") == "1":
+                if not _is_editable(locked, entry):
+                    messages.error(request, "This sample can no longer be edited.")
+                    return back
+                edit = _apply_edits(request, locked, kind, entry, qc_review, user)
+                if edit.errors:
+                    _flash_errors(request, edit.errors)
+                    return back
+                _commit_edits(edit, qc_review, user)
+
+            problems = _approval_errors(kind, entry, qc_review)
+            if problems:
+                _flash_errors(request, problems)
+                return back
+
+            locked.set_analysis_status(Sample.QC_APPROVED)
+            QCDecision.objects.create(
+                sample=locked,
+                action=QCDecision.APPROVED,
+                entry_revision=entry.revision if entry else None,
+                decided_by=user,
+            )
+            messages.success(request, f"{lab_sample_id_for(sample)} approved.")
+            return redirect("qc:pending_review")
+
+        reason = (request.POST.get("reason") or "").strip()
+        if not reason:
+            messages.error(request, "Enter a reason for returning for reassay.")
+            return back
+        locked.set_analysis_status(Sample.REASSAY_REQUIRED)
+        QCDecision.objects.create(
+            sample=locked,
+            action=QCDecision.RETURNED,
+            reason=reason,
+            entry_revision=entry.revision if entry else None,
+            decided_by=user,
+        )
+        messages.success(request, f"{lab_sample_id_for(sample)} returned for reassay.")
+        return redirect("qc:pending_review")
 
 
 @qc_required
 def qc_dashboard(request):
     visible = Sample.objects.filter(submission__is_submitted=True)
+    cutoff = timezone.now() - timedelta(hours=OVERDUE_HOURS)
 
-    pending = (
-        visible.filter(analysis_status=Sample.SUBMITTED_TO_QC)
-        .select_related("submission", "lab_mapping")
-        .order_by("-updated_at")
-    )
-    reassay = (
-        visible.filter(analysis_status=Sample.REASSAY_SUBMITTED)
-        .select_related("submission", "lab_mapping")
-        .order_by("-updated_at")
-    )
-    approved = (
-        visible.filter(analysis_status=Sample.QC_APPROVED)
-        .select_related("submission", "lab_mapping")
-        .order_by("-updated_at")
-    )
+    def base(**filters):
+        return (
+            visible.filter(**filters)
+            .select_related("submission", "lab_mapping")
+            .order_by("-updated_at")
+        )
+
+    pending = base(analysis_status=Sample.SUBMITTED_TO_QC)
+    reassay = base(analysis_status=Sample.REASSAY_SUBMITTED)
+    approved = base(analysis_status=Sample.QC_APPROVED)
+    overdue = base(analysis_status__in=REVIEW_STATUSES, updated_at__lt=cutoff)
 
     today = timezone.localdate()
     days = [today - timedelta(days=offset) for offset in range(6, -1, -1)]
@@ -109,99 +550,107 @@ def qc_dashboard(request):
         "pending_count": pending.count(),
         "reassay_count": reassay.count(),
         "approved_count": approved.count(),
+        "overdue_count": overdue.count(),
         "pending_samples": _with_lab_id(pending[:5]),
         "reassay_samples": _with_lab_id(reassay[:5]),
         "approved_samples": _with_lab_id(approved[:5]),
+        "overdue_samples": _with_lab_id(overdue[:5]),
+        "overdue_hours": OVERDUE_HOURS,
         "weekly_chart": weekly_chart,
     }
     return render(request, "quantity_control/qc_dashboard.html", context)
 
 
-def _sample_items(samples):
-    return [
-        {
-            "sample": sample,
-            "lab_id": lab_sample_id_for(sample),
-            "submission": sample.submission,
-        }
-        for sample in samples
-    ]
+def _status_list(request, template, statuses, extra=None):
+    reference = request.GET.get("reference", "").strip()
+    samples = (
+        Sample.objects.filter(
+            submission__is_submitted=True, analysis_status__in=statuses
+        )
+        .select_related("submission", "lab_mapping")
+        .order_by("-updated_at", "-id")
+    )
+    if extra is not None:
+        samples = samples.filter(extra)
+    if reference:
+        samples = samples.filter(submission__reference__iexact=reference)
+
+    page_obj, querystring = _paginate(request, samples)
+    context = {
+        "reference": reference,
+        "items": _sample_items(page_obj.object_list),
+        "page_obj": page_obj,
+        "querystring": querystring,
+        "total_count": samples.count(),
+    }
+    return render(request, template, context)
 
 
 @qc_required
 def pending_review(request):
-    reference = request.GET.get("reference", "").strip()
-    samples = (
-        Sample.objects.filter(
-            submission__is_submitted=True, analysis_status=Sample.SUBMITTED_TO_QC
-        )
-        .select_related("submission", "lab_mapping")
-        .order_by("-updated_at", "-id")
+    return _status_list(
+        request, "quantity_control/pending_review.html", (Sample.SUBMITTED_TO_QC,)
     )
-
-    if reference:
-        samples = samples.filter(submission__reference__iexact=reference)
-
-    page_obj, querystring = _paginate(request, samples)
-    context = {
-        "reference": reference,
-        "items": _sample_items(page_obj.object_list),
-        "page_obj": page_obj,
-        "querystring": querystring,
-        "total_count": samples.count(),
-    }
-    return render(request, "quantity_control/pending_review.html", context)
 
 
 @qc_required
 def reassay_review(request):
-    reference = request.GET.get("reference", "").strip()
-    samples = (
-        Sample.objects.filter(
-            submission__is_submitted=True,
-            analysis_status=Sample.REASSAY_SUBMITTED,
-        )
-        .select_related("submission", "lab_mapping")
-        .order_by("-updated_at", "-id")
+    return _status_list(
+        request, "quantity_control/reassay_review.html", (Sample.REASSAY_SUBMITTED,)
     )
-
-    if reference:
-        samples = samples.filter(submission__reference__iexact=reference)
-
-    page_obj, querystring = _paginate(request, samples)
-    context = {
-        "reference": reference,
-        "items": _sample_items(page_obj.object_list),
-        "page_obj": page_obj,
-        "querystring": querystring,
-        "total_count": samples.count(),
-    }
-    return render(request, "quantity_control/reassay_review.html", context)
 
 
 @qc_required
 def approved_reports(request):
-    reference = request.GET.get("reference", "").strip()
-    samples = (
-        Sample.objects.filter(
-            submission__is_submitted=True, analysis_status=Sample.QC_APPROVED
-        )
-        .select_related("submission", "lab_mapping")
-        .order_by("-updated_at", "-id")
+    return _status_list(
+        request, "quantity_control/approved_reports.html", (Sample.QC_APPROVED,)
     )
 
-    if reference:
-        samples = samples.filter(submission__reference__iexact=reference)
 
-    page_obj, querystring = _paginate(request, samples)
-    context = {
-        "reference": reference,
-        "items": _sample_items(page_obj.object_list),
-        "page_obj": page_obj,
-        "querystring": querystring,
-        "total_count": samples.count(),
-    }
-    return render(request, "quantity_control/approved_reports.html", context)
+@qc_required
+def overdue_results(request):
+    cutoff = timezone.now() - timedelta(hours=OVERDUE_HOURS)
+    return _status_list(
+        request,
+        "quantity_control/pending_review.html",
+        REVIEW_STATUSES,
+        extra=Q(updated_at__lt=cutoff),
+    )
+
+
+@qc_required
+def quick_search(request):
+    query = request.GET.get("q", "").strip()
+    if not query:
+        return redirect("qc:dashboard")
+
+    coa = (
+        COA.objects.filter(**{f"{COA_NUMBER_FIELD}__iexact": query})
+        .select_related("submission")
+        .first()
+    )
+    if coa is not None:
+        return redirect("qc:report_detail", reference=coa.submission.reference)
+
+    submission = Submission.objects.filter(
+        is_submitted=True, reference__iexact=query
+    ).first()
+    if submission is not None:
+        return redirect("qc:report_detail", reference=submission.reference)
+
+    matches = list(
+        Sample.objects.filter(
+            submission__is_submitted=True,
+            lab_mapping__lab_sample_id__icontains=query,
+        )[:2]
+    )
+    if len(matches) == 1:
+        return redirect("qc:sample_review", slug=matches[0].slug)
+    if len(matches) > 1:
+        messages.info(request, "Several samples match. Enter the full Laboratory ID.")
+    else:
+        messages.error(request, f"Nothing found for “{query}”.")
+    return redirect("qc:dashboard")
 
 
 def _crm_entries_for_sample(sample):
@@ -228,189 +677,6 @@ def _crm_entries_for_sample(sample):
     ]
 
 
-def _apply_qc_defaults(qc_review, kind, entry):
-    if entry is None:
-        return
-    if kind == "mineral":
-        elements = entry.registered_elements
-        replicates = list(entry.replicates.all())
-        if elements["gold"]:
-            golds = [r.gold_ppm for r in replicates if r.gold_ppm is not None]
-            if len(golds) >= 1:
-                qc_review.gold_test_1 = golds[0]
-            if len(golds) >= 2:
-                qc_review.gold_test_2 = golds[1]
-        if elements["copper"]:
-            coppers = [r.copper_ppm for r in replicates if r.copper_ppm is not None]
-            if coppers:
-                qc_review.copper_final = coppers[0]
-        if elements["silver"]:
-            silvers = [r.silver_ppm for r in replicates if r.silver_ppm is not None]
-            if silvers:
-                qc_review.silver_final = silvers[0]
-        if elements["sulphur"]:
-            sulphurs = [r.sulphur for r in replicates if r.sulphur is not None]
-            if sulphurs:
-                qc_review.sulphur_final = sulphurs[0]
-    elif kind == "carbon":
-        if entry.final_carbon_activity_percent is not None:
-            qc_review.carbon_activity_final = entry.final_carbon_activity_percent
-
-
-def _get_qc_review(sample, kind, entry):
-    qc_review, _ = QCReview.objects.get_or_create(sample=sample)
-    current_revision = entry.revision if entry is not None else None
-    if qc_review.defaults_revision != current_revision:
-        _apply_qc_defaults(qc_review, kind, entry)
-        qc_review.defaults_revision = current_revision
-        qc_review.save()
-    return qc_review
-
-
-def _parse_decimal(raw, label, errors):
-    raw = (raw or "").strip()
-    if not raw:
-        return None
-    try:
-        value = Decimal(raw)
-    except InvalidOperation:
-        errors.append(f"{label}: enter a valid number.")
-        return None
-    if not value.is_finite() or value < 0:
-        errors.append(f"{label}: enter a valid non-negative number.")
-        return None
-    return value
-
-
-def _log_change(logs, sample, user, label, old, new):
-    old_text = "" if old is None else str(old)
-    new_text = "" if new is None else str(new)
-    if old_text == new_text:
-        return
-    logs.append(
-        QCEditLog(
-            sample=sample,
-            field_label=label,
-            previous_value=old_text,
-            new_value=new_text,
-            edited_by=user,
-        )
-    )
-
-
-def _save_mineral_edits(request, sample, entry, qc_review, user, logs, errors):
-    elements = entry.registered_elements
-    field_map = (
-        ("gold", "gold_test_1", "qc_gold_test_1", "Gold Test 1 (ppm)"),
-        ("gold", "gold_test_2", "qc_gold_test_2", "Gold Test 2 (ppm)"),
-        ("copper", "copper_final", "qc_copper_final", "Copper (ppm)"),
-        ("silver", "silver_final", "qc_silver_final", "Silver (ppm)"),
-        ("sulphur", "sulphur_final", "qc_sulphur_final", "Sulphur (%)"),
-    )
-    for element, field_name, post_key, label in field_map:
-        if not elements.get(element):
-            continue
-        old = getattr(qc_review, field_name)
-        new = _parse_decimal(request.POST.get(post_key), label, errors)
-        _log_change(logs, sample, user, label, old, new)
-        setattr(qc_review, field_name, new)
-
-
-def _save_carbon_edits(request, sample, entry, qc_review, user, logs, errors):
-    old = qc_review.carbon_activity_final
-    new = _parse_decimal(
-        request.POST.get("qc_carbon_final"), "Carbon Activity (%)", errors
-    )
-    _log_change(logs, sample, user, "Carbon Activity (%)", old, new)
-    qc_review.carbon_activity_final = new
-
-
-def _save_metallurgical_edits(request, sample, entry, qc_review, user, logs, errors):
-    period_fields = (
-        ("show_recovery_12h", "Gold Recovery 12h — shown on COA"),
-        ("show_recovery_24h", "Gold Recovery 24h — shown on COA"),
-        ("show_recovery_48h", "Gold Recovery 48h — shown on COA"),
-    )
-    for field_name, label in period_fields:
-        old = getattr(qc_review, field_name)
-        new = request.POST.get(field_name) == "on"
-        if new != old:
-            logs.append(
-                QCEditLog(
-                    sample=sample,
-                    field_label=label,
-                    previous_value="Shown" if old else "Hidden",
-                    new_value="Shown" if new else "Hidden",
-                    edited_by=user,
-                )
-            )
-        setattr(qc_review, field_name, new)
-
-    rows = list(entry.rows.select_related("source_parameter"))
-    for row in rows:
-        prefix = f"row{row.id}"
-        row_label = row.source_parameter.display_label
-        changed = False
-
-        wv_new = _parse_decimal(
-            request.POST.get(f"{prefix}_weight_volume"),
-            f"{row_label} Weight/Volume",
-            errors,
-        )
-        if wv_new != row.weight_volume:
-            _log_change(
-                logs,
-                sample,
-                user,
-                f"{row_label} — Weight/Volume",
-                row.weight_volume,
-                wv_new,
-            )
-            row.weight_volume = wv_new
-            changed = True
-
-        si_new = (request.POST.get(f"{prefix}_si_unit") or "").strip()
-        if si_new != row.si_unit:
-            _log_change(
-                logs, sample, user, f"{row_label} — SI Unit", row.si_unit, si_new
-            )
-            row.si_unit = si_new
-            changed = True
-
-        for field_name, key, label in RECOVERY_FIELDS:
-            new_val = _parse_decimal(
-                request.POST.get(f"{prefix}_{key}"), f"{row_label} {label}", errors
-            )
-            old_val = getattr(row, field_name)
-            if new_val != old_val:
-                _log_change(
-                    logs, sample, user, f"{row_label} — {label}", old_val, new_val
-                )
-                setattr(row, field_name, new_val)
-                changed = True
-
-        included_new = request.POST.get(f"{prefix}_included") == "on"
-        if included_new != row.qc_included:
-            _log_change(
-                logs,
-                sample,
-                user,
-                f"{row_label} — included on COA",
-                "Yes" if row.qc_included else "No",
-                "Yes" if included_new else "No",
-            )
-            row.qc_included = included_new
-            changed = True
-
-        remarks_new = (request.POST.get(f"{prefix}_remarks") or "").strip()
-        if remarks_new != row.remarks:
-            row.remarks = remarks_new
-            changed = True
-
-        if changed:
-            row.save()
-
-
 @qc_required
 def sample_review(request, slug):
     sample = get_object_or_404(
@@ -420,107 +686,21 @@ def sample_review(request, slug):
         slug=slug,
     )
 
-    test_type = get_metallurgical_type(sample)
-    kind = "mineral"
-    entry = (
-        MineralAnalysisEntry.objects.filter(sample=sample).order_by("-revision").first()
-    )
-
-    if test_type == Service.CARBON_ACTIVITY:
-        kind = "carbon"
-        entry = (
-            CarbonActivityEntry.objects.filter(sample=sample)
-            .order_by("-revision")
-            .first()
-        )
-    elif test_type in (Service.CYANIDE_CONVENTIONAL, Service.CYANIDE_OPTIMIZATION):
-        kind = "metallurgical"
-        entry = (
-            MetallurgicalTestEntry.objects.filter(sample=sample)
-            .order_by("-revision")
-            .first()
-        )
-
-    reviewable = sample.analysis_status in (
-        Sample.SUBMITTED_TO_QC,
-        Sample.REASSAY_SUBMITTED,
-    )
-    report_locked = COA.objects.filter(submission=sample.submission).exists()
-    editable = (
-        not report_locked
-        and sample.analysis_status
-        in (Sample.SUBMITTED_TO_QC, Sample.REASSAY_SUBMITTED, Sample.QC_APPROVED)
-        and entry is not None
-    )
-
+    kind, entry = _load_entry(sample)
     qc_review = _get_qc_review(sample, kind, entry)
 
     if request.method == "POST":
-        action = request.POST.get("action")
+        return _handle_post(request, sample, kind, entry)
 
-        if action == "save_edits":
-            if not editable:
-                messages.error(request, "This sample can no longer be edited.")
-                return redirect("qc:sample_review", slug=sample.slug)
-
-            user = request.user if request.user.is_authenticated else None
-            logs = []
-            errors = []
-
-            if kind == "mineral":
-                _save_mineral_edits(
-                    request, sample, entry, qc_review, user, logs, errors
-                )
-            elif kind == "carbon":
-                _save_carbon_edits(
-                    request, sample, entry, qc_review, user, logs, errors
-                )
-            elif kind == "metallurgical":
-                _save_metallurgical_edits(
-                    request, sample, entry, qc_review, user, logs, errors
-                )
-
-            if errors:
-                for error in errors[:10]:
-                    messages.error(request, error)
-                return redirect("qc:sample_review", slug=sample.slug)
-
-            with transaction.atomic():
-                qc_review.updated_by = user
-                qc_review.save()
-                if logs:
-                    QCEditLog.objects.bulk_create(logs)
-
-            if logs:
-                messages.success(request, f"QC edits saved ({len(logs)} change(s)).")
-            else:
-                messages.success(request, "No changes to save.")
-            return redirect("qc:sample_review", slug=sample.slug)
-
-        if not reviewable:
-            messages.error(request, "This sample is not awaiting QC review.")
-            return redirect("qc:sample_review", slug=sample.slug)
-
-        if action == "approve":
-            sample.set_analysis_status(Sample.QC_APPROVED)
-            messages.success(request, f"{lab_sample_id_for(sample)} approved.")
-            return redirect("qc:pending_review")
-        if action == "return_reassay":
-            sample.set_analysis_status(Sample.REASSAY_REQUIRED)
-            messages.success(
-                request, f"{lab_sample_id_for(sample)} returned for reassay."
-            )
-            return redirect("qc:pending_review")
-
-        messages.error(request, "Unknown action.")
-        return redirect("qc:sample_review", slug=sample.slug)
+    reviewable = sample.analysis_status in REVIEW_STATUSES
+    report_locked = _report_locked(sample)
+    editable = _is_editable(sample, entry)
 
     services = (
         sample.sample_services.select_related("service")
         .prefetch_related("parameters")
         .all()
     )
-    edit_logs = sample.qc_edit_logs.select_related("edited_by")[:20]
 
     context = {
         "sample": sample,
@@ -532,18 +712,26 @@ def sample_review(request, slug):
         "editable": editable,
         "report_locked": report_locked,
         "qc_review": qc_review,
-        "edit_logs": edit_logs,
+        "edit_logs": sample.qc_edit_logs.select_related("edited_by")[:20],
+        "decisions": sample.qc_decisions.select_related("decided_by")[:10],
         "is_reassay": sample.analysis_status
         in (Sample.REASSAY_REQUIRED, Sample.REASSAY_SUBMITTED)
         or (entry.is_reassay if entry else False),
     }
 
     if kind == "mineral" and entry is not None:
+        replicates = list(entry.replicates.all())
         context["elements"] = entry.registered_elements
-        context["replicates"] = entry.replicates.all()
+        context["replicates"] = replicates
+        context["gold_options"] = [
+            {"id": r.id, "label": f"Replicate {i}", "gold_ppm": r.gold_ppm}
+            for i, r in enumerate(replicates, 1)
+            if r.gold_ppm is not None
+        ]
         context["crm_entries"] = _crm_entries_for_sample(sample)
     elif kind == "metallurgical" and entry is not None:
         context["rows"] = entry.rows.select_related("source_parameter").all()
+        context["original_rows"] = qc_review.metallurgical_original or []
     elif kind == "carbon" and entry is not None:
         context["replicates"] = entry.replicates.all()
 

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.test import TestCase
 
 from accounts.models import Client, User
@@ -48,9 +50,9 @@ class ReassaySubmissionStatusTests(TestCase):
         entry.ensure_replicates()
 
         for replicate in entry.replicates.all():
-            replicate.weight = 1.0
-            replicate.au_aas = 10.0
-            replicate.au_df = 5.0
+            replicate.weight = Decimal("1.0")
+            replicate.au_aas = Decimal("10.0")
+            replicate.au_df = Decimal("5.0")
             replicate.save()
 
         entry.submit_to_qc(self.chemist)
