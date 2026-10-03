@@ -49,6 +49,21 @@
   flex: none;
 }
 
+.qc-header-status .badge-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.55rem;
+  background: var(--success-bg, #e8f4ec);
+  color: var(--success-text, #1e6b3a);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.qc-header-status .badge-verified i {
+  font-size: 0.9rem;
+}
+
 .qc-meta {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
