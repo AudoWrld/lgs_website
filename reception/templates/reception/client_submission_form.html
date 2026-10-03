@@ -172,7 +172,7 @@
             <thead>
               <tr>
                 <th style="width:22%;">Type</th>
-                <th style="width:26%;">Bank Name</th>
+                <th style="width:26%;">Bank / Network</th>
                 <th style="width:26%;">Account Name</th>
                 <th style="width:26%;">Account / Number</th>
               </tr>
@@ -181,7 +181,7 @@
               {% for account in payment_accounts %}
               <tr>
                 <td>{% if account.account_type == "BANK" %}Bank{% else %}Mobile / Lipa Number{% endif %}</td>
-                <td>{% if account.account_type == "BANK" %}{{ account.bank_name }}{% else %}—{% endif %}</td>
+                <td>{{ account.bank_name|default:"—" }}</td>
                 <td>{{ account.account_name }}</td>
                 <td>{{ account.account_number }}</td>
               </tr>
