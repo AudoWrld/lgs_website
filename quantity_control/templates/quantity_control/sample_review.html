@@ -303,7 +303,7 @@
 
   <section class="qc-section">
     <div class="qc-actions">
-      <a href="{% url 'qc:pending_review' %}" class="btn btn-outline">
+      <a href="{% url 'qc:pending_review' %}" class="btn btn-outline" data-history-back>
         <i class='bx bx-arrow-back' aria-hidden="true"></i> Back
       </a>
       <div class="qc-actions-right">
@@ -359,4 +359,25 @@
   </div>
 </section>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    var backLink = document.querySelector("[data-history-back]");
+    if (!backLink) return;
+
+    backLink.addEventListener("click", function (event) {
+      if (!document.referrer) return;
+      try {
+        if (new URL(document.referrer).origin === window.location.origin) {
+          event.preventDefault();
+          window.history.back();
+        }
+      } catch (error) {
+        return;
+      }
+    });
+  })();
+</script>
 {% endblock %}

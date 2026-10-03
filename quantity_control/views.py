@@ -125,6 +125,8 @@ def _load_entry(sample):
 
 
 def _report_locked(sample):
+    if getattr(sample, "submission_id", None) is None:
+        return False
     coas = COA.objects.filter(submission=sample.submission)
     if not coas.exists():
         return False
@@ -137,7 +139,7 @@ def _is_editable(sample, entry):
     return (
         entry is not None
         and sample.analysis_status
-        in (Sample.SUBMITTED_TO_QC, Sample.REASSAY_SUBMITTED, Sample.QC_APPROVED)
+        in (Sample.SUBMITTED_TO_QC, Sample.REASSAY_SUBMITTED)
         and not _report_locked(sample)
     )
 
