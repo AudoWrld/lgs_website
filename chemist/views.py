@@ -28,8 +28,10 @@ from .models import (
     format_lab_sample_id,
     get_metallurgical_type,
     lab_sample_id_for,
+    latest_carbon_worksheet,
     latest_mineral_worksheet,
     worksheet_elements,
+    worksheet_rows_for_sample,
 )
 
 MINERAL_FIELDS = (
@@ -159,6 +161,42 @@ def _is_read_only(sample, entry):
 def _no_entry(request):
     messages.error(request, "This sample is not available for data entry.")
     return redirect("chemist:chemist_dashboard")
+
+
+def _no_worksheet(request):
+    messages.error(
+        request,
+        "The worksheet for this sample has not been generated. Data entry is unavailable.",
+    )
+    return redirect("chemist:chemist_dashboard")
+
+
+def _metallurgical_worksheet_rows(sample):
+    test_type = get_metallurgical_type(sample)
+    if test_type == Service.CARBON_ACTIVITY:
+        worksheet = latest_carbon_worksheet(sample.submission)
+    else:
+        worksheet_type = {
+            Service.CYANIDE_CONVENTIONAL: Worksheet.CONVENTIONAL_CYANIDE_LEACHING,
+            Service.CYANIDE_OPTIMIZATION: Worksheet.PARAMETER_OPTIMIZATION,
+        }.get(test_type)
+        if worksheet_type is None:
+            return []
+        worksheet = (
+            Worksheet.objects.filter(
+                submission=sample.submission, worksheet_type=worksheet_type
+            )
+            .order_by("-generated_at", "-id")
+            .first()
+        )
+    if worksheet is None:
+        return []
+    return list(
+        worksheet.rows.filter(
+            lab_sample_mapping__sample=sample,
+            row_type__in=(WorksheetRow.SAMPLE_ROW, WorksheetRow.REPLICATE_ROW),
+        ).order_by("row_number")
+    )
 
 
 def _finalize(request, sample, entry, list_route, entry_route):
@@ -313,25 +351,21 @@ def mineral_analysis_samples(request, reference):
 
     items = []
     sample_count = 0
+    worksheet_missing = False
     if submission:
-        items = _mineral_worksheet_items(submission)
-        if not items:
-            items = [
-                {
-                    "kind": "sample",
-                    "sample": sample,
-                    "lab_id": lab_sample_id_for(sample),
-                    "first": None,
-                    "last": None,
-                }
-                for sample in _visible_samples()
-                .filter(
-                    submission=submission,
-                    sample_services__service__metallurgical_type=Service.NONE,
-                )
-                .distinct()
-                .order_by("id")
-            ]
+        mineral_samples_exist = (
+            _visible_samples()
+            .filter(
+                submission=submission,
+                sample_services__service__metallurgical_type=Service.NONE,
+            )
+            .exists()
+        )
+        worksheet_missing = (
+            latest_mineral_worksheet(submission) is None and mineral_samples_exist
+        )
+        if not worksheet_missing:
+            items = _mineral_worksheet_items(submission)
         sample_count = sum(1 for item in items if item["kind"] == "sample")
 
     context = {
@@ -339,6 +373,7 @@ def mineral_analysis_samples(request, reference):
         "submission": submission,
         "items": items,
         "sample_count": sample_count,
+        "worksheet_missing": worksheet_missing,
     }
     return render(request, "chemist/mineral_analysis_samples.html", context)
 
@@ -349,6 +384,9 @@ def mineral_analysis_entry(request, slug):
     misrouted = _misrouted(sample, "chemist:mineral_analysis_entry")
     if misrouted:
         return misrouted
+
+    if not worksheet_rows_for_sample(sample):
+        return _no_worksheet(request)
 
     entry = MineralAnalysisEntry.current_for(sample, request.user)
     if entry is None:
@@ -412,6 +450,11 @@ def mineral_analysis_entry(request, slug):
 @require_POST
 def mineral_analysis_preview(request, slug):
     sample = _get_sample(slug)
+    if not worksheet_rows_for_sample(sample):
+        return JsonResponse(
+            {"error": "The worksheet for this sample has not been generated."},
+            status=404,
+        )
     entry = (
         MineralAnalysisEntry.objects.filter(sample=sample).order_by("-revision").first()
     )
@@ -514,7 +557,7 @@ def metallurgical_tests_samples(request, reference):
 
     items = []
     if submission:
-        samples = (
+        candidates = list(
             _visible_samples()
             .filter(submission=submission)
             .filter(
@@ -525,19 +568,21 @@ def metallurgical_tests_samples(request, reference):
             .distinct()
             .order_by("id")
         )
-        items = [
-            {
-                "sample": sample,
-                "lab_id": lab_sample_id_for(sample),
-            }
-            for sample in samples
-        ]
+        for sample in candidates:
+            if _metallurgical_worksheet_rows(sample):
+                items.append(
+                    {"sample": sample, "lab_id": lab_sample_id_for(sample)}
+                )
+        worksheet_missing_count = len(candidates) - len(items)
+    else:
+        worksheet_missing_count = 0
 
     context = {
         "reference": reference,
         "submission": submission,
         "items": items,
         "sample_count": len(items),
+        "worksheet_missing_count": worksheet_missing_count,
     }
     return render(request, "chemist/metallurgical_tests_samples.html", context)
 
@@ -548,6 +593,9 @@ def metallurgical_test_entry(request, slug):
     misrouted = _misrouted(sample, "chemist:metallurgical_tests_entry")
     if misrouted:
         return misrouted
+
+    if not _metallurgical_worksheet_rows(sample):
+        return _no_worksheet(request)
 
     entry = MetallurgicalTestEntry.current_for(sample, request.user)
     if entry is None:
@@ -612,6 +660,9 @@ def carbon_activity_entry(request, slug):
     misrouted = _misrouted(sample, "chemist:carbon_activity_entry")
     if misrouted:
         return misrouted
+
+    if not _metallurgical_worksheet_rows(sample):
+        return _no_worksheet(request)
 
     entry = CarbonActivityEntry.current_for(sample, request.user)
     if entry is None:
