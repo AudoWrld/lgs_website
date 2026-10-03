@@ -192,15 +192,15 @@
       </div>
       {% if rows %}
       <div class="qc-recovery-toggles">
-        <label><input type="checkbox" name="show_recovery_12h" {% if qc_review.show_recovery_12h %}checked{% endif %} {% if not editable %}disabled{% endif %}> Show 12h on COA</label>
-        <label><input type="checkbox" name="show_recovery_24h" {% if qc_review.show_recovery_24h %}checked{% endif %} {% if not editable %}disabled{% endif %}> Show 24h on COA</label>
-        <label><input type="checkbox" name="show_recovery_48h" {% if qc_review.show_recovery_48h %}checked{% endif %} {% if not editable %}disabled{% endif %}> Show 48h on COA</label>
+        <label><input type="checkbox" name="show_recovery_12h" {% if qc_review.show_recovery_12h %}checked{% endif %} {% if not editable %}disabled{% endif %}> <span>Show 12h on COA</span></label>
+        <label><input type="checkbox" name="show_recovery_24h" {% if qc_review.show_recovery_24h %}checked{% endif %} {% if not editable %}disabled{% endif %}> <span>Show 24h on COA</span></label>
+        <label><input type="checkbox" name="show_recovery_48h" {% if qc_review.show_recovery_48h %}checked{% endif %} {% if not editable %}disabled{% endif %}> <span>Show 48h on COA</span></label>
       </div>
       <div class="table-wrap">
         <table class="table qc-table">
           <thead>
             <tr>
-              <th>Include</th>
+              <th class="qc-col-check">Include</th>
               <th>Parameter</th>
               <th>Weight / Volume</th>
               <th>SI Unit</th>
@@ -213,7 +213,7 @@
           <tbody>
             {% for row in rows %}
             <tr>
-              <td><input type="checkbox" name="row{{ row.id }}_included" aria-label="Include {{ row.source_parameter.display_label }} on COA" {% if row.qc_included %}checked{% endif %} {% if not editable %}disabled{% endif %}></td>
+              <td class="qc-col-check"><input type="checkbox" name="row{{ row.id }}_included" aria-label="Include {{ row.source_parameter.display_label }} on COA" {% if row.qc_included %}checked{% endif %} {% if not editable %}disabled{% endif %}></td>
               <td>{{ row.source_parameter.display_label }}</td>
               <td><input type="number" step="any" min="0" name="row{{ row.id }}_weight_volume" aria-label="Weight/Volume, {{ row.source_parameter.display_label }}" value="{{ row.weight_volume|default_if_none:''|unlocalize }}" {% if not editable %}disabled{% endif %}></td>
               <td>
