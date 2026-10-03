@@ -610,6 +610,11 @@ def approved_reports(request):
 
 
 @qc_required
+def generate_report(request):
+    return render(request, "quantity_control/generate_report.html")
+
+
+@qc_required
 def overdue_results(request):
     cutoff = timezone.now() - timedelta(hours=OVERDUE_HOURS)
     return _status_list(
