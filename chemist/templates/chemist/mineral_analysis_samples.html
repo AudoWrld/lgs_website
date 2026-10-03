@@ -53,6 +53,11 @@
     <span class="empty-state-icon"><i class='bx bx-error' aria-hidden="true"></i></span>
     <p>No submission found for reference '{{ reference }}'.</p>
   </div>
+  {% elif worksheet_missing %}
+  <div class="empty-state">
+    <span class="empty-state-icon"><i class='bx bx-error' aria-hidden="true"></i></span>
+    <p>The Mineral Analysis worksheet has not been generated for this submission. Data entry is unavailable.</p>
+  </div>
   {% elif items %}
   <div class="table-wrap">
     <table class="table">

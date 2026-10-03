@@ -36,6 +36,12 @@
   </form>
 </div>
 
+{% if worksheet_missing_count %}
+<div class="empty-state">
+  <p>The required worksheet has not been generated for {{ worksheet_missing_count }} sample{{ worksheet_missing_count|pluralize }}. Data entry is unavailable for those samples.</p>
+</div>
+{% endif %}
+
 <div class="card list-card">
   {% if not submission %}
   <div class="empty-state">
