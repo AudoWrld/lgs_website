@@ -408,14 +408,22 @@
           var net = gross - cents(disc.value);
           var total = paid + cents(add.value);
           var balance = net - total;
-          var s = status.value;
+          var computedStatus = "UNPAID";
           var msg = "";
+
+          if (total > 0 && total < net) {
+            computedStatus = "PARTIALLY_PAID";
+          } else if (total >= net) {
+            computedStatus = "PAID";
+          }
+
+          status.value = computedStatus;
 
           if (cents(disc.value) > gross) msg = "Discount cannot be more than the Gross Amount.";
           else if (balance < 0) msg = "Overpayment: total paid is more than the Net Amount Payable.";
-          else if (s === "PAID" && balance !== 0) msg = "Status is Paid but a balance of TZS " + (balance / 100).toLocaleString() + " remains.";
-          else if (s === "PARTIALLY_PAID" && (total === 0 || balance === 0)) msg = "Status does not match the payment amount.";
-          else if ((s === "UNPAID" || s === "CREDIT") && total > 0) msg = "Status does not match the payment amount.";
+          else if (computedStatus === "PAID" && balance !== 0) msg = "Status is Paid but a balance of TZS " + (balance / 100).toLocaleString() + " remains.";
+          else if (computedStatus === "PARTIALLY_PAID" && (total === 0 || balance === 0)) msg = "Status does not match the payment amount.";
+          else if ((computedStatus === "UNPAID" || computedStatus === "CREDIT") && total > 0) msg = "Status does not match the payment amount.";
 
           live.textContent = msg;
           live.hidden = !msg;

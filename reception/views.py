@@ -568,8 +568,14 @@ def submission_confirm_submit(request, submission_id):
             messages.error(request, error)
         return redirect("reception:sample_registration_detail", slug=submission.slug)
 
-    messages.success(request, f"Submission {submission.reference} was submitted.")
-    return redirect("reception:sample_registration_detail", slug=submission.slug)
+    messages.success(
+        request,
+        f"Submission {submission.reference} was submitted. Select a COA reporting preference.",
+    )
+    return redirect(
+        "reception:coa_reporting_preference",
+        reference=submission.reference,
+    )
 
 
 @reception_required
@@ -1048,7 +1054,7 @@ def client_submission_form(request):
     submissions = list(
         scoped.select_related("client", "payment")
         .annotate(sample_count=Count("samples", distinct=True))
-        .order_by("-created_at")[:FORM_LIST_LIMIT]
+        .order_by("-submitted_at", "-created_at")[:FORM_LIST_LIMIT]
     )
 
     if submission is None and not reference and not list_only:
@@ -1103,7 +1109,7 @@ def worksheet_generation(request):
         Submission.objects.filter(is_submitted=True)
         .select_related("client")
         .annotate(sample_count=Count("samples", distinct=True))
-        .order_by("-created_at")
+        .order_by("-submitted_at", "-created_at")
     )
 
     query = request.GET.get("q", "").strip()
