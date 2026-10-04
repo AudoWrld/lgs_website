@@ -16,8 +16,8 @@
     <div class="rc-summary-item rc-summary-ref">
       <span class="rc-summary-label">Submission Reference</span>
       <span class="rc-summary-ref-value">{{ submission.reference }}</span>
-      <span class="rc-badge {% if submission.is_submitted %}rc-badge--submitted{% else %}rc-badge--progress{% endif %}">
-        {% if submission.is_submitted %}Submitted{% else %}In Progress{% endif %}
+      <span class="rc-badge {% if not submission.is_submitted %}rc-badge--progress{% elif submission.status == 'QC_APPROVED' %}rc-badge--submitted{% elif submission.status == 'REASSAY_REQUIRED' %}rc-badge--attention{% else %}rc-badge--workflow{% endif %}">
+        {% if submission.is_submitted %}{{ submission.get_status_display }}{% else %}In Progress{% endif %}
       </span>
     </div>
 

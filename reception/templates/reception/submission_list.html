@@ -146,8 +146,8 @@
                 <span class="sl-cell-note">{{ submission.created_at|date:"H:i" }}{% if submission.registered_by %} · {{ submission.registered_by.get_full_name|default:submission.registered_by.email }}{% endif %}</span>
               </td>
               <td>
-                <span class="sl-badge {% if submission.is_submitted %}sl-badge--submitted{% else %}sl-badge--progress{% endif %}">
-                  {% if submission.is_submitted %}Submitted{% else %}In Progress{% endif %}
+                <span class="sl-badge {% if not submission.is_submitted %}sl-badge--progress{% elif submission.status == 'QC_APPROVED' %}sl-badge--submitted{% elif submission.status == 'REASSAY_REQUIRED' %}sl-badge--attention{% else %}sl-badge--workflow{% endif %}">
+                  {% if submission.is_submitted %}{{ submission.get_status_display }}{% else %}In Progress{% endif %}
                 </span>
                 {% if submission.is_submitted and submission.submitted_at %}
                   <span class="sl-cell-note">{{ submission.submitted_at|date:"d M Y, H:i" }}</span>

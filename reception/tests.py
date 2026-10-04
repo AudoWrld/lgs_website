@@ -60,6 +60,58 @@ class SubmissionConfirmationRedirectTests(TestCase):
         )
 
 
+class SubmissionListStatusTests(TestCase):
+    def test_list_displays_model_status_and_keeps_drafts_in_progress(self):
+        reception_user = User.objects.create_reception(
+            email="submission-status@example.com",
+            password="Password123!",
+        )
+        self.client.force_login(reception_user)
+
+        reassay_submission = Submission.objects.create(
+            client=Client.objects.create(
+                client_type=Client.INDIVIDUAL,
+                client_name="Reassay Client",
+                contact_person="Test Contact",
+                email="reassay-status@example.com",
+                whatsapp_number="111111111",
+            ),
+            is_submitted=True,
+            status=Submission.REASSAY_REQUIRED,
+        )
+        draft_submission = Submission.objects.create(
+            client=Client.objects.create(
+                client_type=Client.INDIVIDUAL,
+                client_name="Draft Client",
+                contact_person="Test Contact",
+                email="draft-status@example.com",
+                whatsapp_number="222222222",
+            ),
+            is_submitted=False,
+            status=Submission.REGISTRATION_DRAFT,
+        )
+
+        response = self.client.get(reverse("reception:sample_registration"))
+
+        self.assertContains(response, "Reassay Required")
+        self.assertContains(response, "In Progress")
+        self.assertNotContains(response, "Registration Draft")
+
+        reassay_detail = self.client.get(
+            reverse("reception:sample_registration_detail", args=[reassay_submission.slug])
+        )
+        draft_detail = self.client.get(
+            reverse("reception:sample_registration_detail", args=[draft_submission.slug])
+        )
+
+        self.assertContains(reassay_detail, "Reassay Required")
+        self.assertContains(reassay_detail, "rc-badge--attention")
+        self.assertContains(draft_detail, "In Progress")
+        self.assertContains(draft_detail, "rc-badge--progress")
+        self.assertTrue(reassay_submission.is_submitted)
+        self.assertFalse(draft_submission.is_submitted)
+
+
 class COAPreferenceConfirmationTests(TestCase):
     def test_confirmed_preference_redirects_to_selected_worksheet(self):
         reception_user = User.objects.create_reception(

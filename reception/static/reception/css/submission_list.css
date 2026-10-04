@@ -476,6 +476,16 @@
   background: rgba(30, 122, 77, 0.11);
 }
 
+.sl-badge--workflow {
+  color: #165a78;
+  background: rgba(22, 90, 120, 0.11);
+}
+
+.sl-badge--attention {
+  color: #a5620a;
+  background: rgba(243, 154, 43, 0.14);
+}
+
 .sl-pager {
   display: flex;
   align-items: center;
