@@ -1,0 +1,24 @@
+{% extends "reception/base_reception.html" %}
+{% load static %}
+
+{% block title %}Final Reports — LGS Reception{% endblock %}
+{% block page_title %}Final Reports{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'reception/css/client_coa.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="rc-coa-search">
+  <span class="rc-coa-search-icon" aria-hidden="true"><i class="bx bx-file"></i></span>
+  <h2>Final Reports</h2>
+  <p>Search by client reference to see its Certificates of Analysis (COA). Print and download are available once payment is complete.</p>
+  <form method="get" action="{% url 'reception:clients_coa_search' %}" class="rc-coa-search-form">
+    <label class="visually-hidden" for="coa-reference">Client reference</label>
+    <input id="coa-reference" type="search" name="reference" value="{{ reference }}" placeholder="e.g. LGS/261004/01" required autofocus>
+    <button type="submit" class="btn btn-primary"><i class="bx bx-search-alt" aria-hidden="true"></i> Search</button>
+  </form>
+  {% if error %}<p class="rc-coa-error" role="alert">{{ error }}</p>{% endif %}
+</section>
+{% endblock %}

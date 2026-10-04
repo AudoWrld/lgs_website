@@ -1,0 +1,91 @@
+{% extends "reception/base_reception.html" %}
+{% load static %}
+
+{% block title %}Final Reports — {{ submission.reference }} — LGS Reception{% endblock %}
+{% block page_title %}Final Reports{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'reception/css/client_coa.css' %}">
+{% endblock %}
+
+{% block content %}
+<header class="rc-coa-header">
+  <div>
+    <p class="rc-coa-eyebrow">Client reference</p>
+    <h2>{{ submission.reference }}</h2>
+    <p class="rc-coa-client">{{ submission.client.client_name }}</p>
+  </div>
+  <a href="{% url 'reception:clients_coa_search' %}" class="btn btn-outline"><i class="bx bx-arrow-back" aria-hidden="true"></i> Search another reference</a>
+</header>
+
+{% with payment=submission.payment %}
+{% if payment %}
+<section class="rc-coa-payment" aria-label="Payment for this reference">
+  <div class="rc-coa-payment-grid">
+    <div><span>Payment status</span><strong>{{ payment.get_payment_status_display }}</strong></div>
+    <div><span>Net payable</span><strong>TZS {{ payment.net_amount_payable|floatformat:"2g" }}</strong></div>
+    <div><span>Total paid</span><strong>TZS {{ payment.total_amount_paid|floatformat:"2g" }}</strong></div>
+    <div{% if payment.outstanding_balance > 0 %} class="is-due"{% endif %}><span>Outstanding</span><strong>TZS {{ payment.outstanding_balance|floatformat:"2g" }}</strong></div>
+  </div>
+  <div class="rc-coa-payment-foot">
+    <p>Payment is made once for the whole reference and covers {{ items|length }} COA{{ items|length|pluralize }}. {% if payment.outstanding_balance > 0 %}All COAs for this reference unlock when the balance reaches TZS 0.{% else %}All COAs for this reference are released.{% endif %}</p>
+    {% if payment.outstanding_balance > 0 %}
+    <a href="{% url 'reception:payment_details' %}?ref={{ submission.reference|urlencode }}" class="btn btn-primary"><i class="bx bx-wallet" aria-hidden="true"></i> Update payment</a>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+{% endwith %}
+
+{% if items %}
+<section class="rc-coa-list" aria-label="Certificates of analysis">
+  {% for item in items %}
+  {% with coa=item.coa %}
+  <article class="rc-coa-item{% if not item.released %} is-pending{% endif %}">
+    <div class="rc-coa-item-head">
+      <div>
+        <h3>{{ coa.coa_number }}</h3>
+        {% if item.samples %}
+        <p class="rc-coa-samples">Samples: {% for sample in item.samples %}{{ sample.client_sample_id }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+        {% endif %}
+      </div>
+      <span class="rc-coa-status{% if item.released %} is-ready{% endif %}">{{ coa.get_status_display }}</span>
+    </div>
+
+    <dl class="rc-coa-meta">
+      <div><dt>Samples covered</dt><dd>{{ item.samples|length }}</dd></div>
+      <div><dt>Report date</dt><dd>{{ coa.created_at|date:"d M Y" }}</dd></div>
+    </dl>
+
+    {% if coa.png_file %}
+    <div class="rc-coa-preview{% if not item.released %} is-blurred{% endif %}">
+      <img src="{% url 'reception:clients_coa_file' coa.pk 'png' %}" alt="{% if item.released %}Preview of COA {{ coa.coa_number }}{% else %}Locked preview of COA {{ coa.coa_number }}{% endif %}" loading="lazy" draggable="false">
+      {% if not item.released %}<span class="rc-coa-lock"><i class="bx bx-lock-alt" aria-hidden="true"></i> Available after payment</span>{% endif %}
+    </div>
+    {% else %}
+    <div class="rc-coa-preview-empty">COA preview is not available.</div>
+    {% endif %}
+
+    {% if item.released %}
+    <div class="rc-coa-actions">
+      {% if coa.pdf_file %}
+      <a href="{% url 'reception:clients_coa_file' coa.pk 'pdf' %}" target="_blank" rel="noopener" class="btn btn-outline" title="Open and print PDF"><i class="bx bx-printer" aria-hidden="true"></i> Print PDF</a>
+      <a href="{% url 'reception:clients_coa_file' coa.pk 'pdf' %}?download=1" class="btn btn-primary" title="Download PDF"><i class="bx bx-download" aria-hidden="true"></i> Download PDF</a>
+      {% endif %}
+      {% if coa.png_file %}
+      <a href="{% url 'reception:clients_coa_file' coa.pk 'png' %}" target="_blank" rel="noopener" class="btn btn-outline" title="Open and print PNG"><i class="bx bx-image" aria-hidden="true"></i> Print PNG</a>
+      <a href="{% url 'reception:clients_coa_file' coa.pk 'png' %}?download=1" class="btn btn-outline" title="Download PNG"><i class="bx bx-download" aria-hidden="true"></i> Download PNG</a>
+      {% endif %}
+    </div>
+    {% else %}
+    <p class="rc-coa-pending-note"><i class="bx bx-lock-alt" aria-hidden="true"></i> Locked until the payment for this reference is complete.</p>
+    {% endif %}
+  </article>
+  {% endwith %}
+  {% endfor %}
+</section>
+{% else %}
+<div class="rc-coa-empty" role="status">No COA has been generated for this reference yet.</div>
+{% endif %}
+{% endblock %}
