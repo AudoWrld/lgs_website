@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     "payments",
     "client",
     "chemist",
+    "accountant.apps.AccountantConfig",
     "quantity_control",
 ]
 
