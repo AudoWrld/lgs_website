@@ -1,12 +1,16 @@
 from decimal import Decimal
+from io import BytesIO
+from tempfile import TemporaryDirectory
 from urllib.parse import urlencode
 
-from django.test import TestCase
+from django.core.files.base import ContentFile
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from PIL import Image
 
 from accounts.models import Client, User
-from coa.models import COAReportingPreference
+from coa.models import COA, COAReportingPreference
 from payments.forms import PaymentUpdateForm
 from payments.models import Payment
 from samples.models import Sample, SampleService, Service
@@ -302,3 +306,116 @@ class WorksheetListOrderingTests(TestCase):
         form = PaymentUpdateForm()
         self.assertTrue(form.fields["payment_status"].disabled)
         self.assertEqual(form.fields["payment_status"].widget.attrs.get("disabled"), "disabled")
+
+
+class ClientsCOATests(TestCase):
+    def setUp(self):
+        self.media_dir = TemporaryDirectory()
+        self.addCleanup(self.media_dir.cleanup)
+        self.storage_settings = override_settings(
+            MEDIA_ROOT=self.media_dir.name,
+            STORAGES={
+                "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+                "staticfiles": {
+                    "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
+                },
+            },
+        )
+        self.storage_settings.enable()
+        self.addCleanup(self.storage_settings.disable)
+
+        reception_user = User.objects.create_reception(
+            email="reception-coa@example.com"
+        )
+        client_record = Client.objects.create(
+            client_type=Client.INDIVIDUAL,
+            client_name="COA Test Client",
+            contact_person="Jane Client",
+            email="coa-client@example.com",
+            whatsapp_number="123456789",
+        )
+        self.submission = Submission.objects.create(
+            client=client_record,
+            is_submitted=True,
+        )
+        self.client.force_login(reception_user)
+
+    def _create_png(self):
+        image = Image.new("RGB", (40, 40), "red")
+        for x in range(20, 40):
+            for y in range(40):
+                image.putpixel((x, y), (0, 0, 255))
+        output = BytesIO()
+        image.save(output, format="PNG")
+        return output.getvalue()
+
+    def _create_coa(self, status):
+        coa = COA.objects.create(
+            submission=self.submission,
+            coa_number=f"{self.submission.reference}-01",
+            status=status,
+        )
+        coa.png_file.save("coa.png", ContentFile(self._create_png()), save=True)
+        coa.pdf_file.save("coa.pdf", ContentFile(b"%PDF-test"), save=True)
+        return coa
+
+    def test_search_redirects_to_reference_coa_page(self):
+        self._create_coa(COA.PAYMENT_PENDING)
+
+        response = self.client.get(
+            reverse("reception:clients_coa_search"),
+            {"reference": self.submission.reference},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse(
+                "reception:clients_coa_detail",
+                kwargs={"reference": self.submission.reference},
+            ),
+        )
+
+    def test_payment_pending_coa_is_blurred_and_files_are_blocked(self):
+        coa = self._create_coa(COA.PAYMENT_PENDING)
+
+        page = self.client.get(
+            reverse(
+                "reception:clients_coa_detail",
+                kwargs={"reference": self.submission.reference},
+            )
+        )
+        preview = self.client.get(
+            reverse("reception:clients_coa_file", args=[coa.pk, "png"])
+        )
+        pdf = self.client.get(
+            reverse("reception:clients_coa_file", args=[coa.pk, "pdf"])
+        )
+
+        self.assertContains(page, "Payment Pending")
+        self.assertContains(page, "is-blurred")
+        self.assertNotContains(page, "Download PDF")
+        self.assertEqual(preview.status_code, 200)
+        self.assertEqual(preview["Content-Type"], "image/png")
+        self.assertNotEqual(preview.content, coa.png_file.read())
+        self.assertEqual(pdf.status_code, 403)
+
+    def test_ready_for_release_coa_has_download_and_print_actions(self):
+        coa = self._create_coa(COA.READY_FOR_RELEASE)
+
+        page = self.client.get(
+            reverse(
+                "reception:clients_coa_detail",
+                kwargs={"reference": self.submission.reference},
+            )
+        )
+        pdf = self.client.get(
+            reverse("reception:clients_coa_file", args=[coa.pk, "pdf"]),
+            {"download": "1"},
+        )
+
+        self.assertContains(page, "Download PDF")
+        self.assertContains(page, "Print PDF")
+        self.assertContains(page, "Download PNG")
+        self.assertContains(page, "Print PNG")
+        self.assertEqual(pdf.status_code, 200)
+        self.assertTrue(pdf["Content-Disposition"].startswith("attachment;"))

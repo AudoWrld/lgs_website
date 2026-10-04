@@ -75,6 +75,17 @@ urlpatterns = [
         views.coa_confirmation,
         name="coa_confirmation",
     ),
+    path("clients-coa/", views.clients_coa_search, name="clients_coa_search"),
+    path(
+        "clients-coa/<int:coa_id>/file/<str:file_format>/",
+        views.clients_coa_file,
+        name="clients_coa_file",
+    ),
+    path(
+        "clients-coa/<path:reference>/",
+        views.clients_coa_detail,
+        name="clients_coa_detail",
+    ),
     path("worksheets/", views.worksheet_generation, name="worksheet_generation"),
     path("worksheets/<path:reference>/pdf/", views.worksheet_pdf, name="worksheet_pdf"),
     path(
