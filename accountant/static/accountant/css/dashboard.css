@@ -1,0 +1,55 @@
+:root {
+  --ink: #263238;
+  --muted: #65747a;
+  --navy: #123e5b;
+  --orange: #f39a2b;
+  --line: #d8e0e2;
+  --paper: #ffffff;
+  --ground: #eff3f3;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+.accountant-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.accountant-panel {
+  width: min(100%, 680px);
+  padding: clamp(1.5rem, 5vw, 3rem);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--orange);
+  background: var(--paper);
+}
+
+.accountant-label {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.accountant-panel h1 {
+  margin: 0.7rem 0 0.4rem;
+  color: var(--navy);
+  font-size: 1.65rem;
+}
+
+.accountant-panel p {
+  margin: 0;
+  color: var(--muted);
+}

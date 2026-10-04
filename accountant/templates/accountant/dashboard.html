@@ -1,0 +1,20 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Accountant — LGS</title>
+    <link rel="stylesheet" href="{% static 'accountant/css/dashboard.css' %}">
+  </head>
+  <body>
+    <main class="accountant-page">
+      <section class="accountant-panel">
+        <span class="accountant-label">LGS African Group</span>
+        <h1>Accountant workspace</h1>
+        <p>Signed in as {{ request.user.get_full_name|default:request.user.email }}.</p>
+      </section>
+    </main>
+  </body>
+</html>
