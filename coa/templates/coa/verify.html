@@ -1,0 +1,41 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>COA Verification — {{ coa.coa_number }}</title>
+    <link rel="stylesheet" href="{% static 'coa/css/verify.css' %}">
+  </head>
+  <body>
+    <main class="verify-page">
+      <article class="verify-sheet">
+        <header class="verify-header">
+          <span class="verify-mark" aria-hidden="true">LGS</span>
+          <div>
+            <p class="verify-kicker">LGS Mineral Assay Laboratory</p>
+            <h1>Certificate verification</h1>
+          </div>
+        </header>
+
+        <section class="verify-result{% if released %} is-released{% endif %}" role="status">
+          <span class="verify-result-icon" aria-hidden="true">{% if released %}✓{% else %}◷{% endif %}</span>
+          <div>
+            <h2>{% if released %}Authentic COA{% else %}COA record verified{% endif %}</h2>
+            <p>{% if released %}This certificate is valid and {{ coa.get_status_display|lower }}.{% else %}This certificate record is valid, but it has not been released. Current status: {{ coa.get_status_display }}.{% endif %}</p>
+          </div>
+        </section>
+
+        <dl class="verify-details">
+          <div><dt>COA number</dt><dd>{{ coa.coa_number }}</dd></div>
+          <div><dt>Submission reference</dt><dd>{{ coa.submission.reference }}</dd></div>
+          <div><dt>Issued</dt><dd>{{ coa.created_at|date:"d M Y" }}</dd></div>
+          <div><dt>Status</dt><dd>{{ coa.get_status_display }}</dd></div>
+        </dl>
+
+        <footer class="verify-footer">Official certificate record · LGS African Group Company Limited</footer>
+      </article>
+    </main>
+  </body>
+</html>
