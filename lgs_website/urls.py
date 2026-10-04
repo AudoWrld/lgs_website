@@ -9,6 +9,7 @@ urlpatterns = [
     path("client/", include("client.urls")),
     path("chemist/", include("chemist.urls")),
     path("qc/", include("quantity_control.urls")),
+    path("verify/", include("coa.urls")),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
