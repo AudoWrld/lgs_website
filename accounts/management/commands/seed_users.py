@@ -56,13 +56,26 @@ SEED_USERS = [
             whatsapp_number="+255765291847",
         ),
     },
+    {
+        "email": "accountant@gmail.com",
+        "phone": "+255718402936",
+        "first_name": "David",
+        "last_name": "Ochieng",
+        "creator": lambda: User.objects.create_accountant(
+            email="accountant@gmail.com",
+            password="passwd",
+            first_name="David",
+            last_name="Ochieng",
+            whatsapp_number="+255718402936",
+        ),
+    },
 ]
 
 
 class Command(BaseCommand):
     help = (
         "Seeds one test user per role (customer, reception, chemist, "
-        "quantity_control), all with password 'passwd'. Development/testing "
+        "quantity_control, accountant), all with password 'passwd'. Development/testing "
         "use only — never run against a production database."
     )
 

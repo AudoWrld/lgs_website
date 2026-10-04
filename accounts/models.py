@@ -134,6 +134,31 @@ class UserManager(BaseUserManager):
             **extra_fields,
         )
 
+    def create_accountant(
+        self,
+        email,
+        password=None,
+        created_by=None,
+        **extra_fields,
+    ):
+        if created_by is not None and not (
+            created_by.is_administrator or created_by.is_superuser
+        ):
+            raise PermissionDenied(
+                "Only an Administrator may register Accountant accounts."
+            )
+
+        extra_fields["role"] = User.ACCOUNTANT
+        extra_fields["is_staff"] = False
+        extra_fields["is_superuser"] = False
+        extra_fields["created_by"] = created_by
+
+        return self._create_user(
+            email,
+            password,
+            **extra_fields,
+        )
+
     def create_administrator(
         self,
         email,
@@ -178,10 +203,11 @@ class UserManager(BaseUserManager):
             User.RECEPTION,
             User.CHEMIST,
             User.QUANTITY_CONTROL,
+            User.ACCOUNTANT,
         ):
             raise ValueError(
                 "A superuser cannot hold the Customer, Reception, Chemist, "
-                "or Quality Control role."
+                "Quality Control, or Accountant role."
             )
 
         return self._create_user(
@@ -197,6 +223,7 @@ class User(AbstractUser):
     RECEPTION = "RECEPTION"
     CHEMIST = "CHEMIST"
     QUANTITY_CONTROL = "QUANTITY_CONTROL"
+    ACCOUNTANT = "ACCOUNTANT"
     ADMINISTRATOR = "ADMINISTRATOR"
 
     ROLE_CHOICES = [
@@ -204,6 +231,7 @@ class User(AbstractUser):
         (RECEPTION, "Reception"),
         (CHEMIST, "Chemist"),
         (QUANTITY_CONTROL, "Quality Control"),
+        (ACCOUNTANT, "Accountant"),
         (ADMINISTRATOR, "Administrator"),
     ]
 
@@ -211,6 +239,7 @@ class User(AbstractUser):
         RECEPTION,
         CHEMIST,
         QUANTITY_CONTROL,
+        ACCOUNTANT,
         ADMINISTRATOR,
     )
 
@@ -292,6 +321,10 @@ class User(AbstractUser):
         return self.role == self.QUANTITY_CONTROL
 
     @property
+    def is_accountant(self):
+        return self.role == self.ACCOUNTANT
+
+    @property
     def is_administrator(self):
         return self.role == self.ADMINISTRATOR
 
@@ -306,9 +339,10 @@ class User(AbstractUser):
             self.RECEPTION,
             self.CHEMIST,
             self.QUANTITY_CONTROL,
+            self.ACCOUNTANT,
         ) and (self.is_staff or self.is_superuser):
             raise ValidationError(
-                "Customer, Reception, Chemist, and Quality Control "
+                "Customer, Reception, Chemist, Quality Control, and Accountant "
                 "accounts cannot be granted admin-site access."
             )
 
@@ -325,6 +359,7 @@ class User(AbstractUser):
             self.RECEPTION,
             self.CHEMIST,
             self.QUANTITY_CONTROL,
+            self.ACCOUNTANT,
         ):
             self.is_staff = False
             self.is_superuser = False
@@ -342,6 +377,7 @@ class User(AbstractUser):
                 self.RECEPTION,
                 self.CHEMIST,
                 self.QUANTITY_CONTROL,
+                self.ACCOUNTANT,
                 self.ADMINISTRATOR,
             )
 
