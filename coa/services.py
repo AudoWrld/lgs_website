@@ -18,7 +18,7 @@ from .pdf import Block, CoaDoc, render_coa_pdf, render_coa_png
 logger = logging.getLogger(__name__)
 
 DASH = "\u2014"
-INCLUDE_REMARKS_COLUMN = False
+INCLUDE_REMARKS_COLUMN = True
 
 MINERAL = "MINERAL"
 BLOCK_ORDER = [
@@ -35,11 +35,6 @@ TEST_TYPE_LABELS = {
 
 
 def mineral_values(sample):
-    """
-    Return the QC-approved mineral values for one sample as a dict:
-    {"gold_1", "gold_2", "copper", "silver", "sulphur"}  (None when not reported).
-    Replace the body with your QC review lookup.
-    """
     qc = sample.qc_review
     return {
         "gold_1": qc.gold_test_1,
@@ -51,18 +46,10 @@ def mineral_values(sample):
 
 
 def carbon_value(sample):
-    """Return the QC-approved Carbon Activity value for one sample."""
     return sample.qc_review.carbon_activity_final
 
 
 def metallurgical_rows(sample, test_type):
-    """
-    Return (periods, rows) for a cyanide test on one sample.
-    periods: list such as [24, 48] -> only the periods QC ticked as "Show on COA".
-    rows: one dict per QC-included parameter row:
-      {"parameter", "weight_volume", "si_unit", "r12", "r24", "r48", "remarks"}
-    Replace the body with your QC review lookup.
-    """
     qc = sample.qc_review
     periods = [p for p in (12, 24, 48) if getattr(qc, f"show_recovery_{p}h")]
     rows = [
@@ -158,28 +145,27 @@ def _mineral_block(entry):
     if wants["gold"]:
         header += ["Gold Test 1 (ppm)", "Gold Test 2 (ppm)"]
     if wants["copper"]:
-        header.append("Copper (ppm)")
+        header.append("Copper (Cu) (ppm)")
     if wants["silver"]:
-        header.append("Silver (ppm)")
+        header.append("Silver (Ag) (ppm)")
     if show_sulphur:
-        header.append("Sulphur (%)")
+        header.append("Sulphur (S) (%)")
 
     rows = []
     for number, sample in enumerate(entry["samples"], start=1):
         values = mineral_values(sample)
-        fmt = whole if sample.sample_type == Sample.CARBON else two_dp
         row = [str(number), sample.client_sample_id]
         if wants["gold"]:
-            row += [fmt(values["gold_1"]), fmt(values["gold_2"])]
+            row += [two_dp(values["gold_1"]), two_dp(values["gold_2"])]
         if wants["copper"]:
-            row.append(fmt(values["copper"]))
+            row.append(two_dp(values["copper"]))
         if wants["silver"]:
-            row.append(fmt(values["silver"]))
+            row.append(two_dp(values["silver"]))
         if show_sulphur:
             row.append(
                 DASH
                 if sample.sample_type == Sample.CARBON
-                else whole(values["sulphur"])
+                else two_dp(values["sulphur"])
             )
         rows.append(row)
 
@@ -194,7 +180,7 @@ def _mineral_block(entry):
 
 def _carbon_block(entry):
     rows = [
-        [str(n), s.client_sample_id, whole(carbon_value(s))]
+        [str(n), s.client_sample_id, two_dp(carbon_value(s))]
         for n, s in enumerate(entry["samples"], start=1)
     ]
     methods = " | ".join(_unique(s.method_of_analysis for s in entry["services"]))
@@ -205,9 +191,10 @@ def _carbon_block(entry):
             ("Test Type:", TEST_TYPE_LABELS[Service.CARBON_ACTIVITY]),
             ("Method of Analysis:", methods),
         ],
-        header=["S/N", "Sample ID", "Carbon Activity"],
+        header=["S/N", "Sample ID", "Carbon Activity (%)"],
         rows=rows,
         metallurgical=True,
+        bold_last_column=True,
     )
 
 
@@ -231,7 +218,7 @@ def _cyanide_block(kind, entry):
         header.append("Parameter")
     if optimization:
         header.append("Weight / Volume")
-    header += [f"Gold Recovery {p} Hrs (%)" for p in periods]
+    header += [f"{p} Hrs Recovery (%)" for p in periods]
     if show_remarks:
         header.append("Remarks")
 
@@ -248,7 +235,7 @@ def _cyanide_block(kind, entry):
                     else DASH
                 )
                 row.append(f"{wv} {r['si_unit']}".strip() if wv != DASH else DASH)
-            row += [whole(r[f"r{p}"]) for p in periods]
+            row += [two_dp(r[f"r{p}"]) for p in periods]
             if show_remarks:
                 row.append(r["remarks"] or DASH)
             out.append(row)
@@ -275,6 +262,11 @@ def _static_path(relative):
     return f"{root}/{relative}" if root else ""
 
 
+def _verify_base():
+    base = getattr(settings, "SITE_BASE_URL", "https://lgsafrica.co.tz")
+    return str(base).rstrip("/")
+
+
 def build_coa_doc(coa):
     samples = list(coa.group.samples.order_by("id")) if coa.group_id else []
     submission = coa.submission
@@ -294,7 +286,6 @@ def build_coa_doc(coa):
     nature = ", ".join(
         _unique(s.other_sample_type or s.get_sample_type_display() for s in samples)
     )
-    base = getattr(settings, "COA_VERIFY_URL", "https://portal.lgsafrica.co.tz/verify/")
 
     return CoaDoc(
         coa_number=coa.coa_number,
@@ -304,7 +295,7 @@ def build_coa_doc(coa):
         nature_of_sample=nature,
         sample_count=len(samples),
         blocks=blocks,
-        verify_url=f"{base}{quote(coa.verification_token, safe='')}",
+        verify_url=f"{_verify_base()}/verify/{quote(coa.verification_token, safe='')}",
         logo_path=_static_path("core/img/lgs-logo.png"),
         signature_path=_static_path("core/img/lgs-signature.png"),
     )

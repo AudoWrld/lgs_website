@@ -3,6 +3,7 @@ import math
 import os
 from dataclasses import dataclass, field
 from datetime import datetime
+from xml.sax.saxutils import escape
 
 from reportlab.graphics import renderPDF
 from reportlab.graphics.barcode import qr
@@ -29,10 +30,12 @@ FRAME_TOP = 43 * mm
 FRAME_BOTTOM = 54 * mm
 
 BLUE = colors.HexColor("#0B3C91")
+COMPANY_BLUE = colors.HexColor("#1B3FD6")
 PURPLE = colors.HexColor("#7A2E8E")
 RED = colors.HexColor("#D4261C")
 STAMP_BLUE = colors.HexColor("#1B2FD0")
 STAMP_RED = colors.HexColor("#D01A1A")
+SIGN_BLUE = colors.HexColor("#2A1FBF")
 
 COMPANY_NAME = "LGS AFRICAN GROUP COMPANY LIMITED"
 ADDRESS_LINES = [
@@ -65,6 +68,7 @@ class Block:
     header: list
     rows: list
     metallurgical: bool = False
+    bold_last_column: bool = False
 
 
 @dataclass
@@ -87,12 +91,13 @@ def _style(name, **kw):
     return ParagraphStyle(name, **base)
 
 
-def _draw_arc_text(c, text, cx, cy, radius, top):
-    total = sum(stringWidth(ch, "Helvetica-Bold", 7) for ch in text) / radius
+def _draw_arc_text(c, text, cx, cy, radius, top, size):
+    font = "Helvetica-Bold"
+    total = sum(stringWidth(ch, font, size) for ch in text) / radius
     acc = 0.0
-    c.setFont("Helvetica-Bold", 7)
+    c.setFont(font, size)
     for ch in text:
-        w = stringWidth(ch, "Helvetica-Bold", 7)
+        w = stringWidth(ch, font, size)
         mid = (acc + w / 2) / radius
         if top:
             theta = math.pi / 2 + total / 2 - mid
@@ -108,36 +113,105 @@ def _draw_arc_text(c, text, cx, cy, radius, top):
         acc += w
 
 
+def _draw_star(c, x, y, r):
+    p = c.beginPath()
+    for i in range(10):
+        ang = math.pi / 2 + i * math.pi / 5
+        rad = r if i % 2 == 0 else r * 0.42
+        px, py = x + rad * math.cos(ang), y + rad * math.sin(ang)
+        if i == 0:
+            p.moveTo(px, py)
+        else:
+            p.lineTo(px, py)
+    p.close()
+    c.drawPath(p, stroke=0, fill=1)
+
+
 def draw_stamp(c, cx, cy, issued_at):
     c.saveState()
     c.setStrokeColor(STAMP_BLUE)
     c.setFillColor(STAMP_BLUE)
-    c.setLineWidth(1.6)
+    c.setLineWidth(1.8)
     c.circle(cx, cy, 20 * mm, stroke=1, fill=0)
-    c.setLineWidth(0.7)
-    c.circle(cx, cy, 18.4 * mm, stroke=1, fill=0)
-    c.circle(cx, cy, 11.6 * mm, stroke=1, fill=0)
-    _draw_arc_text(c, STAMP_TOP_TEXT, cx, cy, 13.2 * mm, top=True)
-    _draw_arc_text(c, STAMP_BOTTOM_TEXT, cx, cy, 17.4 * mm, top=False)
-    c.setFont("Helvetica-Bold", 10)
-    c.drawCentredString(cx - 15.6 * mm, cy - 1.2 * mm, "*")
-    c.drawCentredString(cx + 15.6 * mm, cy - 1.2 * mm, "*")
+    c.setLineWidth(0.8)
+    c.circle(cx, cy, 18.6 * mm, stroke=1, fill=0)
+    _draw_arc_text(c, STAMP_TOP_TEXT, cx, cy, 14.2 * mm, True, 9)
+    _draw_arc_text(c, STAMP_BOTTOM_TEXT, cx, cy, 16.6 * mm, False, 8.5)
+    for sign in (-1, 1):
+        ang = math.radians(-22 if sign == 1 else 202)
+        _draw_star(
+            c, cx + 15.6 * mm * math.cos(ang), cy + 15.6 * mm * math.sin(ang), 1.5 * mm
+        )
     c.setFillColor(STAMP_RED)
     c.translate(cx, cy)
-    c.rotate(8)
-    c.setFont("Helvetica-Bold", 10.5)
-    c.drawCentredString(0, -1.4 * mm, issued_at.strftime("%d %b %Y").upper())
+    c.rotate(10)
+    c.setFont("Helvetica-Bold", 11.5)
+    c.drawCentredString(0, -1.6 * mm, issued_at.strftime("%d %b %Y").upper())
+    c.restoreState()
+
+
+def _draw_signature_fallback(c, x, y):
+    c.saveState()
+    c.setStrokeColor(SIGN_BLUE)
+    c.setLineWidth(1.1)
+    p = c.beginPath()
+    p.moveTo(x, y + 5 * mm)
+    p.curveTo(x + 3 * mm, y + 9 * mm, x + 14 * mm, y + 8 * mm, x + 18 * mm, y + 5 * mm)
+    p.curveTo(x + 22 * mm, y + 2 * mm, x + 9 * mm, y + 1 * mm, x + 9 * mm, y + 4 * mm)
+    c.drawPath(p, stroke=1, fill=0)
+    p = c.beginPath()
+    p.moveTo(x + 17 * mm, y + 3.5 * mm)
+    p.lineTo(x + 21.5 * mm, y + 16 * mm)
+    p.lineTo(x + 24 * mm, y + 2.5 * mm)
+    p.lineTo(x + 26 * mm, y + 9 * mm)
+    p.lineTo(x + 28 * mm, y + 3.5 * mm)
+    c.drawPath(p, stroke=1, fill=0)
+    p = c.beginPath()
+    p.moveTo(x + 19 * mm, y + 5 * mm)
+    p.curveTo(x + 27 * mm, y + 8 * mm, x + 35 * mm, y + 3 * mm, x + 44 * mm, y + 6 * mm)
+    c.drawPath(p, stroke=1, fill=0)
     c.restoreState()
 
 
 def _draw_qr(c, url, x, y, size):
-    widget = qr.QrCodeWidget(url)
+    widget = qr.QrCodeWidget(url, barBorder=1)
     x0, y0, x1, y1 = widget.getBounds()
     drawing = Drawing(
         size, size, transform=[size / (x1 - x0), 0, 0, size / (y1 - y0), 0, 0]
     )
     drawing.add(widget)
     renderPDF.draw(drawing, c, x, y)
+
+
+def _draw_watermark(c, d):
+    if not (d.logo_path and os.path.exists(d.logo_path)):
+        return
+    c.saveState()
+    c.setFillAlpha(0.06)
+    w, h = 42 * mm, 23 * mm
+    step_x, step_y = 62 * mm, 46 * mm
+    row = 0
+    y = -10 * mm
+    while y < PAGE_H + 20 * mm:
+        x = -20 * mm + (step_x / 2 if row % 2 else 0)
+        while x < PAGE_W + 20 * mm:
+            c.saveState()
+            c.translate(x + w / 2, y + h / 2)
+            c.rotate(20)
+            c.drawImage(
+                d.logo_path,
+                -w / 2,
+                -h / 2,
+                width=w,
+                height=h,
+                preserveAspectRatio=True,
+                mask="auto",
+            )
+            c.restoreState()
+            x += step_x
+        y += step_y
+        row += 1
+    c.restoreState()
 
 
 def _draw_letterhead(c, d):
@@ -153,7 +227,7 @@ def _draw_letterhead(c, d):
             mask="auto",
             anchor="sw",
         )
-    c.setFillColor(BLUE)
+    c.setFillColor(COMPANY_BLUE)
     c.setFont("Helvetica-Bold", 15)
     c.drawRightString(right, PAGE_H - 15 * mm, COMPANY_NAME)
     c.setFillColor(PURPLE)
@@ -162,7 +236,7 @@ def _draw_letterhead(c, d):
     for line in ADDRESS_LINES:
         c.drawRightString(right, y, line)
         y -= 4.3 * mm
-    c.setStrokeColor(BLUE)
+    c.setStrokeColor(COMPANY_BLUE)
     c.setLineWidth(0.9)
     c.line(MARGIN_X, PAGE_H - 40 * mm, right, PAGE_H - 40 * mm)
 
@@ -184,6 +258,8 @@ def _draw_footer(c, d):
             mask="auto",
             anchor="sw",
         )
+    else:
+        _draw_signature_fallback(c, sig_x + 4 * mm, base + 14.5 * mm)
     c.setStrokeColor(colors.black)
     c.setLineWidth(0.8)
     c.setDash(1, 2)
@@ -193,39 +269,60 @@ def _draw_footer(c, d):
     draw_stamp(c, PAGE_W / 2, base + 19 * mm, d.issued_at)
 
     if d.verify_url:
-        size = 27 * mm
+        size = 25 * mm
         right = PAGE_W - MARGIN_X
-        _draw_qr(c, d.verify_url, right - size, base + 4 * mm, size)
-        c.setFillColor(colors.black)
+        label = "Scan to verify at LGS Portal"
         c.setFont("Helvetica", 8.5)
-        c.drawRightString(right, base - 1 * mm, "Scan to verify at LGS Portal")
+        label_w = stringWidth(label, "Helvetica", 8.5)
+        center = right - label_w / 2
+        _draw_qr(c, d.verify_url, center - size / 2, base + 5 * mm, size)
+        c.setFillColor(colors.black)
+        c.drawCentredString(center, base, label)
+
+
+def _col_widths(ncols, width):
+    if ncols == 1:
+        return [width]
+    if ncols == 2:
+        return [width * 0.3, width * 0.7]
+    if ncols == 3:
+        return [width * 0.29, width * 0.35, width * 0.36]
+    first = [width * 0.12, width * 0.2]
+    rest = (width - sum(first)) / (ncols - 2)
+    return first + [rest] * (ncols - 2)
 
 
 def _table(block, width):
     ncols = len(block.header)
-    first = [16 * mm, 52 * mm]
-    rest = (width - sum(first[: min(2, ncols)])) / max(ncols - 2, 1)
-    col_widths = (first + [rest] * (ncols - 2))[:ncols]
-
     head_style = _style(
         "th",
         fontName="Helvetica-Bold",
-        fontSize=10.5,
-        leading=13,
+        fontSize=11,
+        leading=13.5,
         alignment=TA_CENTER,
         textColor=colors.white,
     )
-    data = [[Paragraph(h, head_style) for h in block.header]] + block.rows
-    t = Table(data, colWidths=col_widths, repeatRows=1)
+    body = _style("td", fontSize=11, leading=13.5, alignment=TA_CENTER)
+    body_bold = _style(
+        "tdb", fontName="Helvetica-Bold", fontSize=12, leading=14, alignment=TA_CENTER
+    )
+
+    data = [[Paragraph(escape(str(h)), head_style) for h in block.header]]
+    for row in block.rows:
+        cells = []
+        for i, value in enumerate(row):
+            bold = block.bold_last_column and i == ncols - 1
+            cells.append(Paragraph(escape(str(value)), body_bold if bold else body))
+        data.append(cells)
+
+    t = Table(data, colWidths=_col_widths(ncols, width), repeatRows=1)
     t.setStyle(
         TableStyle(
             [
                 ("BACKGROUND", (0, 0), (-1, 0), BLUE),
-                ("GRID", (0, 0), (-1, -1), 0.6, colors.HexColor("#444444")),
+                ("GRID", (0, 0), (-1, -1), 0.7, colors.HexColor("#333333")),
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
-                ("FONTSIZE", (0, 1), (-1, -1), 10.5),
                 ("TOPPADDING", (0, 0), (-1, -1), 6),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
             ]
@@ -237,7 +334,7 @@ def _table(block, width):
 def _detail_table(rows, width):
     label = _style("dl", fontName="Helvetica-Bold", fontSize=10.5, leading=14)
     value = _style("dv", fontSize=10.5, leading=14, textColor=PURPLE)
-    data = [[Paragraph(a, label), Paragraph(b, value)] for a, b in rows]
+    data = [[Paragraph(escape(a), label), Paragraph(escape(b), value)] for a, b in rows]
     t = Table(data, colWidths=[55 * mm, width - 55 * mm])
     t.setStyle(
         TableStyle(
@@ -269,7 +366,7 @@ def _story(d, pages_total):
     story.append(Spacer(1, 4 * mm))
 
     left = Paragraph(
-        f"TO: {d.client_name.upper()}", _style("to", fontSize=12, leading=15)
+        f"TO: {escape(d.client_name.upper())}", _style("to", fontSize=12, leading=15)
     )
     meta_lines = [
         ("REFERENCE NO.:", d.coa_number),
@@ -279,7 +376,7 @@ def _story(d, pages_total):
     ]
     right_html = "<br/>".join(
         (
-            f"<b>{a}</b> <font color='{purple}'>{b}</font>"
+            f"<b>{a}</b> <font color='{purple}'>{escape(b)}</font>"
             if a != "PAGES:"
             else f"<b>{a}</b> {b}"
         )
@@ -304,25 +401,25 @@ def _story(d, pages_total):
     heading = _style("h", fontName="Helvetica-Bold", fontSize=13, leading=16)
     story.append(Paragraph("SAMPLE DETAILS:", heading))
     story.append(Spacer(1, 1 * mm))
-    story.append(
-        _detail_table(
-            [
-                ("Nature of Sample:", d.nature_of_sample),
-                ("Number of Samples:", str(d.sample_count)),
-            ],
-            width,
-        )
-    )
 
-    for block in d.blocks:
-        story.append(Spacer(1, 2 * mm))
-        story.append(_detail_table(block.detail_rows, width))
-        story.append(Spacer(1, 2 * mm))
+    details = [
+        ("Nature of Sample:", d.nature_of_sample),
+        ("Number of Samples:", str(d.sample_count)),
+    ]
+    if d.blocks:
+        details += list(d.blocks[0].detail_rows)
+    story.append(_detail_table(details, width))
+
+    for index, block in enumerate(d.blocks):
+        if index > 0:
+            story.append(Spacer(1, 3 * mm))
+            story.append(_detail_table(block.detail_rows, width))
+        story.append(Spacer(1, 3 * mm))
         story.append(Paragraph(block.results_title, heading))
         story.append(Spacer(1, 1.5 * mm))
         story.append(_table(block, width))
 
-    only_met = all(b.metallurgical for b in d.blocks)
+    only_met = bool(d.blocks) and all(b.metallurgical for b in d.blocks)
     text = METALLURGICAL_DISCLAIMER if only_met else MINERAL_DISCLAIMER
     story.append(Spacer(1, 3 * mm))
     story.append(
@@ -358,6 +455,7 @@ def _build(d, pages_total):
     )
 
     def on_page(c, _doc):
+        _draw_watermark(c, d)
         _draw_letterhead(c, d)
         _draw_footer(c, d)
 
