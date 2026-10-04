@@ -1,82 +1,135 @@
 {% extends 'quantity_control/base_qc.html' %}
 {% load static %}
 
-{% block title %}QC Review — {{ submission.reference }}{% endblock %}
-{% block page_title %}QC Review{% endblock %}
+{% block title %}{{ submission.reference }} — Report — LGS Quality Control{% endblock %}
+{% block page_title %}Report Details{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'quantity_control/css/qc_review.css' %}">
 <link rel="stylesheet" href="{% static 'chemist/css/chemist_lists.css' %}">
-<style>
-  .qc-sheet { padding: 1.5rem 1.75rem; }
-  .qc-sheet h2 { margin: 0 0 0.25rem; color: var(--navy); font-family: var(--font-head); font-size: 1.4rem; }
-  .qc-sheet .qc-sub { color: #7b858c; font-size: 0.85rem; margin-bottom: 1.25rem; }
-  .qc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-  .qc-cell { border: 1px solid var(--line); padding: 0.85rem 1rem; }
-  .qc-cell-label { display: block; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #7b858c; }
-  .qc-cell-value { display: block; margin-top: 0.2rem; font-family: var(--font-head); font-weight: 700; color: var(--charcoal); }
-  .qc-table td { vertical-align: middle; }
-  .qc-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.5rem; }
-</style>
+<link rel="stylesheet" href="{% static 'quantity_control/css/report_detail.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="dash-panel ps-block">
-  <div class="qc-sheet">
-    <h2>{{ submission.reference }}</h2>
-    <p class="qc-sub">{{ submission.client.client_name }} · {{ submission.receiving_date|date:"d M Y" }}</p>
-
-    <div class="qc-grid">
-      <div class="qc-cell">
-        <span class="qc-cell-label">Samples</span>
-        <span class="qc-cell-value">{{ samples|length }}</span>
-      </div>
-      <div class="qc-cell">
-        <span class="qc-cell-label">Submission status</span>
-        <span class="qc-cell-value">{{ submission.get_status_display }}</span>
-      </div>
-      <div class="qc-cell">
-        <span class="qc-cell-label">COA status</span>
-        <span class="qc-cell-value">{% if coa %}{{ coa.get_status_display }}{% else %}Not generated{% endif %}</span>
-      </div>
-      <div class="qc-cell">
-        <span class="qc-cell-label">COA number</span>
-        <span class="qc-cell-value">{% if coa %}{{ coa.coa_number }}{% else %}—{% endif %}</span>
-      </div>
-    </div>
-
-    <div class="table-wrap">
-      <table class="table qc-table">
-        <thead>
-          <tr>
-            <th>Lab Sample ID</th>
-            <th>Client Sample ID</th>
-            <th>Type</th>
-            <th>Analysis Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for sample in samples %}
-          <tr>
-            <td><strong>{{ sample.slug|upper }}</strong></td>
-            <td>{{ sample.client_sample_id }}</td>
-            <td>{{ sample.get_sample_type_display }}</td>
-            <td>
-              <span class="badge badge-{% if sample.analysis_status == 'QC_APPROVED' %}success{% elif sample.analysis_status == 'SUBMITTED_TO_QC' %}warning{% elif sample.analysis_status == 'REASSAY_SUBMITTED' %}info{% else %}secondary{% endif %}">
-                {{ sample.get_analysis_status_display }}
-              </span>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
-    <div class="qc-actions">
-      <a href="{% url 'qc:approved_reports' %}" class="btn btn-outline btn-sm"><i class='bx bx-arrow-left' aria-hidden="true"></i> Back to list</a>
-      <a href="{% url 'qc:pending_review' %}" class="btn btn-outline btn-sm">Pending Review</a>
-      <a href="{% url 'qc:reassay_review' %}" class="btn btn-outline btn-sm">Reassay Review</a>
-    </div>
+{% with payment=submission.payment %}
+<div class="qc-header">
+  <div class="qc-header-main">
+    <span class="qc-id-badge"><i class='bx bx-file' aria-hidden="true"></i> {{ submission.reference }}</span>
+    <h2>{{ submission.client.client_name }}</h2>
+    <p>{{ sample_items|length }} sample{{ sample_items|length|pluralize }} · {{ entries|length }} COA{{ entries|length|pluralize }}</p>
+  </div>
+  <div class="qc-header-status">
+    {% if not entries %}
+      <span class="badge badge-warning">Not generated</span>
+    {% elif payment_pending %}
+      <span class="badge badge-warning"><i class='bx bx-time-five' aria-hidden="true"></i> Payment Pending</span>
+    {% elif all_ready %}
+      <span class="badge-verified"><i class='bx bx-check-circle' aria-hidden="true"></i> Ready for Release</span>
+    {% else %}
+      <span class="badge badge-secondary">Status needs update</span>
+    {% endif %}
   </div>
 </div>
+
+{% if payment %}
+<section class="qc-section">
+  <div class="qc-section-head">
+    <h3>Payment</h3>
+    <span>{{ payment.get_payment_status_display }}</span>
+  </div>
+  <p class="coa-payment">
+    <span>Net payable: <strong>TZS {{ payment.net_amount_payable|floatformat:"2g" }}</strong></span>
+    <span>Total paid: <strong>TZS {{ payment.total_amount_paid|floatformat:"2g" }}</strong></span>
+    <span>Outstanding: <strong>TZS {{ payment.outstanding_balance|floatformat:"2g" }}</strong></span>
+  </p>
+  {% if payment_pending %}
+  <p class="qc-empty-note"><i class='bx bx-lock-alt' aria-hidden="true"></i> This report is saved and locked for the client. It is released automatically once the outstanding balance reaches TZS 0.</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endwith %}
+
+{% if has_missing_files %}
+<section class="qc-section">
+  <p class="qc-empty-note"><i class='bx bx-error' aria-hidden="true"></i> Some COA files are missing.</p>
+  <form method="post" class="coa-form">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="rebuild_files">
+    <button type="submit" class="btn btn-primary btn-sm"><i class='bx bx-refresh' aria-hidden="true"></i> Rebuild files</button>
+  </form>
+</section>
+{% endif %}
+
+{% for entry in entries %}
+<section class="qc-section">
+  <div class="qc-section-head">
+    <h3>{{ entry.coa.coa_number }}</h3>
+    <span>
+      <span class="badge badge-{% if entry.coa.status == 'READY_FOR_RELEASE' or entry.coa.status == 'RELEASED' %}success{% elif entry.coa.status == 'PAYMENT_PENDING' %}warning{% else %}secondary{% endif %}">{{ entry.coa.get_status_display }}</span>
+      · {{ entry.coa.created_at|date:"d M Y, H:i" }}
+    </span>
+  </div>
+
+  <ul class="coa-samples">
+    {% for item in entry.samples %}
+    <li>{{ item.sample.client_sample_id }} <span class="list-cell-muted">({{ item.lab_id }})</span></li>
+    {% endfor %}
+  </ul>
+
+  {% if entry.files_ready %}
+  <div class="coa-actions">
+    <a href="{{ entry.coa.pdf_file.url }}" target="_blank" rel="noopener" class="btn btn-primary btn-sm">
+      <i class='bx bx-show' aria-hidden="true"></i> View PDF
+    </a>
+    <a href="{{ entry.coa.pdf_file.url }}" download class="btn btn-outline btn-sm">
+      <i class='bx bx-download' aria-hidden="true"></i> Download PDF
+    </a>
+    <a href="{{ entry.coa.png_file.url }}" download class="btn btn-outline btn-sm">
+      <i class='bx bx-image' aria-hidden="true"></i> Download PNG
+    </a>
+  </div>
+  <img class="coa-preview" src="{{ entry.coa.png_file.url }}" alt="Preview of {{ entry.coa.coa_number }}">
+  {% else %}
+  <p class="qc-empty-note">Files are not available for this COA yet.</p>
+  {% endif %}
+</section>
+{% empty %}
+<section class="qc-section">
+  <p class="qc-empty-note">No COA has been generated for this reference yet.</p>
+  <a href="{% url 'qc:generate_report' %}?reference={{ submission.reference|urlencode }}" class="btn btn-outline btn-sm">Go to Generate Report</a>
+</section>
+{% endfor %}
+
+<section class="qc-section">
+  <div class="qc-section-head">
+    <h3>Samples</h3>
+  </div>
+  <div class="table-wrap">
+    <table class="table qc-table">
+      <thead>
+        <tr>
+          <th>Lab ID</th>
+          <th>Sample ID</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in sample_items %}
+        <tr>
+          <td><strong>{{ item.lab_id }}</strong></td>
+          <td>{{ item.sample.client_sample_id }}</td>
+          <td>{{ item.sample.get_sample_type_display }}</td>
+          <td>{{ item.sample.get_analysis_status_display }}</td>
+          <td class="list-cell-action">
+            <a href="{% url 'qc:sample_review' slug=item.sample.slug %}" class="btn btn-outline btn-sm">View</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
 {% endblock %}

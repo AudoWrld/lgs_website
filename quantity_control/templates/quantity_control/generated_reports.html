@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="{% static 'chemist/css/chemist_lists.css' %}">
 <style>
   .qc-table td { vertical-align: middle; }
+  .row-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 </style>
 {% endblock %}
 
@@ -28,7 +29,7 @@
     </div>
     <button type="submit" class="btn btn-primary btn-sm">Search</button>
     {% if reference %}
-    <a href="?{% if status != 'all' %}status={{ status }}{% endif %}" class="btn btn-outline btn-sm">Clear</a>
+    <a href="{% url 'qc:generated_reports' %}" class="btn btn-outline btn-sm">Clear</a>
     {% endif %}
   </form>
 </div>
@@ -60,9 +61,16 @@
           </td>
           <td class="list-cell-muted">{{ coa.created_at|date:"d M Y, H:i" }}</td>
           <td class="list-cell-action">
-            <a href="{% url 'qc:report_detail' reference=coa.submission.reference %}" class="btn btn-outline btn-sm">
-              <i class='bx bx-show' aria-hidden="true"></i> View
-            </a>
+            <div class="row-actions">
+              {% if coa.pdf_file %}
+              <a href="{{ coa.pdf_file.url }}" target="_blank" rel="noopener" class="btn btn-outline btn-sm">
+                <i class='bx bxs-file-pdf' aria-hidden="true"></i> PDF
+              </a>
+              {% endif %}
+              <a href="{% url 'qc:report_detail' reference=coa.submission.reference %}" class="btn btn-outline btn-sm">
+                <i class='bx bx-show' aria-hidden="true"></i> View
+              </a>
+            </div>
           </td>
         </tr>
         {% endfor %}

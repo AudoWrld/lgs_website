@@ -1,13 +1,98 @@
 {% extends 'quantity_control/base_qc.html' %}
+{% load static %}
 
 {% block title %}Generate Report — LGS Quality Control{% endblock %}
 {% block page_title %}Generate Report{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'chemist/css/chemist_lists.css' %}">
+<style>
+  .qc-table td { vertical-align: middle; }
+  .gen-form { margin: 0; }
+</style>
+{% endblock %}
+
 {% block content %}
-<section class="qc-section">
-  <div class="qc-section-head">
-    <h2>Generate Report</h2>
+<div class="list-toolbar">
+  <div class="list-toolbar-stats">
+    <div class="list-chip">
+      <span class="list-chip-value">{{ total_count }}</span>
+      <span class="list-chip-label">Ready</span>
+    </div>
   </div>
-  <p class="qc-empty-note">Report generation is not available yet.</p>
-</section>
+
+  <form method="get" class="list-search">
+    <div class="list-search-field">
+      <i class='bx bx-search-alt' aria-hidden="true"></i>
+      <input type="text" name="reference" value="{{ reference }}" placeholder="Search Client Reference Number" />
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    {% if reference %}
+    <a href="{% url 'qc:generate_report' %}" class="btn btn-outline btn-sm">Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="card list-card">
+  {% if items %}
+  <div class="table-wrap">
+    <table class="table qc-table">
+      <thead>
+        <tr>
+          <th>Reference</th>
+          <th>Client</th>
+          <th>Samples</th>
+          <th>COA Preference</th>
+          <th>COAs to Create</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td><strong>{{ item.submission.reference }}</strong></td>
+          <td>{{ item.submission.client.client_name }}</td>
+          <td>{{ item.total }} <span class="badge-verified"><i class='bx bx-check-circle' aria-hidden="true"></i> All approved</span></td>
+          <td>
+            {% if item.preference %}
+              {{ item.preference }}
+            {% else %}
+              <span class="badge badge-warning">Not set</span>
+            {% endif %}
+          </td>
+          <td>{% if item.can_generate %}{{ item.expected }}{% else %}—{% endif %}</td>
+          <td class="list-cell-action">
+            {% if item.can_generate %}
+            <form method="post" class="gen-form"
+                  onsubmit="return confirm('Generate {{ item.expected }} COA{{ item.expected|pluralize }} for {{ item.submission.reference }}? Results will be locked.');">
+              {% csrf_token %}
+              <input type="hidden" name="submission_id" value="{{ item.submission.pk }}">
+              <button type="submit" class="btn btn-primary btn-sm">
+                <i class='bx bx-file-blank' aria-hidden="true"></i> Generate
+              </button>
+            </form>
+            {% else %}
+            <span class="list-cell-muted">Reception must finalize the COA preference</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "quantity_control/_pagination.html" %}
+  {% else %}
+  <div class="empty-state">
+    <span class="empty-state-icon"><i class='bx bx-file' aria-hidden="true"></i></span>
+    <p>
+      {% if reference %}
+        No reference '{{ reference }}' is ready for report generation.
+      {% else %}
+        No references are ready. A reference appears here once all its samples are QC approved.
+      {% endif %}
+    </p>
+  </div>
+  {% endif %}
+</div>
 {% endblock %}
