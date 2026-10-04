@@ -1,5 +1,4 @@
 from decimal import Decimal
-
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -170,3 +169,5 @@ class MissingWorksheetTests(TestCase):
 
         self.assertRedirects(response, reverse("chemist:chemist_dashboard"))
         self.assertFalse(MetallurgicalTestEntry.objects.filter(sample=sample).exists())
+
+

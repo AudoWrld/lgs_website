@@ -570,9 +570,7 @@ def metallurgical_tests_samples(request, reference):
         )
         for sample in candidates:
             if _metallurgical_worksheet_rows(sample):
-                items.append(
-                    {"sample": sample, "lab_id": lab_sample_id_for(sample)}
-                )
+                items.append({"sample": sample, "lab_id": lab_sample_id_for(sample)})
         worksheet_missing_count = len(candidates) - len(items)
     else:
         worksheet_missing_count = 0
