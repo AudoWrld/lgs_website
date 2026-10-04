@@ -3,6 +3,7 @@ import math
 import os
 from dataclasses import dataclass, field
 from datetime import datetime
+from functools import lru_cache
 from xml.sax.saxutils import escape
 
 from reportlab.graphics import renderPDF
@@ -13,6 +14,7 @@ from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.platypus import (
     BaseDocTemplate,
@@ -92,6 +94,51 @@ def _style(name, **kw):
     return ParagraphStyle(name, **base)
 
 
+@lru_cache(maxsize=8)
+def _transparent_image(path):
+    from PIL import Image, ImageChops, ImageDraw, ImageFilter
+
+    img = Image.open(path).convert("RGBA")
+    if img.getchannel("A").getextrema()[0] < 250:
+        return ImageReader(img)
+
+    r, g, b = img.convert("RGB").split()
+    top = ImageChops.lighter(ImageChops.lighter(r, g), b)
+    low = ImageChops.darker(ImageChops.darker(r, g), b)
+    chroma = ImageChops.subtract(top, low)
+    bright = low.point(lambda v: 255 if v > 140 else 0)
+    neutral = chroma.point(lambda v: 255 if v < 70 else 0)
+    candidate = ImageChops.multiply(bright, neutral)
+
+    w, h = img.size
+    seeds = [
+        (0, 0),
+        (w - 1, 0),
+        (0, h - 1),
+        (w - 1, h - 1),
+        (w // 2, 0),
+        (w // 2, h - 1),
+        (0, h // 2),
+        (w - 1, h // 2),
+    ]
+    for seed in seeds:
+        if candidate.getpixel(seed) == 255:
+            ImageDraw.floodfill(candidate, seed, 128)
+
+    background = candidate.point(lambda v: 255 if v == 128 else 0)
+    background = background.filter(ImageFilter.MaxFilter(3))
+    alpha = ImageChops.multiply(img.getchannel("A"), ImageChops.invert(background))
+    img.putalpha(alpha)
+    return ImageReader(img)
+
+
+def _logo_source(path):
+    try:
+        return _transparent_image(path)
+    except Exception:
+        return path
+
+
 def _draw_arc_text(c, text, cx, cy, radius, top, size, span_deg):
     font = "Helvetica-Bold"
     widths = [stringWidth(ch, font, size) for ch in text]
@@ -139,15 +186,17 @@ def draw_stamp(c, cx, cy, issued_at):
     c.circle(cx, cy, 20 * mm, stroke=1, fill=0)
     c.setLineWidth(0.8)
     c.circle(cx, cy, 18.3 * mm, stroke=1, fill=0)
-    _draw_arc_text(c, STAMP_TOP_TEXT, cx, cy, 14.8 * mm, True, 8.5, 200)
-    _draw_arc_text(c, STAMP_BOTTOM_TEXT, cx, cy, 17.2 * mm, False, 8, 110)
-    for deg in (202, -22):
+    c.setLineWidth(1.0)
+    c.circle(cx, cy, 13.4 * mm, stroke=1, fill=0)
+    _draw_arc_text(c, STAMP_TOP_TEXT, cx, cy, 14.7 * mm, True, 8.5, 200)
+    _draw_arc_text(c, STAMP_BOTTOM_TEXT, cx, cy, 16.9 * mm, False, 8, 110)
+    for deg in (200, -20):
         ang = math.radians(deg)
         _draw_star(
-            c, cx + 16 * mm * math.cos(ang), cy + 16 * mm * math.sin(ang), 1.3 * mm
+            c, cx + 15.9 * mm * math.cos(ang), cy + 15.9 * mm * math.sin(ang), 1.2 * mm
         )
     text = issued_at.strftime("%d %b %Y").upper()
-    font, size, scale = "Helvetica-Bold", 13.5, 0.82
+    font, size, scale = "Helvetica-Bold", 12, 0.84
     width = stringWidth(text, font, size) * scale
     c.setFillColor(STAMP_RED)
     c.translate(cx, cy)
@@ -155,7 +204,7 @@ def draw_stamp(c, cx, cy, issued_at):
     t = c.beginText()
     t.setFont(font, size)
     t.setHorizScale(scale * 100)
-    t.setTextOrigin(-width / 2, -1.8 * mm)
+    t.setTextOrigin(-width / 2, -1.6 * mm)
     t.textOut(text)
     c.drawText(t)
     c.restoreState()
@@ -253,6 +302,7 @@ def _draw_qr(c, url, x, y, size):
 def _draw_watermark(c, d):
     if not (d.logo_path and os.path.exists(d.logo_path)):
         return
+    source = _logo_source(d.logo_path)
     c.saveState()
     c.setFillAlpha(0.045)
     w, h = 42 * mm, 23 * mm
@@ -266,7 +316,7 @@ def _draw_watermark(c, d):
             c.translate(x + w / 2, y + h / 2)
             c.rotate(20)
             c.drawImage(
-                d.logo_path,
+                source,
                 -w / 2,
                 -h / 2,
                 width=w,
@@ -285,7 +335,7 @@ def _draw_letterhead(c, d):
     right = PAGE_W - MARGIN_X
     if d.logo_path and os.path.exists(d.logo_path):
         c.drawImage(
-            d.logo_path,
+            _logo_source(d.logo_path),
             MARGIN_X,
             PAGE_H - 38 * mm,
             width=50 * mm,
@@ -316,7 +366,7 @@ def _draw_footer(c, d):
     c.drawString(sig_x + 8 * mm, base + 33 * mm, "Laboratory Manager")
     if d.signature_path and os.path.exists(d.signature_path):
         c.drawImage(
-            d.signature_path,
+            _logo_source(d.signature_path),
             sig_x + 8 * mm,
             base + 13 * mm,
             width=44 * mm,
