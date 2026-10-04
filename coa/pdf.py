@@ -26,8 +26,9 @@ from reportlab.platypus import (
 
 PAGE_W, PAGE_H = landscape(A4)
 MARGIN_X = 18 * mm
-FRAME_TOP = 43 * mm
-FRAME_BOTTOM = 54 * mm
+FRAME_TOP = 42 * mm
+FRAME_BOTTOM = 50 * mm
+FOOTER_BASE = 9 * mm
 
 BLUE = colors.HexColor("#0B3C91")
 COMPANY_BLUE = colors.HexColor("#1B3FD6")
@@ -91,26 +92,29 @@ def _style(name, **kw):
     return ParagraphStyle(name, **base)
 
 
-def _draw_arc_text(c, text, cx, cy, radius, top, size):
+def _draw_arc_text(c, text, cx, cy, radius, top, size, span_deg):
     font = "Helvetica-Bold"
-    total = sum(stringWidth(ch, font, size) for ch in text) / radius
-    acc = 0.0
+    widths = [stringWidth(ch, font, size) for ch in text]
+    natural = sum(widths) / radius
+    span = max(math.radians(span_deg), natural)
+    extra = (span - natural) / max(len(text) - 1, 1)
     c.setFont(font, size)
-    for ch in text:
-        w = stringWidth(ch, font, size)
-        mid = (acc + w / 2) / radius
+    acc = 0.0
+    for ch, w in zip(text, widths):
+        arc = w / radius
+        mid = acc + arc / 2
         if top:
-            theta = math.pi / 2 + total / 2 - mid
+            theta = math.pi / 2 + span / 2 - mid
             rot = math.degrees(theta) - 90
         else:
-            theta = 3 * math.pi / 2 - total / 2 + mid
+            theta = 3 * math.pi / 2 - span / 2 + mid
             rot = math.degrees(theta) + 90
         c.saveState()
         c.translate(cx + radius * math.cos(theta), cy + radius * math.sin(theta))
         c.rotate(rot)
         c.drawCentredString(0, 0, ch)
         c.restoreState()
-        acc += w
+        acc += arc + extra
 
 
 def _draw_star(c, x, y, r):
@@ -131,44 +135,107 @@ def draw_stamp(c, cx, cy, issued_at):
     c.saveState()
     c.setStrokeColor(STAMP_BLUE)
     c.setFillColor(STAMP_BLUE)
-    c.setLineWidth(1.8)
+    c.setLineWidth(2.0)
     c.circle(cx, cy, 20 * mm, stroke=1, fill=0)
     c.setLineWidth(0.8)
-    c.circle(cx, cy, 18.6 * mm, stroke=1, fill=0)
-    _draw_arc_text(c, STAMP_TOP_TEXT, cx, cy, 14.2 * mm, True, 9)
-    _draw_arc_text(c, STAMP_BOTTOM_TEXT, cx, cy, 16.6 * mm, False, 8.5)
-    for sign in (-1, 1):
-        ang = math.radians(-22 if sign == 1 else 202)
+    c.circle(cx, cy, 18.3 * mm, stroke=1, fill=0)
+    _draw_arc_text(c, STAMP_TOP_TEXT, cx, cy, 14.8 * mm, True, 8.5, 200)
+    _draw_arc_text(c, STAMP_BOTTOM_TEXT, cx, cy, 17.2 * mm, False, 8, 110)
+    for deg in (202, -22):
+        ang = math.radians(deg)
         _draw_star(
-            c, cx + 15.6 * mm * math.cos(ang), cy + 15.6 * mm * math.sin(ang), 1.5 * mm
+            c, cx + 16 * mm * math.cos(ang), cy + 16 * mm * math.sin(ang), 1.3 * mm
         )
+    text = issued_at.strftime("%d %b %Y").upper()
+    font, size, scale = "Helvetica-Bold", 13.5, 0.82
+    width = stringWidth(text, font, size) * scale
     c.setFillColor(STAMP_RED)
     c.translate(cx, cy)
     c.rotate(10)
-    c.setFont("Helvetica-Bold", 11.5)
-    c.drawCentredString(0, -1.6 * mm, issued_at.strftime("%d %b %Y").upper())
+    t = c.beginText()
+    t.setFont(font, size)
+    t.setHorizScale(scale * 100)
+    t.setTextOrigin(-width / 2, -1.8 * mm)
+    t.textOut(text)
+    c.drawText(t)
     c.restoreState()
 
 
 def _draw_signature_fallback(c, x, y):
     c.saveState()
     c.setStrokeColor(SIGN_BLUE)
-    c.setLineWidth(1.1)
+    c.setLineWidth(1.0)
+    c.setLineCap(1)
+    c.setLineJoin(1)
+
     p = c.beginPath()
-    p.moveTo(x, y + 5 * mm)
-    p.curveTo(x + 3 * mm, y + 9 * mm, x + 14 * mm, y + 8 * mm, x + 18 * mm, y + 5 * mm)
-    p.curveTo(x + 22 * mm, y + 2 * mm, x + 9 * mm, y + 1 * mm, x + 9 * mm, y + 4 * mm)
+    p.moveTo(x + 0.0 * mm, y + 3.4 * mm)
+    p.curveTo(
+        x + 2.0 * mm,
+        y + 5.4 * mm,
+        x + 9.0 * mm,
+        y + 5.2 * mm,
+        x + 14.8 * mm,
+        y + 4.4 * mm,
+    )
     c.drawPath(p, stroke=1, fill=0)
+
     p = c.beginPath()
-    p.moveTo(x + 17 * mm, y + 3.5 * mm)
-    p.lineTo(x + 21.5 * mm, y + 16 * mm)
-    p.lineTo(x + 24 * mm, y + 2.5 * mm)
-    p.lineTo(x + 26 * mm, y + 9 * mm)
-    p.lineTo(x + 28 * mm, y + 3.5 * mm)
+    p.moveTo(x + 14.8 * mm, y + 4.4 * mm)
+    p.curveTo(
+        x + 9.0 * mm,
+        y + 1.0 * mm,
+        x + 2.5 * mm,
+        y + 0.2 * mm,
+        x + 3.5 * mm,
+        y + 2.4 * mm,
+    )
+    p.curveTo(
+        x + 4.2 * mm,
+        y + 3.8 * mm,
+        x + 9.5 * mm,
+        y + 3.6 * mm,
+        x + 14.8 * mm,
+        y + 4.4 * mm,
+    )
     c.drawPath(p, stroke=1, fill=0)
+
     p = c.beginPath()
-    p.moveTo(x + 19 * mm, y + 5 * mm)
-    p.curveTo(x + 27 * mm, y + 8 * mm, x + 35 * mm, y + 3 * mm, x + 44 * mm, y + 6 * mm)
+    p.moveTo(x + 15.0 * mm, y + 4.0 * mm)
+    p.lineTo(x + 16.4 * mm, y + 14.3 * mm)
+    p.lineTo(x + 17.8 * mm, y + 4.2 * mm)
+    p.lineTo(x + 18.6 * mm, y + 8.0 * mm)
+    p.lineTo(x + 19.4 * mm, y + 3.8 * mm)
+    c.drawPath(p, stroke=1, fill=0)
+
+    p = c.beginPath()
+    px = 19.4
+    p.moveTo(x + px * mm, y + 3.8 * mm)
+    up = True
+    while px < 27.5:
+        px += 0.7
+        p.lineTo(x + px * mm, y + (8.0 if up else 3.0) * mm)
+        up = not up
+    c.drawPath(p, stroke=1, fill=0)
+
+    p = c.beginPath()
+    p.moveTo(x + 18.0 * mm, y + 4.4 * mm)
+    p.curveTo(
+        x + 24.0 * mm,
+        y + 5.6 * mm,
+        x + 29.0 * mm,
+        y + 3.4 * mm,
+        x + 34.4 * mm,
+        y + 4.6 * mm,
+    )
+    p.curveTo(
+        x + 35.4 * mm,
+        y + 4.9 * mm,
+        x + 35.6 * mm,
+        y + 5.8 * mm,
+        x + 35.0 * mm,
+        y + 6.5 * mm,
+    )
     c.drawPath(p, stroke=1, fill=0)
     c.restoreState()
 
@@ -187,7 +254,7 @@ def _draw_watermark(c, d):
     if not (d.logo_path and os.path.exists(d.logo_path)):
         return
     c.saveState()
-    c.setFillAlpha(0.06)
+    c.setFillAlpha(0.045)
     w, h = 42 * mm, 23 * mm
     step_x, step_y = 62 * mm, 46 * mm
     row = 0
@@ -242,7 +309,7 @@ def _draw_letterhead(c, d):
 
 
 def _draw_footer(c, d):
-    base = 14 * mm
+    base = FOOTER_BASE
     sig_x = MARGIN_X + 4 * mm
     c.setFillColor(colors.black)
     c.setFont("Helvetica-Bold", 11)
@@ -250,8 +317,8 @@ def _draw_footer(c, d):
     if d.signature_path and os.path.exists(d.signature_path):
         c.drawImage(
             d.signature_path,
-            sig_x + 4 * mm,
-            base + 14 * mm,
+            sig_x + 8 * mm,
+            base + 13 * mm,
             width=44 * mm,
             height=17 * mm,
             preserveAspectRatio=True,
@@ -259,14 +326,14 @@ def _draw_footer(c, d):
             anchor="sw",
         )
     else:
-        _draw_signature_fallback(c, sig_x + 4 * mm, base + 14.5 * mm)
+        _draw_signature_fallback(c, sig_x + 11 * mm, base + 13 * mm)
     c.setStrokeColor(colors.black)
     c.setLineWidth(0.8)
     c.setDash(1, 2)
     c.line(sig_x, base + 12 * mm, sig_x + 62 * mm, base + 12 * mm)
     c.setDash()
 
-    draw_stamp(c, PAGE_W / 2, base + 19 * mm, d.issued_at)
+    draw_stamp(c, PAGE_W / 2, base + 20 * mm, d.issued_at)
 
     if d.verify_url:
         size = 25 * mm
@@ -287,22 +354,23 @@ def _col_widths(ncols, width):
         return [width * 0.3, width * 0.7]
     if ncols == 3:
         return [width * 0.29, width * 0.35, width * 0.36]
-    first = [width * 0.12, width * 0.2]
+    first = [width * 0.1, width * 0.18]
     rest = (width - sum(first)) / (ncols - 2)
     return first + [rest] * (ncols - 2)
 
 
 def _table(block, width):
     ncols = len(block.header)
+    size = 11 if ncols <= 5 else 9.5
     head_style = _style(
         "th",
         fontName="Helvetica-Bold",
-        fontSize=11,
-        leading=13.5,
+        fontSize=size,
+        leading=size + 2.5,
         alignment=TA_CENTER,
         textColor=colors.white,
     )
-    body = _style("td", fontSize=11, leading=13.5, alignment=TA_CENTER)
+    body = _style("td", fontSize=11, leading=13, alignment=TA_CENTER)
     body_bold = _style(
         "tdb", fontName="Helvetica-Bold", fontSize=12, leading=14, alignment=TA_CENTER
     )
@@ -323,8 +391,8 @@ def _table(block, width):
                 ("GRID", (0, 0), (-1, -1), 0.7, colors.HexColor("#333333")),
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 4.5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4.5),
             ]
         )
     )
@@ -332,16 +400,16 @@ def _table(block, width):
 
 
 def _detail_table(rows, width):
-    label = _style("dl", fontName="Helvetica-Bold", fontSize=10.5, leading=14)
-    value = _style("dv", fontSize=10.5, leading=14, textColor=PURPLE)
+    label = _style("dl", fontName="Helvetica-Bold", fontSize=10.5, leading=13)
+    value = _style("dv", fontSize=10.5, leading=13, textColor=PURPLE)
     data = [[Paragraph(escape(a), label), Paragraph(escape(b), value)] for a, b in rows]
     t = Table(data, colWidths=[55 * mm, width - 55 * mm])
     t.setStyle(
         TableStyle(
             [
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("TOPPADDING", (0, 0), (-1, -1), 1),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
+                ("TOPPADDING", (0, 0), (-1, -1), 0.5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0.5),
                 ("LEFTPADDING", (0, 0), (-1, -1), 0),
             ]
         )
@@ -357,13 +425,13 @@ def _story(d, pages_total):
     title = _style(
         "title",
         fontName="Times-Bold",
-        fontSize=22,
-        leading=26,
+        fontSize=21,
+        leading=24,
         alignment=TA_CENTER,
         textColor=RED,
     )
     story.append(Paragraph("CERTIFICATE OF ANALYSIS", title))
-    story.append(Spacer(1, 4 * mm))
+    story.append(Spacer(1, 2.5 * mm))
 
     left = Paragraph(
         f"TO: {escape(d.client_name.upper())}", _style("to", fontSize=12, leading=15)
@@ -382,9 +450,7 @@ def _story(d, pages_total):
         )
         for a, b in meta_lines
     )
-    right = Paragraph(
-        right_html, _style("meta", fontSize=10, leading=13.5, alignment=2)
-    )
+    right = Paragraph(right_html, _style("meta", fontSize=10, leading=13, alignment=2))
     meta = Table([[left, right]], colWidths=[width * 0.5, width * 0.5])
     meta.setStyle(
         TableStyle(
@@ -392,15 +458,17 @@ def _story(d, pages_total):
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
                 ("LEFTPADDING", (0, 0), (-1, -1), 0),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
             ]
         )
     )
     story.append(meta)
-    story.append(Spacer(1, 3 * mm))
+    story.append(Spacer(1, 2 * mm))
 
-    heading = _style("h", fontName="Helvetica-Bold", fontSize=13, leading=16)
+    heading = _style("h", fontName="Helvetica-Bold", fontSize=13, leading=15)
     story.append(Paragraph("SAMPLE DETAILS:", heading))
-    story.append(Spacer(1, 1 * mm))
+    story.append(Spacer(1, 0.5 * mm))
 
     details = [
         ("Nature of Sample:", d.nature_of_sample),
@@ -412,20 +480,20 @@ def _story(d, pages_total):
 
     for index, block in enumerate(d.blocks):
         if index > 0:
-            story.append(Spacer(1, 3 * mm))
+            story.append(Spacer(1, 2.5 * mm))
             story.append(_detail_table(block.detail_rows, width))
-        story.append(Spacer(1, 3 * mm))
+        story.append(Spacer(1, 2 * mm))
         story.append(Paragraph(block.results_title, heading))
-        story.append(Spacer(1, 1.5 * mm))
+        story.append(Spacer(1, 1 * mm))
         story.append(_table(block, width))
 
     only_met = bool(d.blocks) and all(b.metallurgical for b in d.blocks)
     text = METALLURGICAL_DISCLAIMER if only_met else MINERAL_DISCLAIMER
-    story.append(Spacer(1, 3 * mm))
+    story.append(Spacer(1, 2.5 * mm))
     story.append(
         Paragraph(
             f"<b>Disclaimer:</b> <font color='{purple}'>{text}</font>",
-            _style("disc", fontSize=9.5, leading=12.5),
+            _style("disc", fontSize=9, leading=11.5),
         )
     )
     return story

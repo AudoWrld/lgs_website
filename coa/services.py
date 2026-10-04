@@ -4,7 +4,7 @@ from urllib.parse import quote
 
 from django.conf import settings
 from django.contrib.staticfiles import finders
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils import timezone
@@ -34,8 +34,18 @@ TEST_TYPE_LABELS = {
 }
 
 
+def _qc_review(sample):
+    try:
+        return sample.qc_review
+    except ObjectDoesNotExist:
+        from quantity_control.views import _get_qc_review, _load_entry
+
+        kind, entry = _load_entry(sample)
+        return _get_qc_review(sample, kind, entry)
+
+
 def mineral_values(sample):
-    qc = sample.qc_review
+    qc = _qc_review(sample)
     return {
         "gold_1": qc.gold_test_1,
         "gold_2": qc.gold_test_2,
@@ -46,12 +56,21 @@ def mineral_values(sample):
 
 
 def carbon_value(sample):
-    return sample.qc_review.carbon_activity_final
+    return _qc_review(sample).carbon_activity_final
 
 
 def metallurgical_rows(sample, test_type):
-    qc = sample.qc_review
+    from chemist.models import MetallurgicalTestEntry
+
+    qc = _qc_review(sample)
     periods = [p for p in (12, 24, 48) if getattr(qc, f"show_recovery_{p}h")]
+    entry = (
+        MetallurgicalTestEntry.objects.filter(sample=sample)
+        .order_by("-revision")
+        .first()
+    )
+    if entry is None:
+        return periods, []
     rows = [
         {
             "parameter": r.source_parameter.display_label,
@@ -62,10 +81,12 @@ def metallurgical_rows(sample, test_type):
             "r48": r.gold_recovery_48h,
             "remarks": r.remarks,
         }
-        for r in qc.entry.rows.filter(qc_included=True).select_related(
-            "source_parameter"
-        )
+        for r in entry.rows.filter(qc_included=True)
+        .select_related("source_parameter")
+        .order_by("id")
     ]
+    if not periods:
+        periods = [p for p in (12, 24, 48) if any(r[f"r{p}"] is not None for r in rows)]
     return periods, rows
 
 

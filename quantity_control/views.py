@@ -557,6 +557,7 @@ def qc_dashboard(request):
         "reassay_count": reassay.count(),
         "approved_count": approved.count(),
         "overdue_count": overdue.count(),
+        "generated_coa_count": COA.objects.count(),
         "pending_samples": _with_lab_id(pending[:5]),
         "reassay_samples": _with_lab_id(reassay[:5]),
         "approved_samples": _with_lab_id(approved[:5]),

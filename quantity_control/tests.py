@@ -1,8 +1,10 @@
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from accounts.models import User
+from accounts.models import Client, User
+from coa.models import COA
 from samples.models import Sample
+from submissions.models import Submission
 from quantity_control.views import _is_editable
 
 
@@ -35,3 +37,21 @@ class GenerateReportPageTests(TestCase):
 
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, "Generate Report")
+
+	def test_dashboard_counts_generated_coas(self):
+		user = User.objects.create_quantity_control(email="qc-dashboard@example.com")
+		self.client.force_login(user)
+		client_record = Client.objects.create(
+			client_type=Client.INDIVIDUAL,
+			client_name="Dashboard Client",
+			contact_person="Test Contact",
+			email="dashboard-client@example.com",
+			whatsapp_number="123456789",
+		)
+		submission = Submission.objects.create(client=client_record, is_submitted=True)
+		COA.objects.create(submission=submission, coa_number="LGS-TEST-001")
+
+		response = self.client.get(reverse("qc:qc_dashboard"))
+
+		self.assertEqual(response.context["generated_coa_count"], 1)
+		self.assertContains(response, "Generated COAs")
