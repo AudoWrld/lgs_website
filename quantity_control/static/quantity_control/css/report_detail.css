@@ -1,0 +1,122 @@
+.coa-samples {
+  margin: 0;
+  padding: 0.75rem 1.25rem 0.25rem 2.25rem;
+  color: var(--charcoal);
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.coa-samples li::marker {
+  color: var(--orange);
+}
+
+.coa-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem 0;
+}
+
+.coa-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 0;
+}
+
+.coa-preview {
+  display: block;
+  width: calc(100% - 2.5rem);
+  max-width: 900px;
+  height: auto;
+  margin: 1rem auto 1.25rem;
+  background: var(--white);
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 24px rgba(18, 62, 91, 0.07);
+}
+
+.coa-form {
+  display: inline;
+  margin: 0;
+}
+
+.coa-form .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 0;
+}
+
+.coa-payment {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0;
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+
+.coa-payment span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.85rem 1.25rem;
+  border-right: 1px solid var(--line);
+  color: #6b7680;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.coa-payment span:last-child {
+  border-right: none;
+}
+
+.coa-payment strong {
+  color: var(--navy);
+  font-family: var(--font-head);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.coa-payment span:last-child strong {
+  color: #a5620a;
+}
+
+.qc-section-head .badge {
+  vertical-align: middle;
+}
+
+@media (max-width: 700px) {
+  .coa-actions {
+    flex-direction: column;
+  }
+
+  .coa-actions .btn {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .coa-payment span {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .coa-payment span:last-child {
+    border-bottom: none;
+  }
+
+  .coa-preview {
+    width: calc(100% - 1.5rem);
+  }
+}
+
+@media print {
+  .coa-actions,
+  .coa-form {
+    display: none !important;
+  }
+}
