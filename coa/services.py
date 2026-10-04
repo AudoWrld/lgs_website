@@ -283,12 +283,12 @@ def _static_path(relative):
     return f"{root}/{relative}" if root else ""
 
 
-def _verify_base():
-    base = getattr(settings, "SITE_BASE_URL", "https://lgsafrica.co.tz")
+def _verify_base(base_url=None):
+    base = base_url or getattr(settings, "SITE_BASE_URL", "https://lgsafrica.co.tz")
     return str(base).rstrip("/")
 
 
-def build_coa_doc(coa):
+def build_coa_doc(coa, base_url=None):
     samples = list(coa.group.samples.order_by("id")) if coa.group_id else []
     submission = coa.submission
     submitted = (
@@ -316,14 +316,17 @@ def build_coa_doc(coa):
         nature_of_sample=nature,
         sample_count=len(samples),
         blocks=blocks,
-        verify_url=f"{_verify_base()}/verify/{quote(coa.verification_token, safe='')}",
+        verify_url=(
+            f"{_verify_base(base_url)}/verify/"
+            f"{quote(coa.verification_token, safe='')}"
+        ),
         logo_path=_static_path("core/img/lgs-logo.png"),
         signature_path=_static_path("core/img/lgs-signature.png"),
     )
 
 
-def attach_files(coa):
-    pdf = render_coa_pdf(build_coa_doc(coa))
+def attach_files(coa, base_url=None):
+    pdf = render_coa_pdf(build_coa_doc(coa, base_url=base_url))
     png = render_coa_png(pdf)
     stem = coa.coa_number.replace("/", "-")
     coa.pdf_file.save(f"{stem}.pdf", ContentFile(pdf), save=False)
@@ -351,7 +354,7 @@ def release_if_paid(submission):
     )
 
 
-def generate_coas(submission, user):
+def generate_coas(submission, user, base_url=None):
     with transaction.atomic():
         pref = COAReportingPreference.objects.select_for_update().get(
             submission=submission
@@ -405,7 +408,7 @@ def generate_coas(submission, user):
 
     for coa in coas:
         try:
-            attach_files(coa)
+            attach_files(coa, base_url=base_url)
         except Exception:
             logger.exception("COA file build failed for %s", coa.coa_number)
     return coas
