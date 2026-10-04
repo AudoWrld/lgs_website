@@ -13,6 +13,11 @@ urlpatterns = [
     path("review/<slug:slug>/", views.sample_review, name="sample_review"),
     path("generated-reports/", views.generated_reports, name="generated_reports"),
     path(
+        "generated-reports/coa/<int:coa_id>/preview/",
+        views.report_coa_preview,
+        name="report_coa_preview",
+    ),
+    path(
         "generated-reports/<path:reference>/", views.report_detail, name="report_detail"
     ),
 ]

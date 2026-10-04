@@ -1,6 +1,7 @@
 import logging
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation
+from io import BytesIO
 from types import SimpleNamespace
 
 from django.conf import settings
@@ -10,8 +11,10 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count, Exists, F, OuterRef, Q
 from django.db.models.functions import TruncDate
+from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from PIL import Image, ImageFilter
 
 from accounts.decorators import qc_required
 from coa.models import COA, COAReportingPreference
@@ -891,6 +894,8 @@ def report_detail(request, reference):
                 else []
             ),
             "files_ready": bool(coa.pdf_file and coa.png_file),
+            "preview_ready": bool(coa.png_file),
+            "released": coa.is_client_visible,
         }
         for coa in coas
     ]
@@ -900,8 +905,32 @@ def report_detail(request, reference):
         "sample_items": _sample_items(samples),
         "entries": entries,
         "has_missing_files": any(not e["files_ready"] for e in entries),
-        "payment_pending": any(e["coa"].status == COA.PAYMENT_PENDING for e in entries),
+        "payment_pending": any(not e["released"] for e in entries),
         "all_ready": bool(entries)
-        and all(e["coa"].status in COA.CLIENT_VISIBLE_STATUSES for e in entries),
+        and all(e["released"] for e in entries),
     }
     return render(request, "quantity_control/report_detail.html", context)
+
+
+@qc_required
+def report_coa_preview(request, coa_id):
+    coa = get_object_or_404(COA, pk=coa_id, submission__is_submitted=True)
+    if not coa.png_file:
+        raise Http404
+
+    if not coa.is_client_visible:
+        with coa.png_file.open("rb") as source:
+            image = Image.open(source)
+            image.load()
+        preview = image.filter(ImageFilter.GaussianBlur(radius=12))
+        output = BytesIO()
+        preview.save(output, format="PNG")
+        response = HttpResponse(output.getvalue(), content_type="image/png")
+    else:
+        response = FileResponse(
+            coa.png_file.open("rb"),
+            content_type="image/png",
+        )
+    response["Cache-Control"] = "private, no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
