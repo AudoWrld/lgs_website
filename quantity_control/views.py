@@ -1,18 +1,21 @@
+import logging
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 from types import SimpleNamespace
 
 from django.conf import settings
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Count, Exists, F, OuterRef, Q
 from django.db.models.functions import TruncDate
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from accounts.decorators import qc_required
-from coa.models import COA
+from coa.models import COA, COAReportingPreference
+from coa.services import attach_files, generate_coas
 from samples.models import Sample, Service
 from submissions.models import Submission
 
@@ -29,14 +32,18 @@ from worksheet.models import WorksheetRow
 
 from .models import QCDecision, QCEditLog, QCReview
 
+logger = logging.getLogger(__name__)
+
 PAGE_SIZE = 12
 DECIMAL_PLACES = Decimal("0.0001")
 MAX_VALUE = Decimal("99999999")
 
-OVERDUE_HOURS = getattr(settings, "QC_OVERDUE_HOURS", 48)
+OVERDUE_HOURS = getattr(settings, "QC_OVERDUE_HOURS", 4)
 COA_NUMBER_FIELD = "coa_number"
 
 REVIEW_STATUSES = (Sample.SUBMITTED_TO_QC, Sample.REASSAY_SUBMITTED)
+
+PREFERENCE_LABELS = dict(COAReportingPreference.PREFERENCE_CHOICES)
 
 RECOVERY_FIELDS = (
     ("gold_recovery_12h", "recovery_12h", "Gold Recovery 12h", "show_recovery_12h"),
@@ -127,19 +134,16 @@ def _load_entry(sample):
 def _report_locked(sample):
     if getattr(sample, "submission_id", None) is None:
         return False
-    coas = COA.objects.filter(submission=sample.submission)
-    if not coas.exists():
-        return False
-    if hasattr(COA, "samples"):
-        return coas.filter(samples=sample).exists()
-    return True
+    return COA.objects.filter(
+        Q(group__samples=sample)
+        | Q(submission_id=sample.submission_id, group__isnull=True)
+    ).exists()
 
 
 def _is_editable(sample, entry):
     return (
         entry is not None
-        and sample.analysis_status
-        in (Sample.SUBMITTED_TO_QC, Sample.REASSAY_SUBMITTED)
+        and sample.analysis_status in (Sample.SUBMITTED_TO_QC, Sample.REASSAY_SUBMITTED)
         and not _report_locked(sample)
     )
 
@@ -609,9 +613,90 @@ def approved_reports(request):
     )
 
 
+def _expected_coa_count(row):
+    if row.pref_type == COAReportingPreference.INDIVIDUAL:
+        return row.total
+    if row.pref_type == COAReportingPreference.COMBINED:
+        return 1
+    if row.pref_type == COAReportingPreference.CUSTOM_GROUP:
+        return row.group_count
+    return 0
+
+
+def _ready_submissions(reference=""):
+    submissions = (
+        Submission.objects.filter(is_submitted=True)
+        .annotate(
+            total=Count("samples", distinct=True),
+            approved=Count(
+                "samples",
+                filter=Q(samples__analysis_status=Sample.QC_APPROVED),
+                distinct=True,
+            ),
+            pref_type=F("coa_preference__preference_type"),
+            pref_final=F("coa_preference__is_finalized"),
+            group_count=Count("coa_preference__groups", distinct=True),
+        )
+        .filter(total__gt=0, total=F("approved"))
+        .filter(~Exists(COA.objects.filter(submission=OuterRef("pk"))))
+        .select_related("client")
+        .order_by("-updated_at", "-id")
+    )
+    if reference:
+        submissions = submissions.filter(reference__icontains=reference)
+    return submissions
+
+
 @qc_required
 def generate_report(request):
-    return render(request, "quantity_control/generate_report.html")
+    if request.method == "POST":
+        submission = get_object_or_404(
+            Submission, pk=request.POST.get("submission_id"), is_submitted=True
+        )
+        try:
+            coas = generate_coas(submission, request.user)
+        except ValidationError as exc:
+            for message in exc.messages:
+                messages.error(request, message)
+            return redirect("qc:generate_report")
+
+        missing = [c for c in coas if not c.pdf_file or not c.png_file]
+        if missing:
+            messages.warning(
+                request,
+                "COAs were created but some files failed to build. "
+                "Use “Rebuild files” on the report page.",
+            )
+        else:
+            messages.success(
+                request,
+                f"{len(coas)} COA{'s' if len(coas) != 1 else ''} generated "
+                f"for {submission.reference}.",
+            )
+        return redirect("qc:report_detail", reference=submission.reference)
+
+    reference = request.GET.get("reference", "").strip()
+    submissions = _ready_submissions(reference)
+    page_obj, querystring = _paginate(request, submissions)
+
+    items = [
+        {
+            "submission": s,
+            "total": s.total,
+            "preference": PREFERENCE_LABELS.get(s.pref_type, ""),
+            "expected": _expected_coa_count(s),
+            "can_generate": bool(s.pref_final),
+        }
+        for s in page_obj.object_list
+    ]
+    context = {
+        "reference": reference,
+        "items": items,
+        "page_obj": page_obj,
+        "querystring": querystring,
+        "total_count": submissions.count(),
+    }
+    return render(request, "quantity_control/generate_report.html", context)
 
 
 @qc_required
@@ -629,7 +714,7 @@ def overdue_results(request):
 def quick_search(request):
     query = request.GET.get("q", "").strip()
     if not query:
-        return redirect("qc:dashboard")
+        return redirect("qc:qc_dashboard")
 
     coa = (
         COA.objects.filter(**{f"{COA_NUMBER_FIELD}__iexact": query})
@@ -657,7 +742,7 @@ def quick_search(request):
         messages.info(request, "Several samples match. Enter the full Laboratory ID.")
     else:
         messages.error(request, f"Nothing found for “{query}”.")
-    return redirect("qc:dashboard")
+    return redirect("qc:qc_dashboard")
 
 
 def _crm_entries_for_sample(sample):
@@ -771,15 +856,51 @@ def report_detail(request, reference):
             is_submitted=True, reference__iexact=reference
         ).select_related("client")
     )
-    samples = list(submission.samples.select_related("lab_mapping").order_by("id"))
-    coa = (
+    coas = list(
         COA.objects.filter(submission=submission)
         .select_related("group", "approved_by")
-        .first()
+        .order_by("coa_number")
     )
+
+    if request.method == "POST" and request.POST.get("action") == "rebuild_files":
+        rebuilt = 0
+        for coa in coas:
+            if coa.pdf_file and coa.png_file:
+                continue
+            try:
+                attach_files(coa)
+                rebuilt += 1
+            except Exception:
+                logger.exception("COA file rebuild failed for %s", coa.coa_number)
+                messages.error(
+                    request, f"Could not rebuild files for {coa.coa_number}."
+                )
+        if rebuilt:
+            messages.success(request, f"Rebuilt files for {rebuilt} COA(s).")
+        return redirect("qc:report_detail", reference=submission.reference)
+
+    entries = [
+        {
+            "coa": coa,
+            "samples": (
+                _sample_items(
+                    coa.group.samples.select_related("submission").order_by("id")
+                )
+                if coa.group_id
+                else []
+            ),
+            "files_ready": bool(coa.pdf_file and coa.png_file),
+        }
+        for coa in coas
+    ]
+    samples = list(submission.samples.select_related("submission").order_by("id"))
     context = {
         "submission": submission,
-        "samples": samples,
-        "coa": coa,
+        "sample_items": _sample_items(samples),
+        "entries": entries,
+        "has_missing_files": any(not e["files_ready"] for e in entries),
+        "payment_pending": any(e["coa"].status == COA.PAYMENT_PENDING for e in entries),
+        "all_ready": bool(entries)
+        and all(e["coa"].status in COA.CLIENT_VISIBLE_STATUSES for e in entries),
     }
     return render(request, "quantity_control/report_detail.html", context)
