@@ -939,7 +939,8 @@ def coa_confirmation(request, reference):
             update_fields=["is_finalized", "finalized_at", "finalized_by", "saved_at"]
         )
         messages.success(request, "Reporting preference saved")
-        return redirect("reception:coa_confirmation", reference=reference)
+        worksheet_url = reverse("reception:worksheet_generation")
+        return redirect(f"{worksheet_url}?{urlencode({'ref': submission.reference})}")
     groups = preference.groups.prefetch_related("samples").all()
     return render(
         request,
@@ -1125,6 +1126,8 @@ def worksheet_generation(request):
     reference = request.GET.get("ref", "").strip()
     submission = None
     not_found = False
+    show_coa_preference_modal = False
+    coa_preference_url = ""
 
     if reference:
         submission = (
@@ -1139,18 +1142,32 @@ def worksheet_generation(request):
         submission = get_object_or_404(
             Submission, reference=request.POST.get("reference"), is_submitted=True
         )
-        submission.worksheets.all().delete()
-        generate_worksheets_for_submission(submission, request.user)
-        for sample in submission.samples.all():
-            if sample.analysis_status == Sample.SUBMITTED_TO_LAB:
-                continue
-            if sample.analysis_status not in dict(Sample.ANALYSIS_STATUS_CHOICES):
-                sample.set_analysis_status(
-                    Sample.SUBMITTED_TO_LAB, sync_submission=False
-                )
-        submission.sync_status_from_samples()
-        messages.success(request, f"Worksheets generated for {submission.reference}.")
-        return redirect(f"{request.path}?ref={submission.reference}")
+        preference = COAReportingPreference.objects.filter(
+            submission=submission
+        ).first()
+        if preference is None or not preference.is_finalized:
+            show_coa_preference_modal = True
+            coa_preference_url = reverse(
+                "reception:coa_reporting_preference",
+                args=[submission.reference],
+            )
+            reference = submission.reference
+            not_found = False
+        else:
+            submission.worksheets.all().delete()
+            generate_worksheets_for_submission(submission, request.user)
+            for sample in submission.samples.all():
+                if sample.analysis_status == Sample.SUBMITTED_TO_LAB:
+                    continue
+                if sample.analysis_status not in dict(Sample.ANALYSIS_STATUS_CHOICES):
+                    sample.set_analysis_status(
+                        Sample.SUBMITTED_TO_LAB, sync_submission=False
+                    )
+            submission.sync_status_from_samples()
+            messages.success(
+                request, f"Worksheets generated for {submission.reference}."
+            )
+            return redirect(f"{request.path}?ref={submission.reference}")
 
     if submission is None and not reference:
         first_sub = submissions.first()
@@ -1182,6 +1199,8 @@ def worksheet_generation(request):
         "worksheets": worksheets,
         "not_found": not_found,
         "reference": reference,
+        "show_coa_preference_modal": show_coa_preference_modal,
+        "coa_preference_url": coa_preference_url,
     }
 
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
