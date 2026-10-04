@@ -658,7 +658,9 @@ def generate_report(request):
             Submission, pk=request.POST.get("submission_id"), is_submitted=True
         )
         try:
-            coas = generate_coas(submission, request.user)
+            coas = generate_coas(
+                submission, request.user, base_url=request.build_absolute_uri("/")
+            )
         except ValidationError as exc:
             for message in exc.messages:
                 messages.error(request, message)
@@ -872,7 +874,7 @@ def report_detail(request, reference):
             if coa.pdf_file and coa.png_file:
                 continue
             try:
-                attach_files(coa)
+                attach_files(coa, base_url=request.build_absolute_uri("/"))
                 rebuilt += 1
             except Exception:
                 logger.exception("COA file rebuild failed for %s", coa.coa_number)
