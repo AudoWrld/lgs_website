@@ -1,5 +1,6 @@
 from datetime import timedelta
 from decimal import Decimal
+from io import BytesIO
 from urllib.parse import urlencode
 
 from django.contrib import messages
@@ -9,11 +10,12 @@ from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
-from django.http import HttpResponse
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
+from PIL import Image, ImageFilter
 
 from accounts.decorators import reception_required
 from accounts.forms import ClientForm, ClientSearchForm
@@ -952,6 +954,92 @@ def coa_confirmation(request, reference):
             "can_edit": not _coa_generation_started(submission),
         },
     )
+
+
+@reception_required
+def clients_coa_search(request):
+    reference = request.GET.get("reference", "").strip()
+    error = ""
+    if reference:
+        submission = Submission.objects.filter(
+            is_submitted=True, reference__iexact=reference
+        ).first()
+        if submission is None:
+            error = f"No submission was found for reference {reference}."
+        elif not submission.coas.exists():
+            error = f"No COAs have been generated for reference {submission.reference}."
+        else:
+            return redirect(
+                "reception:clients_coa_detail", reference=submission.reference
+            )
+
+    return render(
+        request,
+        "reception/client_coa_search.html",
+        {"reference": reference, "error": error},
+    )
+
+
+@reception_required
+def clients_coa_detail(request, reference):
+    submission = get_object_or_404(
+        Submission.objects.select_related("client"),
+        is_submitted=True,
+        reference__iexact=reference,
+    )
+    coas = (
+        COA.objects.filter(submission=submission)
+        .select_related("group")
+        .prefetch_related("group__samples")
+        .order_by("coa_number")
+    )
+    items = [
+        {
+            "coa": coa,
+            "released": coa.is_client_visible,
+            "samples": list(coa.group.samples.order_by("id")) if coa.group_id else [],
+        }
+        for coa in coas
+    ]
+    return render(
+        request,
+        "reception/client_coa_detail.html",
+        {"submission": submission, "items": items},
+    )
+
+
+@reception_required
+def clients_coa_file(request, coa_id, file_format):
+    if file_format not in ("pdf", "png"):
+        raise Http404
+
+    coa = get_object_or_404(COA, pk=coa_id, submission__is_submitted=True)
+    file_field = coa.pdf_file if file_format == "pdf" else coa.png_file
+    if not file_field:
+        raise Http404
+
+    if not coa.is_client_visible:
+        if file_format == "pdf":
+            return HttpResponseForbidden("This COA is not ready for release.")
+        with file_field.open("rb") as source:
+            image = Image.open(source)
+            image.load()
+        preview = image.filter(ImageFilter.GaussianBlur(radius=12))
+        output = BytesIO()
+        preview.save(output, format="PNG")
+        response = HttpResponse(output.getvalue(), content_type="image/png")
+        response["Cache-Control"] = "private, no-store"
+        return response
+
+    filename = f"{coa.coa_number.replace('/', '-')}.{file_format}"
+    response = FileResponse(
+        file_field.open("rb"),
+        content_type="application/pdf" if file_format == "pdf" else "image/png",
+        as_attachment=request.GET.get("download") == "1",
+        filename=filename,
+    )
+    response["Cache-Control"] = "private, no-store"
+    return response
 
 
 def _services_and_methods(submission):
