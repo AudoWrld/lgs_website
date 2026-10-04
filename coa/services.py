@@ -318,7 +318,7 @@ def build_coa_doc(coa, base_url=None):
         blocks=blocks,
         verify_url=(
             f"{_verify_base(base_url)}/verify/"
-            f"{quote(coa.verification_token, safe='')}"
+            f"{quote(coa.verification_token, safe='')}/"
         ),
         logo_path=_static_path("core/img/lgs-logo.png"),
         signature_path=_static_path("core/img/lgs-signature.png"),

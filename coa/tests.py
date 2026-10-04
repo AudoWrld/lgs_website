@@ -44,6 +44,20 @@ class COAVerificationTests(TestCase):
 		self.assertContains(response, "Authentic COA")
 		self.assertContains(response, "Ready for Release")
 
+	@override_settings(
+		STORAGES={
+			"default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+			"staticfiles": {
+				"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
+			},
+		}
+	)
+	def test_existing_qr_without_trailing_slash_still_verifies(self):
+		response = self.client.get(f"/verify/{self.coa.verification_token}")
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, self.coa.coa_number)
+
 	def test_invalid_verification_token_returns_404(self):
 		response = self.client.get(reverse("coa:verify_coa", kwargs={"token": "invalid"}))
 
@@ -54,5 +68,5 @@ class COAVerificationTests(TestCase):
 
 		self.assertEqual(
 			doc.verify_url,
-			f"http://localhost:8000/verify/{self.coa.verification_token}",
+			f"http://localhost:8000/verify/{self.coa.verification_token}/",
 		)
