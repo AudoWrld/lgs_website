@@ -1,3 +1,5 @@
+import secrets
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -132,6 +134,8 @@ class COA(models.Model):
     PENDING = "PENDING"
     QC_REVIEW = "QC_REVIEW"
     APPROVED = "APPROVED"
+    PAYMENT_PENDING = "PAYMENT_PENDING"
+    READY_FOR_RELEASE = "READY_FOR_RELEASE"
     RELEASED = "RELEASED"
     REJECTED = "REJECTED"
 
@@ -140,11 +144,13 @@ class COA(models.Model):
         (PENDING, "Pending"),
         (QC_REVIEW, "QC Review"),
         (APPROVED, "Approved"),
+        (PAYMENT_PENDING, "Payment Pending"),
+        (READY_FOR_RELEASE, "Ready for Release"),
         (RELEASED, "Released"),
         (REJECTED, "Rejected"),
     ]
 
-    CLIENT_VISIBLE_STATUSES = {RELEASED}
+    CLIENT_VISIBLE_STATUSES = {READY_FOR_RELEASE, RELEASED}
 
     submission = models.ForeignKey(
         "submissions.Submission",
@@ -160,7 +166,11 @@ class COA(models.Model):
     )
 
     coa_number = models.CharField(max_length=30, unique=True)
-    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default=DRAFT)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=DRAFT)
+
+    verification_token = models.CharField(
+        max_length=64, unique=True, null=True, blank=True, editable=False
+    )
 
     pdf_file = models.FileField(upload_to="coas/pdf/", null=True, blank=True)
     png_file = models.FileField(upload_to="coas/png/", null=True, blank=True)
@@ -183,6 +193,18 @@ class COA(models.Model):
     def __str__(self):
         return self.coa_number
 
+    def save(self, *args, **kwargs):
+        if not self.verification_token:
+            self.verification_token = secrets.token_urlsafe(24)
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None and "verification_token" not in update_fields:
+                kwargs["update_fields"] = [*update_fields, "verification_token"]
+        super().save(*args, **kwargs)
+
     @property
     def is_client_visible(self):
         return self.status in self.CLIENT_VISIBLE_STATUSES
+
+    @property
+    def is_payment_pending(self):
+        return self.status == self.PAYMENT_PENDING
