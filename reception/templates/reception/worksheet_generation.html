@@ -9,6 +9,40 @@
 <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
 <link rel="stylesheet" href="{% static 'reception/css/reception_dashboard.css' %}">
 <link rel="stylesheet" href="{% static 'reception/css/generate_worksheet.css' %}">
+<style>
+  .gw-preference-dialog {
+    width: min(32rem, calc(100vw - 2rem));
+    padding: 0;
+    border: 1px solid var(--line);
+    color: var(--charcoal);
+  }
+
+  .gw-preference-dialog::backdrop {
+    background: rgba(14, 27, 35, 0.6);
+  }
+
+  .gw-preference-dialog-body {
+    padding: 1.5rem;
+  }
+
+  .gw-preference-dialog h2 {
+    margin: 0 0 0.5rem;
+    color: var(--navy);
+    font-size: 1.2rem;
+  }
+
+  .gw-preference-dialog p {
+    margin: 0 0 1.25rem;
+    color: var(--muted);
+  }
+
+  .gw-preference-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -312,9 +346,31 @@
   </section>
 
 </div>
+{% if show_coa_preference_modal %}
+<dialog class="gw-preference-dialog" id="gw-preference-dialog" aria-labelledby="gw-preference-title" aria-describedby="gw-preference-description">
+  <div class="gw-preference-dialog-body">
+    <h2 id="gw-preference-title">COA reporting preference required</h2>
+    <p id="gw-preference-description">Choose and confirm a COA reporting preference before generating worksheets. No worksheet data has been changed.</p>
+    <div class="gw-preference-dialog-actions">
+      <form method="dialog">
+        <button type="submit" class="btn btn-outline">Stay here</button>
+      </form>
+      <a href="{{ coa_preference_url }}" class="btn btn-primary">Set COA preference</a>
+    </div>
+  </div>
+</dialog>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
+{% if show_coa_preference_modal %}
+<script>
+  var preferenceDialog = document.getElementById("gw-preference-dialog");
+  if (preferenceDialog && typeof preferenceDialog.showModal === "function") {
+    preferenceDialog.showModal();
+  }
+</script>
+{% endif %}
 <script>
   (function () {
     var split = document.querySelector(".gw-split");

@@ -1,14 +1,17 @@
 from decimal import Decimal
+from urllib.parse import urlencode
 
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Client, User
+from coa.models import COAReportingPreference
 from payments.forms import PaymentUpdateForm
 from payments.models import Payment
 from samples.models import Sample, SampleService, Service
 from submissions.models import Submission
+from worksheet.models import Worksheet
 
 
 class SubmissionConfirmationRedirectTests(TestCase):
@@ -53,7 +56,86 @@ class SubmissionConfirmationRedirectTests(TestCase):
         )
 
 
+class COAPreferenceConfirmationTests(TestCase):
+    def test_confirmed_preference_redirects_to_selected_worksheet(self):
+        reception_user = User.objects.create_reception(
+            email="preference-confirm@example.com",
+            password="Password123!",
+        )
+        self.client.force_login(reception_user)
+        client = Client.objects.create(
+            client_type=Client.INDIVIDUAL,
+            client_name="Preference Client",
+            contact_person="Jane Doe",
+            email="preference-client@example.com",
+            whatsapp_number="123456789",
+            registered_by=reception_user,
+        )
+        submission = Submission.objects.create(
+            client=client,
+            registered_by=reception_user,
+            is_submitted=True,
+        )
+        COAReportingPreference.objects.create(
+            submission=submission,
+            preference_type=COAReportingPreference.COMBINED,
+        )
+
+        response = self.client.post(
+            reverse("reception:coa_confirmation", args=[submission.reference])
+        )
+
+        expected_url = (
+            f"{reverse('reception:worksheet_generation')}?"
+            f"{urlencode({'ref': submission.reference})}"
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, expected_url)
+
+
 class WorksheetListOrderingTests(TestCase):
+    def test_generation_requires_finalized_coa_preference(self):
+        reception_user = User.objects.create_reception(
+            email="worksheet-gate@example.com",
+            password="Password123!",
+        )
+        self.client.force_login(reception_user)
+        client = Client.objects.create(
+            client_type=Client.INDIVIDUAL,
+            client_name="Worksheet Gate Client",
+            contact_person="Jane Doe",
+            email="worksheet-gate-client@example.com",
+            whatsapp_number="123456789",
+            registered_by=reception_user,
+        )
+        submission = Submission.objects.create(
+            client=client,
+            registered_by=reception_user,
+            is_submitted=True,
+        )
+        existing_worksheet = Worksheet.objects.create(
+            submission=submission,
+            worksheet_type=Worksheet.MINERAL_ANALYSIS,
+            generated_by=reception_user,
+        )
+
+        response = self.client.post(
+            reverse("reception:worksheet_generation"),
+            {"reference": submission.reference},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "COA reporting preference required")
+        self.assertContains(response, "No worksheet data has been changed.")
+        self.assertContains(
+            response,
+            reverse("reception:coa_reporting_preference", args=[submission.reference]),
+        )
+        self.assertTrue(Worksheet.objects.filter(pk=existing_worksheet.pk).exists())
+        self.assertFalse(
+            COAReportingPreference.objects.filter(submission=submission).exists()
+        )
+
     def test_worksheet_generation_lists_most_recently_submitted_first(self):
         reception_user = User.objects.create_reception(
             email="reception2@example.com",

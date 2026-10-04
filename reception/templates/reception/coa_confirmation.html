@@ -74,7 +74,7 @@
         </form>
       {% else %}
         <p class="coa-locked-note"><i class='bx bx-lock-alt' aria-hidden="true"></i> Saved and locked.</p>
-        <a href="{% url 'reception:sample_registration_detail' submission.slug %}" class="btn btn-primary"><i class='bx bx-left-arrow-alt' aria-hidden="true"></i> Back to Submission</a>
+        <a href="{% url 'reception:worksheet_generation' %}?ref={{ submission.reference|urlencode:'' }}" class="btn btn-primary"><i class='bx bx-file-blank' aria-hidden="true"></i> Generate Worksheet</a>
       {% endif %}
     </div>
   </section>
