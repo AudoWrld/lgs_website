@@ -1,29 +1,16 @@
 from django.urls import path
+from django.views.generic import RedirectView
 
 from . import views
 
 app_name = "accountant"
 
 urlpatterns = [
+    path("", RedirectView.as_view(pattern_name="accountant:dashboard")),
     path("dashboard/", views.dashboard, name="dashboard"),
-    path(
-        "references/",
-        views.placeholder,
-        {"heading": "References"},
-        name="reference_list",
-    ),
-    path(
-        "payments/add/",
-        views.placeholder,
-        {"heading": "Record Payment"},
-        name="payment_add",
-    ),
-    path(
-        "payments/",
-        views.placeholder,
-        {"heading": "Payments"},
-        name="payment_list",
-    ),
+    path("references/", views.reference_list, name="reference_list"),
+    path("payments/add/", views.payment_add, name="payment_add"),
+    path("payments/", views.payment_list, name="payment_list"),
     path(
         "receipts/",
         views.placeholder,
@@ -48,22 +35,7 @@ urlpatterns = [
         {"heading": "Invoices"},
         name="invoice_list",
     ),
-    path(
-        "debt-credit/",
-        views.placeholder,
-        {"heading": "Debt & Credit"},
-        name="debt_credit",
-    ),
-    path(
-        "release-queue/",
-        views.placeholder,
-        {"heading": "Report Release"},
-        name="release_queue",
-    ),
-    path(
-        "reports/",
-        views.placeholder,
-        {"heading": "Reports"},
-        name="reports",
-    ),
+    path("debt-credit/", views.debt_credit, name="debt_credit"),
+    path("release-queue/", views.release_queue, name="release_queue"),
+    path("reports/", views.reports, name="reports"),
 ]
