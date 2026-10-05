@@ -1,0 +1,351 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#123e5b" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>
+      {% block title %}Accountant — LGS Mineral Assay Laboratory{% endblock %}
+    </title>
+
+    <link
+      rel="icon"
+      href="{% static 'favicons/favicon.svg' %}"
+      type="image/svg+xml"
+    />
+    <link rel="icon" href="{% static 'favicons/favicon.ico' %}" sizes="any" />
+    <link
+      rel="apple-touch-icon"
+      href="{% static 'favicons/apple-touch-icon.png' %}"
+    />
+    <link rel="manifest" href="{% static 'favicons/site.webmanifest' %}" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'accountant/css/base_accountant.css' %}"
+    />
+
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body class="app-body accountant-shell">
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <input
+      type="checkbox"
+      id="sidebar-toggle"
+      class="sidebar-toggle-checkbox"
+      aria-label="Toggle navigation menu"
+    />
+
+    <div class="app-shell">
+      <aside class="app-sidebar">
+        <div class="app-sidebar-header">
+          <div class="app-brand">
+            <img
+              src="{% static 'core/img/lgs-logo.png' %}"
+              alt="LGS Mineral Assay Laboratory"
+            />
+            <span class="app-brand-text">
+              LGS Accountant
+              <span class="app-brand-motto">The Lab You Can Trust</span>
+            </span>
+          </div>
+          <label
+            for="sidebar-toggle"
+            class="sidebar-close-label"
+            aria-label="Close menu"
+          >
+            <svg
+              class="icon"
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </label>
+        </div>
+
+        <nav class="app-nav" aria-label="Accountant navigation">
+          <span class="app-nav-label">Overview</span>
+          <ul>
+            <li>
+              <a
+                href="{% url 'accountant:dashboard' %}"
+                class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
+              >
+                <i class="bx bx-grid-alt icon" aria-hidden="true"></i>Dashboard
+              </a>
+            </li>
+            <li>
+              <a
+                href="{% url 'accountant:reference_list' %}"
+                class="{% if request.resolver_match.url_name == 'reference_list' %}active{% endif %}"
+              >
+                <i class="bx bx-book-content icon" aria-hidden="true"></i
+                >References
+              </a>
+            </li>
+          </ul>
+
+          <span class="app-nav-label">Transactions</span>
+          <ul>
+            <li class="accountant-nav-disclosure">
+              <button
+                type="button"
+                id="accountant-payments-toggle"
+                class="accountant-nav-toggle"
+                aria-expanded="{% if request.resolver_match.url_name == 'payment_add' or request.resolver_match.url_name == 'payment_list' or request.resolver_match.url_name == 'receipt_list' %}true{% else %}false{% endif %}"
+                aria-controls="accountant-payments-sublist"
+              >
+                <span class="accountant-nav-toggle-label"
+                  ><i class="bx bx-credit-card icon" aria-hidden="true"></i
+                  >Payments</span
+                >
+                <i
+                  class="bx bx-chevron-down accountant-nav-chevron"
+                  aria-hidden="true"
+                ></i>
+              </button>
+              <ul
+                id="accountant-payments-sublist"
+                class="accountant-nav-sublist"
+                aria-label="Payments"
+              >
+                <li>
+                  <a
+                    href="{% url 'accountant:payment_add' %}"
+                    class="{% if request.resolver_match.url_name == 'payment_add' %}active{% endif %}"
+                  >
+                    <i class="bx bx-plus-circle icon" aria-hidden="true"></i
+                    >Record Payment
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="{% url 'accountant:payment_list' %}"
+                    class="{% if request.resolver_match.url_name == 'payment_list' %}active{% endif %}"
+                  >
+                    <i class="bx bx-history icon" aria-hidden="true"></i
+                    >Payment History
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="{% url 'accountant:receipt_list' %}"
+                    class="{% if request.resolver_match.url_name == 'receipt_list' %}active{% endif %}"
+                  >
+                    <i class="bx bx-receipt icon" aria-hidden="true"></i
+                    >Receipts
+                  </a>
+                </li>
+              </ul>
+            </li>
+            <li>
+              <a
+                href="{% url 'accountant:expense_list' %}"
+                class="{% if request.resolver_match.url_name == 'expense_list' %}active{% endif %}"
+              >
+                <i class="bx bx-wallet icon" aria-hidden="true"></i>Expenses
+              </a>
+            </li>
+          </ul>
+
+          <span class="app-nav-label">Documents</span>
+          <ul>
+            <li>
+              <a
+                href="{% url 'accountant:quotation_list' %}"
+                class="{% if request.resolver_match.url_name == 'quotation_list' %}active{% endif %}"
+              >
+                <i class="bx bx-file icon" aria-hidden="true"></i>Quotations
+              </a>
+            </li>
+            <li>
+              <a
+                href="{% url 'accountant:invoice_list' %}"
+                class="{% if request.resolver_match.url_name == 'invoice_list' %}active{% endif %}"
+              >
+                <i class="bx bx-file-blank icon" aria-hidden="true"></i
+                >Invoices
+              </a>
+            </li>
+          </ul>
+
+          <span class="app-nav-label">Control</span>
+          <ul>
+            <li>
+              <a
+                href="{% url 'accountant:debt_credit' %}"
+                class="{% if request.resolver_match.url_name == 'debt_credit' %}active{% endif %}"
+              >
+                <i class="bx bx-transfer icon" aria-hidden="true"></i>Debt
+                &amp; Credit
+              </a>
+            </li>
+            {% if perms.coa.authorize_release %}
+            <li>
+              <a
+                href="{% url 'accountant:release_queue' %}"
+                class="{% if request.resolver_match.url_name == 'release_queue' %}active{% endif %}"
+              >
+                <i class="bx bx-lock-open icon" aria-hidden="true"></i>Report
+                Release
+              </a>
+            </li>
+            {% endif %}
+          </ul>
+
+          <span class="app-nav-label">Reports</span>
+          <ul>
+            <li>
+              <a
+                href="{% url 'accountant:reports' %}"
+                class="{% if request.resolver_match.url_name == 'reports' %}active{% endif %}"
+              >
+                <i class="bx bx-bar-chart-alt-2 icon" aria-hidden="true"></i
+                >Reports
+              </a>
+            </li>
+          </ul>
+        </nav>
+
+        <div class="app-sidebar-footer">
+          <form
+            action="{% url 'accounts:logout' %}"
+            method="post"
+            class="app-logout-form"
+          >
+            {% csrf_token %}
+            <button type="submit" class="app-logout">
+              <i class="bx bx-log-out icon" aria-hidden="true"></i>
+              <span>Log Out</span>
+            </button>
+          </form>
+        </div>
+      </aside>
+
+      <label
+        for="sidebar-toggle"
+        class="app-backdrop"
+        aria-hidden="true"
+      ></label>
+
+      <div class="app-main">
+        <header class="app-topbar">
+          <label
+            for="sidebar-toggle"
+            class="sidebar-open-label"
+            aria-label="Open navigation menu"
+          >
+            <svg
+              class="icon"
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </label>
+
+          <h1 class="app-topbar-title">
+            {% block page_title %}Dashboard{% endblock %}
+          </h1>
+
+          <div class="app-topbar-user">
+            <span class="app-topbar-name"
+              >{{ request.user.get_full_name|default:"Accountant" }}</span
+            >
+            <span class="app-topbar-role">Accountant</span>
+            <div class="app-topbar-avatar" aria-hidden="true">
+              <i class="bx bx-user icon"></i>
+            </div>
+          </div>
+        </header>
+
+        <main id="main-content" class="app-content accountant-content">
+          {% if messages %}
+          <ul class="messages" role="status">
+            {% for message in messages %}
+            <li class="message {{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %} {% block content %}{% endblock %}
+        </main>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        var box = document.querySelector(".messages");
+        if (!box) return;
+        setTimeout(function () {
+          box.remove();
+        }, 5000);
+      })();
+    </script>
+    <script>
+      (function () {
+        var toggle = document.getElementById("accountant-payments-toggle");
+        var sublist = document.getElementById("accountant-payments-sublist");
+        if (!toggle || !sublist) return;
+
+        function setExpanded(expanded) {
+          toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+          sublist.style.maxHeight = expanded
+            ? sublist.scrollHeight + "px"
+            : "0px";
+        }
+
+        setExpanded(toggle.getAttribute("aria-expanded") === "true");
+
+        toggle.addEventListener("click", function () {
+          setExpanded(toggle.getAttribute("aria-expanded") !== "true");
+        });
+
+        toggle
+          .closest(".accountant-nav-disclosure")
+          .addEventListener("keydown", function (event) {
+            if (
+              event.key !== "Escape" ||
+              toggle.getAttribute("aria-expanded") !== "true"
+            )
+              return;
+            event.preventDefault();
+            setExpanded(false);
+            toggle.focus();
+          });
+
+        window.addEventListener("resize", function () {
+          if (toggle.getAttribute("aria-expanded") === "true") {
+            sublist.style.maxHeight = sublist.scrollHeight + "px";
+          }
+        });
+      })();
+    </script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>
