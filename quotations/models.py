@@ -76,11 +76,11 @@ class Quotation(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(discount__gte=0),
+                condition=models.Q(discount__gte=0),
                 name="quotation_discount_non_negative",
             ),
             models.CheckConstraint(
-                check=models.Q(valid_until__gte=models.F("quotation_date")),
+                condition=models.Q(valid_until__gte=models.F("quotation_date")),
                 name="quotation_valid_until_after_date",
             ),
         ]
@@ -107,10 +107,6 @@ class Quotation(models.Model):
                 raise ValidationError(
                     {"valid_until": "Valid Until cannot be before the quotation date."}
                 )
-        if self.pk and self.discount > self.subtotal:
-            raise ValidationError(
-                {"discount": "Discount cannot be greater than the subtotal."}
-            )
 
     def save(self, *args, **kwargs):
         if self.quotation_number:
@@ -210,11 +206,11 @@ class QuotationItem(models.Model):
         ordering = ["position", "id"]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(quantity__gte=1),
+                condition=models.Q(quantity__gte=1),
                 name="quotation_item_quantity_positive",
             ),
             models.CheckConstraint(
-                check=models.Q(unit_price__gt=0),
+                condition=models.Q(unit_price__gt=0),
                 name="quotation_item_unit_price_positive",
             ),
         ]
