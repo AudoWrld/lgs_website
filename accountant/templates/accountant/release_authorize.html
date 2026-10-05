@@ -1,51 +1,97 @@
 {% extends 'accountant/base_accountant.html' %}
+{% load static %}
 
 {% block title %}Authorize Report Release — LGS Accountant{% endblock %}
 {% block page_title %}Authorize Report Release{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'accountant/css/release.css' %}" />
+{% endblock %}
+
 {% block content %}
-<section class="card" aria-labelledby="authorize-heading">
-  <div class="card-header">
-    <h2 id="authorize-heading">{{ row.reference }}</h2>
-    <a class="btn btn-outline btn-sm" href="{% url 'accountant:release_queue' %}">Back to queue</a>
-  </div>
+<div class="page-actions">
+  <a class="btn btn-outline btn-sm" href="{% url 'accountant:release_queue' %}"><i class="bx bx-arrow-back" aria-hidden="true"></i>Back to queue</a>
+</div>
 
-  <div class="table-wrap">
-    <table class="table">
-      <tbody>
-        <tr><th scope="row">COA No.</th><td>{{ row.coa_number }}</td></tr>
-        <tr><th scope="row">Outstanding (TZS)</th><td>{{ row.outstanding|floatformat:"0g" }}</td></tr>
-        <tr><th scope="row">Payment Status</th><td><span class="badge badge-warning">{{ row.status }}</span></td></tr>
-        <tr><th scope="row">Credit Start</th><td>{% if row.credit_start_date %}{{ row.credit_start_date|date:"Y-m-d" }}{% else %}&mdash;{% endif %}</td></tr>
-        <tr><th scope="row">Credit Due</th><td>{% if row.credit_due_date %}{{ row.credit_due_date|date:"Y-m-d" }}{% else %}&mdash;{% endif %}</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <p class="help-text" style="margin-top:1rem">
-    This is a financial release permission only, not a technical approval. The outstanding balance and payment status will not change. Your name, the date and time, and your reason will be recorded permanently.
-  </p>
-
-  {% if row.eligible %}
-  <form method="post" novalidate>
-    {% csrf_token %}
-    {% if form.non_field_errors %}
-    <ul class="field-error">
-      {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
-    </ul>
-    {% endif %}
-    <div class="form-group">
-      <label for="{{ form.reason.id_for_label }}">{{ form.reason.label }}</label>
-      {{ form.reason }}
-      {{ form.reason.errors }}
+<div class="rel-layout">
+  <section class="rel-panel" aria-labelledby="rel-details-heading">
+    <div class="rel-panel-head">
+      <h2 id="rel-details-heading"><i class="bx bx-file" aria-hidden="true"></i> {{ row.reference }}</h2>
+      <span class="badge badge-warning">{{ row.status }}</span>
     </div>
-    <div class="page-actions">
-      <button type="submit" class="btn btn-primary"><i class="bx bx-lock-open" aria-hidden="true"></i>Authorize Report Release</button>
-      <a class="btn btn-outline" href="{% url 'accountant:release_queue' %}">Cancel</a>
+    <div class="rel-balance">
+      <span class="rel-balance-label">Outstanding balance (TZS)</span>
+      <span class="rel-balance-value">{{ row.outstanding|floatformat:"0g" }}</span>
     </div>
-  </form>
-  {% else %}
-  <p class="empty-state">This COA has no approved credit or billing arrangement, so it can only be released once fully paid.</p>
-  {% endif %}
-</section>
+    <dl class="rel-details">
+      <div class="rel-details-row">
+        <dt>COA No.</dt>
+        <dd>{{ row.coa_number }}</dd>
+      </div>
+      <div class="rel-details-row">
+        <dt>Credit start</dt>
+        <dd>{% if row.credit_start_date %}{{ row.credit_start_date|date:"d M Y" }}{% else %}&mdash;{% endif %}</dd>
+      </div>
+      <div class="rel-details-row">
+        <dt>Credit due</dt>
+        <dd>{% if row.credit_due_date %}{{ row.credit_due_date|date:"d M Y" }}{% else %}&mdash;{% endif %}</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="rel-panel" aria-labelledby="rel-form-heading">
+    <div class="rel-panel-head">
+      <h2 id="rel-form-heading"><i class="bx bx-edit" aria-hidden="true"></i> Release Authorization</h2>
+    </div>
+
+    <form method="post" class="rel-form" novalidate>
+      {% csrf_token %}
+
+      <div class="rel-notice">
+        <i class="bx bx-info-circle" aria-hidden="true"></i>
+        <div>
+          This is a financial release permission only, not a technical approval.
+          <ul>
+            <li>The outstanding balance stays unchanged.</li>
+            <li>The payment status stays as it is.</li>
+            <li>Your name, the date and time, and your reason are recorded permanently.</li>
+          </ul>
+        </div>
+      </div>
+
+      {% if form.non_field_errors %}
+      <ul class="rel-errors">
+        {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+
+      <div class="form-group">
+        <label for="{{ form.reason.id_for_label }}">{{ form.reason.label }}</label>
+        {{ form.reason }}
+        {{ form.reason.errors }}
+        <span class="rel-counter"><span id="rel-count">0</span> / 500</span>
+      </div>
+
+      <div class="rel-actions">
+        <button type="submit" class="btn btn-primary"><i class="bx bx-lock-open" aria-hidden="true"></i>Authorize Report Release</button>
+        <a class="btn btn-outline" href="{% url 'accountant:release_queue' %}">Cancel</a>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    var field = document.getElementById("{{ form.reason.id_for_label }}");
+    var counter = document.getElementById("rel-count");
+    if (!field || !counter) return;
+    function update() {
+      counter.textContent = field.value.length;
+    }
+    field.addEventListener("input", update);
+    update();
+  })();
+</script>
 {% endblock %}

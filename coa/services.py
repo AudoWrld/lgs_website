@@ -12,7 +12,7 @@ from django.utils import timezone
 from payments.models import Payment
 from samples.models import Sample, Service
 
-from .models import COA, COAGroup, COAGroupSample, COAReleaseAuthorization, COAReportingPreference
+from .models import COA, COAGroup, COAGroupSample, COAReportingPreference
 from .pdf import Block, CoaDoc, render_coa_pdf, render_coa_png
 
 logger = logging.getLogger(__name__)
@@ -414,6 +414,9 @@ def generate_coas(submission, user, base_url=None):
     return coas
 
 
+from .models import COAReleaseAuthorization
+
+
 def authorize_release(coa, user, reason):
     reason = (reason or "").strip()
     if len(reason) < 5:
@@ -429,11 +432,7 @@ def authorize_release(coa, user, reason):
             raise ValidationError("This COA is no longer awaiting release.")
 
         payment = getattr(locked.submission, "payment", None)
-        if payment is None or payment.credit_start_date is None:
-            raise ValidationError(
-                "Release can only be authorized for approved credit or billing cases."
-            )
-        if payment.outstanding_balance <= 0:
+        if payment is not None and payment.outstanding_balance <= 0:
             raise ValidationError(
                 "This reference is fully paid and will be released automatically."
             )
@@ -442,10 +441,10 @@ def authorize_release(coa, user, reason):
             coa=locked,
             authorized_by=user,
             reason=reason,
-            outstanding_at_release=payment.outstanding_balance,
-            payment_status_at_release=payment.payment_status,
-            credit_start_date=payment.credit_start_date,
-            credit_due_date=payment.credit_due_date,
+            outstanding_at_release=payment.outstanding_balance if payment else 0,
+            payment_status_at_release=payment.payment_status if payment else "UNPAID",
+            credit_start_date=payment.credit_start_date if payment else None,
+            credit_due_date=payment.credit_due_date if payment else None,
         )
         locked.status = COA.RELEASED
         locked.released_at = timezone.now()

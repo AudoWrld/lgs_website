@@ -111,7 +111,7 @@ def _release_row(coa):
         "status": payment.get_payment_status_display() if payment else DASH,
         "credit_start_date": payment.credit_start_date if payment else None,
         "credit_due_date": payment.credit_due_date if payment else None,
-        "eligible": bool(payment and payment.credit_start_date),
+        "eligible": True,
         "created_at": coa.created_at,
     }
 
