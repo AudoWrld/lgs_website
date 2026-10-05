@@ -1,0 +1,16 @@
+<section class="ef-panel" aria-labelledby="ef-notes-heading">
+  <div class="ef-head">
+    <h2 id="ef-notes-heading"><i class="bx bx-info-circle" aria-hidden="true"></i> Notes</h2>
+  </div>
+  <ul class="ef-notes">
+    <li><i class="bx bx-calendar-check" aria-hidden="true"></i><span><strong>Date is automatic.</strong> The expense is recorded with today's date.</span></li>
+    <li><i class="bx bx-money" aria-hidden="true"></i><span><strong>Cash payments</strong> need no receipt number and no evidence. The supplier / payee reference is optional.</span></li>
+    <li><i class="bx bx-receipt" aria-hidden="true"></i><span><strong>Other payment methods</strong> require the receipt number, for example the M-Pesa or bank transaction code.</span></li>
+    <li><i class="bx bx-paperclip" aria-hidden="true"></i><span><strong>Supporting evidence</strong> is optional: one image or PDF up to 5 MB. Drag it into the upload area or click to browse. Use the X to remove it.</span></li>
+    <li><i class="bx bx-edit" aria-hidden="true"></i><span><strong>Draft first.</strong> The expense is saved as a draft and only counts in income reports once submitted.</span></li>
+    <li><i class="bx bx-lock-alt" aria-hidden="true"></i><span><strong>Submitted expenses cannot be edited.</strong> Check the details carefully before submitting.</span></li>
+  </ul>
+  {% if expense %}
+  <p class="ef-note-meta">Recorded on {{ expense.expense_date|date:"Y-m-d" }}. Draft expenses are not included in totals.</p>
+  {% endif %}
+</section>

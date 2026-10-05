@@ -1,0 +1,371 @@
+.ef-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+  padding-bottom: 15px;
+}
+
+.ef-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.ef-panel {
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--white);
+  overflow: hidden;
+}
+
+.ef-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.ef-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  color: var(--navy);
+  font-family: var(--font-head);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.ef-head h2 i {
+  color: var(--orange);
+  font-size: 1.15rem;
+}
+
+.ef-legend {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.ef-req {
+  margin-left: 0.15rem;
+  color: #d32f2f;
+  font-weight: 700;
+}
+
+.ef-optional {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.ef-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.ef-badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.ef-form {
+  padding: 1.25rem;
+}
+
+.ef-group {
+  margin-bottom: 1rem;
+  min-width: 0;
+}
+
+.ef-group[hidden],
+.ef-drop[hidden],
+.ef-preview[hidden],
+.ef-error[hidden] {
+  display: none;
+}
+
+.ef-group label {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: var(--charcoal);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.ef-group input[type="text"],
+.ef-group input[type="number"],
+.ef-group select,
+.ef-group textarea {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--white);
+  color: var(--charcoal);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.ef-group textarea {
+  resize: vertical;
+}
+
+.ef-group input:focus,
+.ef-group select:focus,
+.ef-group textarea:focus {
+  outline: 2px solid var(--orange);
+  outline-offset: -1px;
+  border-color: var(--orange);
+}
+
+.ef-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.ef-row-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ef-help {
+  margin: 0.3rem 0 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.ef-error {
+  margin: 0.3rem 0 0;
+  color: var(--error-text);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.ef-errors {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0.8rem 1rem;
+  border-left: 3px solid var(--error-text);
+  background: var(--error-bg);
+  color: var(--error-text);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.ef-file-input {
+  display: none;
+}
+
+.ef-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 1.5rem 1rem;
+  border: 2px dashed var(--line);
+  background: #faf8f3;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.ef-drop i {
+  color: var(--orange);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.ef-drop p {
+  margin: 0;
+  color: var(--charcoal);
+  font-size: 0.875rem;
+}
+
+.ef-drop span {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.ef-drop:hover,
+.ef-drop:focus-visible,
+.ef-drop.is-over {
+  border-color: var(--orange);
+  background: #fffaf1;
+}
+
+.ef-preview {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.8rem 3rem 0.8rem 0.8rem;
+  border: 1px solid var(--line);
+  background: #faf8f3;
+}
+
+.ef-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  background: var(--white);
+  overflow: hidden;
+}
+
+.ef-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ef-thumb i {
+  color: #d32f2f;
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.ef-file-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.ef-file-name {
+  color: var(--navy);
+  font-size: 0.875rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.ef-file-size {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.ef-remove {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--white);
+  color: var(--error-text);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ef-remove:hover {
+  background: var(--error-text);
+  border-color: var(--error-text);
+  color: var(--white);
+}
+
+.ef-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.ef-notes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ef-notes li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--charcoal);
+  font-size: 0.875rem;
+}
+
+.ef-notes li:last-child {
+  border-bottom: none;
+}
+
+.ef-notes li i {
+  margin-top: 0.1rem;
+  color: var(--orange);
+  font-size: 1.1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ef-notes strong {
+  color: var(--navy);
+  font-family: var(--font-head);
+}
+
+.ef-note-meta {
+  margin: 0;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--line);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 960px) {
+  .ef-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .ef-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .ef-head,
+  .ef-form {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .ef-actions .btn {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ef-drop {
+    transition: none;
+  }
+}

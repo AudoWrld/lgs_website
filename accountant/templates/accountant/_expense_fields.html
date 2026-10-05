@@ -1,83 +1,189 @@
 {% if form.non_field_errors %}
-<ul class="ex-errors">
+<ul class="ef-errors">
   {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
 </ul>
 {% endif %}
 
-<div class="ex-row">
-  <div class="ex-group">
-    <label for="{{ form.category.id_for_label }}">Category <span class="ex-req" aria-hidden="true">*</span><span class="ex-sr">required</span></label>
-    {{ form.category }}
-    {% for error in form.category.errors %}<p class="ex-error">{{ error }}</p>{% endfor %}
-  </div>
-  <div class="ex-group" id="ex-other-group">
-    <label for="{{ form.other_category.id_for_label }}">Specify Category <span class="ex-req" aria-hidden="true">*</span><span class="ex-sr">required</span></label>
-    {{ form.other_category }}
-    {% for error in form.other_category.errors %}<p class="ex-error">{{ error }}</p>{% endfor %}
-  </div>
+<div class="ef-group">
+  <label for="{{ form.category.id_for_label }}">Category <span class="ef-req" aria-hidden="true">*</span><span class="ef-sr">required</span></label>
+  {{ form.category }}
+  {% for error in form.category.errors %}<p class="ef-error">{{ error }}</p>{% endfor %}
 </div>
 
-<div class="ex-group">
-  <label for="{{ form.description.id_for_label }}">Description <span class="ex-req" aria-hidden="true">*</span><span class="ex-sr">required</span></label>
+<div class="ef-group" id="ef-other-group">
+  <label for="{{ form.other_category.id_for_label }}">Specify Category <span class="ef-req" aria-hidden="true">*</span><span class="ef-sr">required</span></label>
+  {{ form.other_category }}
+  {% for error in form.other_category.errors %}<p class="ef-error">{{ error }}</p>{% endfor %}
+</div>
+
+<div class="ef-group">
+  <label for="{{ form.description.id_for_label }}">Description <span class="ef-req" aria-hidden="true">*</span><span class="ef-sr">required</span></label>
   {{ form.description }}
-  {% for error in form.description.errors %}<p class="ex-error">{{ error }}</p>{% endfor %}
+  {% for error in form.description.errors %}<p class="ef-error">{{ error }}</p>{% endfor %}
 </div>
 
-<div class="ex-row">
-  <div class="ex-group">
-    <label for="{{ form.expense_date.id_for_label }}">Expense Date <span class="ex-req" aria-hidden="true">*</span><span class="ex-sr">required</span></label>
-    {{ form.expense_date }}
-    {% for error in form.expense_date.errors %}<p class="ex-error">{{ error }}</p>{% endfor %}
-  </div>
-  <div class="ex-group">
-    <label for="{{ form.amount.id_for_label }}">Amount (TZS) <span class="ex-req" aria-hidden="true">*</span><span class="ex-sr">required</span></label>
+<div class="ef-row">
+  <div class="ef-group">
+    <label for="{{ form.amount.id_for_label }}">Amount (TZS) <span class="ef-req" aria-hidden="true">*</span><span class="ef-sr">required</span></label>
     {{ form.amount }}
-    {% for error in form.amount.errors %}<p class="ex-error">{{ error }}</p>{% endfor %}
+    {% for error in form.amount.errors %}<p class="ef-error">{{ error }}</p>{% endfor %}
+  </div>
+  <div class="ef-group">
+    <label for="{{ form.payment_method.id_for_label }}">Payment Method <span class="ef-req" aria-hidden="true">*</span><span class="ef-sr">required</span></label>
+    {{ form.payment_method }}
+    {% for error in form.payment_method.errors %}<p class="ef-error">{{ error }}</p>{% endfor %}
   </div>
 </div>
 
-<div class="ex-group">
-  <label for="{{ form.payment_method.id_for_label }}">Payment Method <span class="ex-req" aria-hidden="true">*</span><span class="ex-sr">required</span></label>
-  {{ form.payment_method }}
-  {% for error in form.payment_method.errors %}<p class="ex-error">{{ error }}</p>{% endfor %}
-</div>
-
-<div class="ex-row">
-  <div class="ex-group">
-    <label for="{{ form.supplier_reference.id_for_label }}">Supplier / Payee Reference <span class="ex-optional">(optional)</span></label>
+<div class="ef-row" id="ef-ref-row">
+  <div class="ef-group">
+    <label for="{{ form.supplier_reference.id_for_label }}">Supplier / Payee Reference <span class="ef-optional">(optional)</span></label>
     {{ form.supplier_reference }}
-    {% for error in form.supplier_reference.errors %}<p class="ex-error">{{ error }}</p>{% endfor %}
+    {% for error in form.supplier_reference.errors %}<p class="ef-error">{{ error }}</p>{% endfor %}
   </div>
-  <div class="ex-group">
-    <label for="{{ form.document_number.id_for_label }}">Receipt / Document Number <span class="ex-optional">(optional)</span></label>
+  <div class="ef-group" id="ef-doc-group">
+    <label for="{{ form.document_number.id_for_label }}">Receipt Number <span class="ef-req" aria-hidden="true">*</span><span class="ef-sr">required</span></label>
     {{ form.document_number }}
-    {% for error in form.document_number.errors %}<p class="ex-error">{{ error }}</p>{% endfor %}
+    {% for error in form.document_number.errors %}<p class="ef-error">{{ error }}</p>{% endfor %}
   </div>
 </div>
 
-<div class="ex-group" id="ex-evidence-group">
-  <label for="{{ form.evidence.id_for_label }}">Supporting Evidence <span class="ex-optional">(optional)</span></label>
-  {% if expense and expense.evidence %}
-  <div class="ex-current">
-    {% if expense.evidence_is_image %}
-    <a href="{{ expense.evidence.url }}" target="_blank" rel="noopener"><img src="{{ expense.evidence.url }}" alt="Current evidence" /></a>
-    {% endif %}
-    <span>Current file: <a href="{{ expense.evidence.url }}" target="_blank" rel="noopener">View</a></span>
-  </div>
-  {% endif %}
+<div class="ef-group" id="ef-evidence-group">
+  <label>Supporting Evidence <span class="ef-optional">(optional)</span></label>
+  <input type="hidden" name="remove_evidence" id="ef-remove-flag" value="0" />
   {{ form.evidence }}
-  <p class="ex-help">{{ form.evidence.help_text }}</p>
-  {% for error in form.evidence.errors %}<p class="ex-error">{{ error }}</p>{% endfor %}
+
+  <div class="ef-drop" id="ef-drop" tabindex="0" role="button" aria-label="Upload supporting evidence">
+    <i class="bx bx-cloud-upload" aria-hidden="true"></i>
+    <p><strong>Drag and drop</strong> a file here, or click to browse</p>
+    <span>JPG, PNG, WEBP or PDF, up to 5 MB</span>
+  </div>
+
+  <div class="ef-preview" id="ef-preview" hidden
+    {% if expense and expense.evidence %}
+    data-existing="1"
+    data-url="{{ expense.evidence.url }}"
+    data-name="{{ expense.evidence.name }}"
+    data-image="{% if expense.evidence_is_image %}1{% endif %}"
+    {% endif %}>
+    <div class="ef-thumb" id="ef-thumb"></div>
+    <div class="ef-file-meta">
+      <span class="ef-file-name" id="ef-file-name"></span>
+      <span class="ef-file-size" id="ef-file-size"></span>
+    </div>
+    <button type="button" class="ef-remove" id="ef-remove-btn" aria-label="Remove file"><i class="bx bx-x" aria-hidden="true"></i></button>
+  </div>
+
+  <p class="ef-error" id="ef-client-error" hidden></p>
+  {% for error in form.evidence.errors %}<p class="ef-error">{{ error }}</p>{% endfor %}
 </div>
 
 <script>
   (function () {
+    var ALLOWED = ["jpg", "jpeg", "png", "webp", "pdf"];
+    var IMAGES = ["jpg", "jpeg", "png", "webp"];
+    var MAX_BYTES = 5 * 1024 * 1024;
+
     var category = document.getElementById("{{ form.category.id_for_label }}");
-    var otherGroup = document.getElementById("ex-other-group");
+    var otherGroup = document.getElementById("ef-other-group");
     var otherInput = document.getElementById("{{ form.other_category.id_for_label }}");
     var method = document.getElementById("{{ form.payment_method.id_for_label }}");
-    var evidenceGroup = document.getElementById("ex-evidence-group");
-    var evidenceInput = document.getElementById("{{ form.evidence.id_for_label }}");
+    var refRow = document.getElementById("ef-ref-row");
+    var docGroup = document.getElementById("ef-doc-group");
+    var docInput = document.getElementById("{{ form.document_number.id_for_label }}");
+    var evidenceGroup = document.getElementById("ef-evidence-group");
+    var fileInput = document.getElementById("{{ form.evidence.id_for_label }}");
+    var drop = document.getElementById("ef-drop");
+    var preview = document.getElementById("ef-preview");
+    var thumb = document.getElementById("ef-thumb");
+    var nameEl = document.getElementById("ef-file-name");
+    var sizeEl = document.getElementById("ef-file-size");
+    var removeBtn = document.getElementById("ef-remove-btn");
+    var removeFlag = document.getElementById("ef-remove-flag");
+    var clientError = document.getElementById("ef-client-error");
+    var hadExisting = preview && preview.getAttribute("data-existing") === "1";
+    var objectUrl = null;
+
+    function extension(name) {
+      var parts = String(name).toLowerCase().split(".");
+      return parts.length > 1 ? parts.pop() : "";
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + " B";
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+      return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+    }
+
+    function showError(message) {
+      clientError.textContent = message;
+      clientError.hidden = !message;
+    }
+
+    function releaseUrl() {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        objectUrl = null;
+      }
+    }
+
+    function renderThumb(isImage, src) {
+      thumb.textContent = "";
+      if (isImage && src) {
+        var img = document.createElement("img");
+        img.src = src;
+        img.alt = "Evidence preview";
+        thumb.appendChild(img);
+      } else {
+        var icon = document.createElement("i");
+        icon.className = "bx bxs-file-pdf";
+        icon.setAttribute("aria-hidden", "true");
+        thumb.appendChild(icon);
+      }
+    }
+
+    function showPreview(isImage, src, name, size) {
+      renderThumb(isImage, src);
+      nameEl.textContent = name;
+      sizeEl.textContent = size || "";
+      preview.hidden = false;
+      drop.hidden = true;
+    }
+
+    function clearPreview() {
+      releaseUrl();
+      thumb.textContent = "";
+      preview.hidden = true;
+      drop.hidden = false;
+    }
+
+    function acceptFile(file) {
+      showError("");
+      if (!file) return;
+      var ext = extension(file.name);
+      if (ALLOWED.indexOf(ext) === -1) {
+        fileInput.value = "";
+        showError("Only JPG, PNG, WEBP or PDF files are allowed.");
+        return;
+      }
+      if (file.size > MAX_BYTES) {
+        fileInput.value = "";
+        showError("File must be 5 MB or smaller.");
+        return;
+      }
+      releaseUrl();
+      var isImage = IMAGES.indexOf(ext) !== -1;
+      if (isImage) objectUrl = URL.createObjectURL(file);
+      removeFlag.value = "0";
+      showPreview(isImage, objectUrl, file.name, formatSize(file.size));
+    }
+
+    function removeFile() {
+      fileInput.value = "";
+      showError("");
+      clearPreview();
+      removeFlag.value = hadExisting ? "1" : "0";
+    }
 
     function updateCategory() {
       if (!category || !otherGroup || !otherInput) return;
@@ -91,16 +197,78 @@
       }
     }
 
-    function updateEvidence() {
-      if (!method || !evidenceGroup) return;
-      var show = method.value !== "" && method.value !== "CASH";
-      evidenceGroup.hidden = !show;
-      if (!show && evidenceInput) evidenceInput.value = "";
+    function updateMethod() {
+      if (!method) return;
+      var isCash = method.value === "CASH";
+      docGroup.hidden = isCash;
+      evidenceGroup.hidden = isCash;
+      refRow.classList.toggle("ef-row-single", isCash);
+      if (isCash) {
+        docInput.removeAttribute("required");
+        docInput.value = "";
+        fileInput.value = "";
+        showError("");
+        if (!hadExisting) clearPreview();
+      } else if (method.value !== "") {
+        docInput.setAttribute("required", "required");
+      } else {
+        docInput.removeAttribute("required");
+      }
     }
 
+    drop.addEventListener("click", function () {
+      fileInput.click();
+    });
+
+    drop.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        fileInput.click();
+      }
+    });
+
+    ["dragenter", "dragover"].forEach(function (type) {
+      drop.addEventListener(type, function (event) {
+        event.preventDefault();
+        drop.classList.add("is-over");
+      });
+    });
+
+    ["dragleave", "drop"].forEach(function (type) {
+      drop.addEventListener(type, function (event) {
+        event.preventDefault();
+        drop.classList.remove("is-over");
+      });
+    });
+
+    drop.addEventListener("drop", function (event) {
+      var files = event.dataTransfer && event.dataTransfer.files;
+      if (!files || !files.length) return;
+      var transfer = new DataTransfer();
+      transfer.items.add(files[0]);
+      fileInput.files = transfer.files;
+      acceptFile(files[0]);
+    });
+
+    fileInput.addEventListener("change", function () {
+      acceptFile(fileInput.files && fileInput.files[0]);
+    });
+
+    removeBtn.addEventListener("click", removeFile);
+
     if (category) category.addEventListener("change", updateCategory);
-    if (method) method.addEventListener("change", updateEvidence);
+    if (method) method.addEventListener("change", updateMethod);
+
+    if (hadExisting) {
+      showPreview(
+        preview.getAttribute("data-image") === "1",
+        preview.getAttribute("data-url"),
+        preview.getAttribute("data-name").split("/").pop(),
+        ""
+      );
+    }
+
     updateCategory();
-    updateEvidence();
+    updateMethod();
   })();
 </script>

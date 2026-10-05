@@ -1,5 +1,4 @@
 from django import forms
-from django.utils import timezone
 
 from .models import (
     ALLOWED_EVIDENCE_EXTENSIONS,
@@ -9,13 +8,14 @@ from .models import (
 
 
 class ExpenseForm(forms.ModelForm):
+    remove_evidence = forms.BooleanField(required=False)
+
     class Meta:
         model = Expense
         fields = [
             "category",
             "other_category",
             "description",
-            "expense_date",
             "amount",
             "payment_method",
             "supplier_reference",
@@ -23,13 +23,12 @@ class ExpenseForm(forms.ModelForm):
             "evidence",
         ]
         labels = {
-            "expense_date": "Expense Date",
             "supplier_reference": "Supplier / Payee Reference",
-            "document_number": "Receipt / Document Number",
+            "document_number": "Receipt Number",
             "evidence": "Supporting Evidence",
         }
         help_texts = {
-            "evidence": (f"Optional. One image or PDF, up to {MAX_EVIDENCE_MB} MB."),
+            "evidence": f"Optional. One image or PDF, up to {MAX_EVIDENCE_MB} MB.",
         }
         widgets = {
             "other_category": forms.TextInput(
@@ -38,25 +37,22 @@ class ExpenseForm(forms.ModelForm):
             "description": forms.Textarea(
                 attrs={"rows": 3, "placeholder": "Describe the expense"}
             ),
-            "expense_date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
             "amount": forms.NumberInput(attrs={"step": "0.01", "min": "0.01"}),
             "supplier_reference": forms.TextInput(
                 attrs={"placeholder": "Supplier or payee name / reference"}
             ),
             "document_number": forms.TextInput(
-                attrs={"placeholder": "Receipt or document number"}
+                attrs={"placeholder": "e.g. M-Pesa or bank transaction code"}
             ),
-            "evidence": forms.ClearableFileInput(
+            "evidence": forms.FileInput(
                 attrs={
-                    "accept": ",".join(f".{ext}" for ext in ALLOWED_EVIDENCE_EXTENSIONS)
+                    "class": "ef-file-input",
+                    "accept": ",".join(
+                        f".{ext}" for ext in ALLOWED_EVIDENCE_EXTENSIONS
+                    ),
                 }
             ),
         }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["expense_date"].input_formats = ["%Y-%m-%d"]
-        self.fields["expense_date"].initial = timezone.localdate
 
     def clean_amount(self):
         amount = self.cleaned_data["amount"]
@@ -64,25 +60,36 @@ class ExpenseForm(forms.ModelForm):
             raise forms.ValidationError("Amount must be greater than zero.")
         return amount
 
-    def clean_expense_date(self):
-        expense_date = self.cleaned_data["expense_date"]
-        if expense_date > timezone.localdate():
-            raise forms.ValidationError("Expense date cannot be in the future.")
-        return expense_date
-
     def clean(self):
         cleaned = super().clean()
         category = cleaned.get("category")
         other_category = (cleaned.get("other_category") or "").strip()
+        method = cleaned.get("payment_method")
 
-        if category == Expense.OTHER and not other_category:
-            self.add_error(
-                "other_category",
-                "Specify the expense category when 'Other' is selected.",
-            )
-        elif category != Expense.OTHER:
-            cleaned["other_category"] = ""
+        if category == Expense.OTHER:
+            if not other_category:
+                self.add_error(
+                    "other_category",
+                    "Specify the expense category when 'Other' is selected.",
+                )
+            else:
+                cleaned["other_category"] = other_category
         else:
-            cleaned["other_category"] = other_category
+            cleaned["other_category"] = ""
+
+        if method == Expense.CASH:
+            cleaned["document_number"] = ""
+            cleaned["evidence"] = False
+        elif method:
+            number = (cleaned.get("document_number") or "").strip()
+            if not number:
+                self.add_error(
+                    "document_number",
+                    "Receipt number is required unless the payment is cash.",
+                )
+            else:
+                cleaned["document_number"] = number
+            if cleaned.get("remove_evidence") and not self.files.get("evidence"):
+                cleaned["evidence"] = False
 
         return cleaned
