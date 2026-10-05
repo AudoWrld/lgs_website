@@ -1334,7 +1334,7 @@ def worksheet_pdf(request, reference):
 @reception_required
 def add_expense(request):
     if request.method == "POST":
-        form = ExpenseForm(request.POST)
+        form = ExpenseForm(request.POST, request.FILES)
         if form.is_valid():
             expense = form.save(commit=False)
             expense.is_submitted = False
@@ -1352,7 +1352,7 @@ def expense_edit(request, slug):
     expense = get_object_or_404(Expense.reception_visible, slug=slug)
 
     if request.method == "POST":
-        form = ExpenseForm(request.POST, instance=expense)
+        form = ExpenseForm(request.POST, request.FILES, instance=expense)
         if form.is_valid():
             action = request.POST.get("action")
             if action == "submit":
