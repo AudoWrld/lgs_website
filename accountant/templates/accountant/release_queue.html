@@ -1,27 +1,14 @@
 {% extends 'accountant/base_accountant.html' %}
-{% load static %}
 
 {% block title %}Report Release — LGS Accountant{% endblock %}
 {% block page_title %}Report Release{% endblock %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'accountant/css/accountant_pages.css' %}" />
-{% endblock %}
-
 {% block content %}
-<div class="summary-strip">
-  <div class="summary-item is-out">
-    <span class="summary-label">COAs Waiting on Payment</span>
-    <span class="summary-value">{{ total_count }}</span>
-  </div>
-</div>
-
-<section class="card">
+<section class="card" aria-labelledby="release-heading">
   <div class="card-header">
-    <h2>Generated COAs Awaiting Release</h2>
+    <h2 id="release-heading">COAs Awaiting Release</h2>
+    <span class="badge">{{ total_count }} pending</span>
   </div>
-  <p class="help-text">These COAs are QC approved and generated. They stay locked until the balance is cleared. Authorizing release before full payment needs the release authorization record, which is not built yet.</p>
-
   {% if rows %}
   <div class="table-wrap">
     <table class="table">
@@ -29,9 +16,10 @@
         <tr>
           <th scope="col">Reference No.</th>
           <th scope="col">COA No.</th>
-          <th scope="col">Generated</th>
-          <th scope="col" class="num">Outstanding (TZS)</th>
+          <th scope="col" style="text-align:right">Outstanding (TZS)</th>
           <th scope="col">Payment Status</th>
+          <th scope="col">Credit Due</th>
+          <th scope="col">Action</th>
         </tr>
       </thead>
       <tbody>
@@ -39,15 +27,32 @@
         <tr>
           <td>{{ row.reference }}</td>
           <td>{{ row.coa_number }}</td>
-          <td>{{ row.created_at|date:"Y-m-d H:i" }}</td>
-          <td class="num">{{ row.outstanding|floatformat:"2g" }}</td>
+          <td style="text-align:right">{{ row.outstanding|floatformat:"0g" }}</td>
           <td><span class="badge badge-warning">{{ row.status }}</span></td>
+          <td>{% if row.credit_due_date %}{{ row.credit_due_date|date:"Y-m-d" }}{% else %}&mdash;{% endif %}</td>
+          <td>
+            {% if row.eligible %}
+            <a class="btn btn-primary btn-sm" href="{% url 'accountant:release_authorize' row.id %}">Review &amp; Release</a>
+            {% else %}
+            <span class="help-text">Awaiting full payment</span>
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
-  {% include 'accountant/_pagination.html' %}
+  {% if page_obj.has_other_pages %}
+  <div class="page-actions" style="margin-top:1rem">
+    {% if page_obj.has_previous %}
+    <a class="btn btn-outline btn-sm" href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Previous</a>
+    {% endif %}
+    <span class="help-text">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a class="btn btn-outline btn-sm" href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Next</a>
+    {% endif %}
+  </div>
+  {% endif %}
   {% else %}
   <p class="empty-state">No COAs are waiting on payment.</p>
   {% endif %}

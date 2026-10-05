@@ -41,7 +41,7 @@
     </div>
     <div class="page-actions">
       <button type="submit" class="btn btn-primary"><i class="bx bx-lock-open" aria-hidden="true"></i>Authorize Report Release</button>
-      <a class="btn btn-outline" href="{{ request.path }}">Reset</a>
+      <a class="btn btn-outline" href="{% url 'accountant:release_queue' %}">Cancel</a>
     </div>
   </form>
   {% else %}
