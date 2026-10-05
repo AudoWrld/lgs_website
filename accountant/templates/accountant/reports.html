@@ -9,10 +9,27 @@
 {% endblock %}
 
 {% block content %}
+<section class="rp-hero">
+  <div class="rp-hero-main">
+    <div class="rp-hero-meta">
+      <i class="bx bx-calendar" aria-hidden="true"></i>
+      <span>{{ start|date:"d M Y" }}{% if start != end %} &ndash; {{ end|date:"d M Y" }}{% endif %}</span>
+    </div>
+    <h1 class="rp-hero-title">Financial Report</h1>
+    <p class="rp-hero-sub">Report period: <strong>{{ label }}</strong></p>
+  </div>
+  <div class="rp-hero-actions">
+    <a href="{% url 'accountant:dashboard' %}" class="rp-hero-btn rp-hero-btn--ghost">
+      <i class="bx bx-home-alt" aria-hidden="true"></i> Dashboard
+    </a>
+  </div>
+</section>
+
 <form method="get" class="rp-filter" id="rp-filter">
-  {% if form.non_field_errors %}
+  {% if form.errors %}
   <ul class="rp-errors">
     {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+    {% for field in form %}{% for error in field.errors %}<li>{{ field.label }}: {{ error }}</li>{% endfor %}{% endfor %}
   </ul>
   {% endif %}
 
@@ -21,29 +38,17 @@
     {{ form.period }}
   </div>
 
-  <div>
-    <div class="rp-field" data-period="daily">
-      <label for="{{ form.date.id_for_label }}">Date</label>
-      {{ form.date }}
-    </div>
-    <div class="rp-field" data-period="monthly" hidden>
-      <label for="{{ form.month.id_for_label }}">Month</label>
-      {{ form.month }}
-    </div>
-    <div class="rp-field" data-period="yearly" hidden>
-      <label for="{{ form.year.id_for_label }}">Year</label>
-      {{ form.year }}
-    </div>
-    <div class="rp-range" data-period="custom" hidden>
-      <div class="rp-field">
-        <label for="{{ form.date_from.id_for_label }}">From</label>
-        {{ form.date_from }}
-      </div>
-      <div class="rp-field">
-        <label for="{{ form.date_to.id_for_label }}">To</label>
-        {{ form.date_to }}
-      </div>
-    </div>
+  <div class="rp-field" data-period="daily">
+    <label for="{{ form.date.id_for_label }}">Date</label>
+    {{ form.date }}
+  </div>
+  <div class="rp-field" data-period="monthly" hidden>
+    <label for="{{ form.month.id_for_label }}">Month</label>
+    {{ form.month }}
+  </div>
+  <div class="rp-field" data-period="yearly" hidden>
+    <label for="{{ form.year.id_for_label }}">Year</label>
+    {{ form.year }}
   </div>
 
   <div class="rp-actions">
@@ -52,215 +57,222 @@
   </div>
 </form>
 
-<p class="rp-period">Report period: <strong>{{ label }}</strong></p>
-
-<div class="rp-cards">
-  <a class="rp-card rp-card-in" href="#rp-payments">
-    <span class="rp-card-label">Payments Collected</span>
-    <span class="rp-card-value">TZS {{ payments_total|floatformat:"2g" }}</span>
-    <span class="rp-card-note">{{ transaction_count }} transaction{{ transaction_count|pluralize }}</span>
+<section class="rp-stats" aria-label="Report summary">
+  <a class="rp-stat" href="#rp-payments">
+    <span class="rp-stat-icon"><i class="bx bx-credit-card" aria-hidden="true"></i></span>
+    <span class="rp-stat-label">Payments Collected</span>
+    <span class="rp-stat-value" title="TZS {{ payments_total|floatformat:'2g' }}">{{ payments_total|floatformat:"0g" }}</span>
+    <span class="rp-stat-hint">TZS &middot; {{ transaction_count }} transaction{{ transaction_count|pluralize }}</span>
   </a>
-  <a class="rp-card rp-card-out" href="#rp-expenses">
-    <span class="rp-card-label">Expenses</span>
-    <span class="rp-card-value">TZS {{ expenses_total|floatformat:"2g" }}</span>
-    <span class="rp-card-note">{{ expense_count }} record{{ expense_count|pluralize }}</span>
+  <a class="rp-stat" href="#rp-expenses">
+    <span class="rp-stat-icon"><i class="bx bx-wallet" aria-hidden="true"></i></span>
+    <span class="rp-stat-label">Expenses</span>
+    <span class="rp-stat-value" title="TZS {{ expenses_total|floatformat:'2g' }}">{{ expenses_total|floatformat:"0g" }}</span>
+    <span class="rp-stat-hint">TZS &middot; {{ expense_count }} record{{ expense_count|pluralize }}</span>
   </a>
-  <div class="rp-card rp-card-net">
-    <span class="rp-card-label">Net Income</span>
-    <span class="rp-card-value">TZS {{ net_total|floatformat:"2g" }}</span>
-    <span class="rp-card-note">Payments minus expenses</span>
+  <div class="rp-stat{% if net_total < 0 %} rp-stat-negative{% endif %}">
+    <span class="rp-stat-icon"><i class="bx bx-line-chart" aria-hidden="true"></i></span>
+    <span class="rp-stat-label">Net Income</span>
+    <span class="rp-stat-value" title="TZS {{ net_total|floatformat:'2g' }}">{{ net_total|floatformat:"0g" }}</span>
+    <span class="rp-stat-hint">TZS &middot; Payments minus expenses</span>
   </div>
-  <a class="rp-card rp-card-out" href="#rp-debt">
-    <span class="rp-card-label">Outstanding Debt</span>
-    <span class="rp-card-value">TZS {{ outstanding_debt|floatformat:"2g" }}</span>
-    <span class="rp-card-note">As of today</span>
+  <a class="rp-stat{% if outstanding_debt %} rp-stat-warning{% endif %}" href="#rp-debt">
+    <span class="rp-stat-icon"><i class="bx bx-error-circle" aria-hidden="true"></i></span>
+    <span class="rp-stat-label">Outstanding Debt</span>
+    <span class="rp-stat-value" title="TZS {{ outstanding_debt|floatformat:'2g' }}">{{ outstanding_debt|floatformat:"0g" }}</span>
+    <span class="rp-stat-hint">TZS &middot; As of today</span>
   </a>
-  <a class="rp-card" href="#rp-credit">
-    <span class="rp-card-label">Credit Outstanding</span>
-    <span class="rp-card-value">TZS {{ credit_outstanding|floatformat:"2g" }}</span>
-    <span class="rp-card-note">As of today</span>
+  <a class="rp-stat{% if credit_outstanding %} rp-stat-warning{% endif %}" href="#rp-credit">
+    <span class="rp-stat-icon"><i class="bx bx-transfer" aria-hidden="true"></i></span>
+    <span class="rp-stat-label">Credit Outstanding</span>
+    <span class="rp-stat-value" title="TZS {{ credit_outstanding|floatformat:'2g' }}">{{ credit_outstanding|floatformat:"0g" }}</span>
+    <span class="rp-stat-hint">TZS &middot; As of today</span>
   </a>
+</section>
+
+<div class="rp-grid">
+  <div class="rp-col">
+    <section class="rp-panel" id="rp-payments" aria-labelledby="rp-payments-heading">
+      <div class="rp-head">
+        <h2 id="rp-payments-heading"><i class="bx bx-money" aria-hidden="true"></i> Payments Collected</h2>
+        <span class="rp-meta">{{ transaction_count }} transaction{{ transaction_count|pluralize }}</span>
+      </div>
+      {% if page_obj.object_list %}
+      <div class="rp-table-wrap">
+        <table class="rp-table">
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Reference No.</th>
+              <th scope="col" class="rp-num">Amount (TZS)</th>
+              <th scope="col">Method</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tx in page_obj.object_list %}
+            <tr>
+              <td class="rp-nowrap">{{ tx.created_at|date:"Y-m-d H:i" }}</td>
+              <td class="rp-ref">{{ tx.payment.submission.reference }}</td>
+              <td class="rp-num">{{ tx.amount|floatformat:"2g" }}</td>
+              <td>{{ tx.get_payment_method_display }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if page_obj.has_other_pages %}
+      <div class="rp-pager">
+        {% if page_obj.has_previous %}<a class="btn btn-outline btn-sm" href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}#rp-payments">Previous</a>{% endif %}
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="btn btn-outline btn-sm" href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}#rp-payments">Next</a>{% endif %}
+      </div>
+      {% endif %}
+      {% else %}
+      <p class="rp-empty">No payments collected in this period.</p>
+      {% endif %}
+    </section>
+
+    <section class="rp-panel" id="rp-expenses" aria-labelledby="rp-expenses-heading">
+      <div class="rp-head">
+        <h2 id="rp-expenses-heading"><i class="bx bx-wallet" aria-hidden="true"></i> Expenses</h2>
+        <span class="rp-meta">{{ expense_count }} record{{ expense_count|pluralize }}</span>
+      </div>
+      {% if expense_page.object_list %}
+      <div class="rp-table-wrap">
+        <table class="rp-table">
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Category</th>
+              <th scope="col">Description</th>
+              <th scope="col" class="rp-num">Amount (TZS)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for expense in expense_page.object_list %}
+            <tr>
+              <td class="rp-nowrap">{{ expense.expense_date|date:"Y-m-d" }}</td>
+              <td><span class="rp-badge">{% if expense.category == 'OTHER' and expense.other_category %}{{ expense.other_category }}{% else %}{{ expense.get_category_display }}{% endif %}</span></td>
+              <td class="rp-desc" title="{{ expense.description }}">{{ expense.description }}</td>
+              <td class="rp-num">{{ expense.amount|floatformat:"2g" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if expense_page.has_other_pages %}
+      <div class="rp-pager">
+        {% if expense_page.has_previous %}<a class="btn btn-outline btn-sm" href="?epage={{ expense_page.previous_page_number }}{% if expense_querystring %}&{{ expense_querystring }}{% endif %}#rp-expenses">Previous</a>{% endif %}
+        <span>Page {{ expense_page.number }} of {{ expense_page.paginator.num_pages }}</span>
+        {% if expense_page.has_next %}<a class="btn btn-outline btn-sm" href="?epage={{ expense_page.next_page_number }}{% if expense_querystring %}&{{ expense_querystring }}{% endif %}#rp-expenses">Next</a>{% endif %}
+      </div>
+      {% endif %}
+      {% else %}
+      <p class="rp-empty">No expenses recorded in this period.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="rp-col">
+    <section class="rp-panel" aria-labelledby="rp-channels-heading">
+      <div class="rp-head">
+        <h2 id="rp-channels-heading"><i class="bx bx-credit-card" aria-hidden="true"></i> Collections by Channel</h2>
+      </div>
+      <div class="rp-table-wrap">
+        <table class="rp-table">
+          <thead>
+            <tr>
+              <th scope="col">Channel</th>
+              <th scope="col" class="rp-num">Collected (TZS)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for channel in channels %}
+            <tr>
+              <td>{{ channel.name }}</td>
+              <td class="rp-num">{{ channel.today|floatformat:"2g" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>Total</td>
+              <td class="rp-num">{{ payments_total|floatformat:"2g" }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <section class="rp-panel" id="rp-debt" aria-labelledby="rp-debt-heading">
+      <div class="rp-head">
+        <h2 id="rp-debt-heading"><i class="bx bx-error-circle" aria-hidden="true"></i> Outstanding Debt</h2>
+        <span class="rp-meta">As of today, oldest first</span>
+      </div>
+      {% if debt_rows %}
+      <div class="rp-table-wrap">
+        <table class="rp-table">
+          <thead>
+            <tr>
+              <th scope="col">Reference No.</th>
+              <th scope="col" class="rp-num">Due (TZS)</th>
+              <th scope="col" class="rp-num">Paid (TZS)</th>
+              <th scope="col" class="rp-num">Outstanding (TZS)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for payment in debt_rows %}
+            <tr>
+              <td class="rp-ref">{{ payment.submission.reference }}</td>
+              <td class="rp-num">{{ payment.net_amount_payable|floatformat:"2g" }}</td>
+              <td class="rp-num">{{ payment.total_amount_paid|floatformat:"2g" }}</td>
+              <td class="rp-num">{{ payment.balance|floatformat:"2g" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="rp-more"><a href="{% url 'accountant:debt_credit' %}">View all outstanding balances</a></p>
+      {% else %}
+      <p class="rp-empty">No outstanding debt.</p>
+      {% endif %}
+    </section>
+
+    <section class="rp-panel" id="rp-credit" aria-labelledby="rp-credit-heading">
+      <div class="rp-head">
+        <h2 id="rp-credit-heading"><i class="bx bx-time-five" aria-hidden="true"></i> Credit Outstanding</h2>
+        <span class="rp-meta">As of today, earliest due first</span>
+      </div>
+      {% if credit_rows %}
+      <div class="rp-table-wrap">
+        <table class="rp-table">
+          <thead>
+            <tr>
+              <th scope="col">Reference No.</th>
+              <th scope="col" class="rp-num">Outstanding (TZS)</th>
+              <th scope="col">Due Date</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for payment in credit_rows %}
+            <tr>
+              <td class="rp-ref">{{ payment.submission.reference }}</td>
+              <td class="rp-num">{{ payment.balance|floatformat:"2g" }}</td>
+              <td class="rp-nowrap">{% if payment.credit_due_date %}{{ payment.credit_due_date|date:"Y-m-d" }}{% else %}<span class="rp-muted">&mdash;</span>{% endif %}</td>
+              <td><span class="rp-badge {% if payment.is_overdue %}rp-badge-danger{% else %}rp-badge-warning{% endif %}">{{ payment.credit_status }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="rp-more"><a href="{% url 'accountant:debt_credit' %}?status=credit">View all credit</a></p>
+      {% else %}
+      <p class="rp-empty">No credit outstanding.</p>
+      {% endif %}
+    </section>
+  </div>
 </div>
-
-<section class="rp-panel" aria-labelledby="rp-channels-heading">
-  <div class="rp-head">
-    <h2 id="rp-channels-heading"><i class="bx bx-credit-card" aria-hidden="true"></i> Collections by Payment Channel</h2>
-  </div>
-  <div class="rp-table-wrap">
-    <table class="rp-table">
-      <thead>
-        <tr>
-          <th scope="col">Channel</th>
-          <th scope="col" class="rp-num">Collected (TZS)</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for channel in channels %}
-        <tr>
-          <td>{{ channel.name }}</td>
-          <td class="rp-num">{{ channel.today|floatformat:"2g" }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-      <tfoot>
-        <tr>
-          <td>Total</td>
-          <td class="rp-num">{{ payments_total|floatformat:"2g" }}</td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
-</section>
-
-<section class="rp-panel" id="rp-payments" aria-labelledby="rp-payments-heading">
-  <div class="rp-head">
-    <h2 id="rp-payments-heading"><i class="bx bx-money" aria-hidden="true"></i> Payments Collected</h2>
-    <span class="rp-meta">{{ transaction_count }} transaction{{ transaction_count|pluralize }}</span>
-  </div>
-  {% if page_obj.object_list %}
-  <div class="rp-table-wrap">
-    <table class="rp-table">
-      <thead>
-        <tr>
-          <th scope="col">Date</th>
-          <th scope="col">Reference No.</th>
-          <th scope="col" class="rp-num">Amount (TZS)</th>
-          <th scope="col">Method</th>
-          <th scope="col">Receipt No.</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for tx in page_obj.object_list %}
-        <tr>
-          <td class="rp-nowrap">{{ tx.created_at|date:"Y-m-d H:i" }}</td>
-          <td class="rp-ref">{{ tx.payment.submission.reference }}</td>
-          <td class="rp-num">{{ tx.amount|floatformat:"2g" }}</td>
-          <td>{{ tx.get_payment_method_display }}</td>
-          <td><span class="rp-muted">&mdash;</span></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% if page_obj.has_other_pages %}
-  <div class="rp-pager">
-    {% if page_obj.has_previous %}<a class="btn btn-outline btn-sm" href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}#rp-payments">Previous</a>{% endif %}
-    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}<a class="btn btn-outline btn-sm" href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}#rp-payments">Next</a>{% endif %}
-  </div>
-  {% endif %}
-  {% else %}
-  <p class="rp-empty">No payments collected in this period.</p>
-  {% endif %}
-</section>
-
-<section class="rp-panel" id="rp-expenses" aria-labelledby="rp-expenses-heading">
-  <div class="rp-head">
-    <h2 id="rp-expenses-heading"><i class="bx bx-wallet" aria-hidden="true"></i> Expenses</h2>
-    <span class="rp-meta">{{ expense_count }} record{{ expense_count|pluralize }}</span>
-  </div>
-  {% if expense_page.object_list %}
-  <div class="rp-table-wrap">
-    <table class="rp-table">
-      <thead>
-        <tr>
-          <th scope="col">Date</th>
-          <th scope="col">Category</th>
-          <th scope="col">Description</th>
-          <th scope="col" class="rp-num">Amount (TZS)</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for expense in expense_page.object_list %}
-        <tr>
-          <td class="rp-nowrap">{{ expense.expense_date|date:"Y-m-d" }}</td>
-          <td><span class="rp-badge">{% if expense.category == 'OTHER' and expense.other_category %}{{ expense.other_category }}{% else %}{{ expense.get_category_display }}{% endif %}</span></td>
-          <td class="rp-desc" title="{{ expense.description }}">{{ expense.description }}</td>
-          <td class="rp-num">{{ expense.amount|floatformat:"2g" }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% if expense_page.has_other_pages %}
-  <div class="rp-pager">
-    {% if expense_page.has_previous %}<a class="btn btn-outline btn-sm" href="?epage={{ expense_page.previous_page_number }}{% if expense_querystring %}&{{ expense_querystring }}{% endif %}#rp-expenses">Previous</a>{% endif %}
-    <span>Page {{ expense_page.number }} of {{ expense_page.paginator.num_pages }}</span>
-    {% if expense_page.has_next %}<a class="btn btn-outline btn-sm" href="?epage={{ expense_page.next_page_number }}{% if expense_querystring %}&{{ expense_querystring }}{% endif %}#rp-expenses">Next</a>{% endif %}
-  </div>
-  {% endif %}
-  {% else %}
-  <p class="rp-empty">No expenses recorded in this period.</p>
-  {% endif %}
-</section>
-
-<section class="rp-panel" id="rp-debt" aria-labelledby="rp-debt-heading">
-  <div class="rp-head">
-    <h2 id="rp-debt-heading"><i class="bx bx-transfer" aria-hidden="true"></i> Outstanding Debt</h2>
-    <span class="rp-meta">As of today, oldest first</span>
-  </div>
-  {% if debt_rows %}
-  <div class="rp-table-wrap">
-    <table class="rp-table">
-      <thead>
-        <tr>
-          <th scope="col">Reference No.</th>
-          <th scope="col" class="rp-num">Amount Due (TZS)</th>
-          <th scope="col" class="rp-num">Amount Paid (TZS)</th>
-          <th scope="col" class="rp-num">Outstanding (TZS)</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for payment in debt_rows %}
-        <tr>
-          <td class="rp-ref">{{ payment.submission.reference }}</td>
-          <td class="rp-num">{{ payment.net_amount_payable|floatformat:"2g" }}</td>
-          <td class="rp-num">{{ payment.total_amount_paid|floatformat:"2g" }}</td>
-          <td class="rp-num">{{ payment.balance|floatformat:"2g" }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  <p class="rp-more"><a href="{% url 'accountant:debt_credit' %}">View all outstanding balances</a></p>
-  {% else %}
-  <p class="rp-empty">No outstanding debt.</p>
-  {% endif %}
-</section>
-
-<section class="rp-panel" id="rp-credit" aria-labelledby="rp-credit-heading">
-  <div class="rp-head">
-    <h2 id="rp-credit-heading"><i class="bx bx-time-five" aria-hidden="true"></i> Credit Outstanding</h2>
-    <span class="rp-meta">As of today, earliest due first</span>
-  </div>
-  {% if credit_rows %}
-  <div class="rp-table-wrap">
-    <table class="rp-table">
-      <thead>
-        <tr>
-          <th scope="col">Reference No.</th>
-          <th scope="col" class="rp-num">Outstanding (TZS)</th>
-          <th scope="col">Due Date</th>
-          <th scope="col">Credit Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for payment in credit_rows %}
-        <tr>
-          <td class="rp-ref">{{ payment.submission.reference }}</td>
-          <td class="rp-num">{{ payment.balance|floatformat:"2g" }}</td>
-          <td class="rp-nowrap">{% if payment.credit_due_date %}{{ payment.credit_due_date|date:"Y-m-d" }}{% else %}<span class="rp-muted">&mdash;</span>{% endif %}</td>
-          <td><span class="rp-badge {% if payment.is_overdue %}rp-badge-danger{% else %}rp-badge-warning{% endif %}">{{ payment.credit_status }}</span></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  <p class="rp-more"><a href="{% url 'accountant:debt_credit' %}?status=credit">View all credit</a></p>
-  {% else %}
-  <p class="rp-empty">No credit outstanding.</p>
-  {% endif %}
-</section>
 {% endblock %}
 
 {% block extra_js %}
@@ -273,7 +285,11 @@
     function update() {
       var current = select.value || "daily";
       groups.forEach(function (group) {
-        group.hidden = group.getAttribute("data-period") !== current;
+        var active = group.getAttribute("data-period") === current;
+        group.hidden = !active;
+        group.querySelectorAll("input, select").forEach(function (el) {
+          el.disabled = !active;
+        });
       });
     }
 

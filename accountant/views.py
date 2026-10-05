@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import DecimalField, ExpressionWrapper, F, Sum
+from django.db.models import DecimalField, ExpressionWrapper, F, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -16,13 +16,12 @@ from django.utils.dateparse import parse_date
 from accounts.decorators import accountant_required
 from coa.models import COA
 from coa.services import authorize_release, release_if_paid
+from expenses.forms import ExpenseForm
 from expenses.models import Expense
 from payments.models import Payment, PaymentAccount, PaymentTransaction
 from submissions.models import Submission
 
 from .forms import PaymentForm, ReleaseForm, ReportFilterForm
-from django.db.models import DecimalField, ExpressionWrapper, F, Q, Sum
-from expenses.forms import ExpenseForm
 
 ZERO = Decimal("0.00")
 DASH = "\u2014"
@@ -421,8 +420,13 @@ def release_authorize(request, pk):
 
 @accountant_required
 def reports(request):
-    form = ReportFilterForm(request.GET or {"period": "daily"})
+    data = request.GET.copy()
+    if not data.get("period"):
+        data["period"] = "daily"
+
+    form = ReportFilterForm(data)
     today = timezone.localdate()
+
     if form.is_valid():
         start = form.cleaned_data["start"]
         end = form.cleaned_data["end"]

@@ -1,4 +1,5 @@
-from datetime import date, timedelta
+import calendar
+from datetime import date
 from decimal import Decimal
 
 from django import forms
@@ -12,7 +13,6 @@ PERIOD_CHOICES = [
     ("daily", "Daily"),
     ("monthly", "Monthly"),
     ("yearly", "Yearly"),
-    ("custom", "Custom Range"),
 ]
 
 
@@ -83,32 +83,28 @@ class ReportFilterForm(forms.Form):
     period = forms.ChoiceField(choices=PERIOD_CHOICES, required=False)
     date = forms.DateField(
         required=False,
+        label="Date",
         widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
     )
     month = forms.DateField(
         required=False,
+        label="Month",
         input_formats=["%Y-%m"],
         widget=forms.DateInput(attrs={"type": "month"}, format="%Y-%m"),
     )
     year = forms.IntegerField(
         required=False,
+        label="Year",
         min_value=2000,
         max_value=2100,
         widget=forms.NumberInput(attrs={"placeholder": "e.g. 2026"}),
     )
-    date_from = forms.DateField(
-        required=False,
-        label="From",
-        widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
-    )
-    date_to = forms.DateField(
-        required=False,
-        label="To",
-        widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
-    )
 
     def clean(self):
         data = super().clean()
+        if self.errors:
+            return data
+
         today = timezone.localdate()
         period = data.get("period") or "daily"
 
@@ -118,21 +114,13 @@ class ReportFilterForm(forms.Form):
         elif period == "monthly":
             month = data.get("month") or today
             start = month.replace(day=1)
-            end = (start.replace(day=28) + timedelta(days=4)).replace(
-                day=1
-            ) - timedelta(days=1)
+            end = start.replace(day=calendar.monthrange(start.year, start.month)[1])
             label = start.strftime("%B %Y")
-        elif period == "yearly":
+        else:
             year = data.get("year") or today.year
             start = date(year, 1, 1)
             end = date(year, 12, 31)
             label = str(year)
-        else:
-            start = data.get("date_from") or today
-            end = data.get("date_to") or start
-            if end < start:
-                raise ValidationError("The end date cannot be before the start date.")
-            label = f"{start.isoformat()} to {end.isoformat()}"
 
         data["period"] = period
         data["start"] = start
