@@ -9,207 +9,208 @@
 {% endblock %}
 
 {% block content %}
-<section class="dash-section" aria-labelledby="dash-today-heading">
-  <h2 id="dash-today-heading" class="dash-heading">Today</h2>
-  <div class="dash-grid">
-    <a class="dash-card dash-card-in" href="{% url 'accountant:payment_list' %}">
-      <span class="dash-card-icon"><i class="bx bx-credit-card" aria-hidden="true"></i></span>
-      <span class="dash-card-label">Payments Collected Today</span>
-      <span class="dash-card-value">TZS {{ payments_today|floatformat:"0g" }}</span>
-      <span class="dash-card-link">View payments <i class="bx bx-right-arrow-alt" aria-hidden="true"></i></span>
+{% firstof request.user.first_name request.user.get_full_name "there" as display_name %}
+
+<section class="dash-hero">
+  <div class="dash-hero-main">
+    <div class="dash-hero-meta">
+      <i class="bx bx-time-five" aria-hidden="true"></i>
+      <span data-date>{% now "l, j F Y" %}</span>
+      <span class="dash-hero-divider" aria-hidden="true"></span>
+      <span><span data-time>{% now "H:i" %}</span> EAT</span>
+    </div>
+    <h1 class="dash-hero-title"><span data-greeting>Welcome back</span>, {{ display_name }}</h1>
+    <p class="dash-hero-sub">
+      {% if awaiting_release or overdue_credit %}
+        {{ awaiting_release|length }} COA{{ awaiting_release|length|pluralize }} awaiting payment release and {{ overdue_credit|length }} overdue credit account{{ overdue_credit|length|pluralize }} need your attention.
+      {% else %}
+        You're all caught up. Nothing needs your attention right now.
+      {% endif %}
+    </p>
+  </div>
+  <div class="dash-hero-actions">
+    <a href="{% url 'accountant:payment_add' %}" class="dash-hero-btn dash-hero-btn--primary">
+      <i class="bx bx-plus-circle" aria-hidden="true"></i> Record Payment
     </a>
-    <a class="dash-card dash-card-out" href="{% url 'accountant:expense_list' %}">
-      <span class="dash-card-icon"><i class="bx bx-wallet" aria-hidden="true"></i></span>
-      <span class="dash-card-label">Expenses Today</span>
-      <span class="dash-card-value">TZS {{ expenses_today|floatformat:"0g" }}</span>
-      <span class="dash-card-link">View expenses <i class="bx bx-right-arrow-alt" aria-hidden="true"></i></span>
-    </a>
-    <a class="dash-card {% if net_today < 0 %}dash-card-negative{% else %}dash-card-net{% endif %}" href="{% url 'accountant:reports' %}">
-      <span class="dash-card-icon"><i class="bx bx-trending-up" aria-hidden="true"></i></span>
-      <span class="dash-card-label">Net Income Today</span>
-      <span class="dash-card-value">TZS {{ net_today|floatformat:"0g" }}</span>
-      <span class="dash-card-link">View report <i class="bx bx-right-arrow-alt" aria-hidden="true"></i></span>
-    </a>
-    <a class="dash-card dash-card-debt" href="{% url 'accountant:debt_credit' %}">
-      <span class="dash-card-icon"><i class="bx bx-error-circle" aria-hidden="true"></i></span>
-      <span class="dash-card-label">Outstanding Debt</span>
-      <span class="dash-card-value">TZS {{ outstanding_debt|floatformat:"0g" }}</span>
-      <span class="dash-card-link">View debt <i class="bx bx-right-arrow-alt" aria-hidden="true"></i></span>
-    </a>
-    <a class="dash-card dash-card-credit" href="{% url 'accountant:debt_credit' %}">
-      <span class="dash-card-icon"><i class="bx bx-transfer" aria-hidden="true"></i></span>
-      <span class="dash-card-label">Credit Outstanding</span>
-      <span class="dash-card-value">TZS {{ credit_outstanding|floatformat:"0g" }}</span>
-      <span class="dash-card-link">View credit <i class="bx bx-right-arrow-alt" aria-hidden="true"></i></span>
+    <a href="{% url 'accountant:reports' %}" class="dash-hero-btn dash-hero-btn--ghost">
+      <i class="bx bx-bar-chart-alt-2" aria-hidden="true"></i> Reports
     </a>
   </div>
 </section>
 
-<section class="dash-section" aria-labelledby="dash-month-heading">
-  <h2 id="dash-month-heading" class="dash-heading">This Month</h2>
-  <div class="dash-grid dash-grid-3">
-    <a class="dash-card dash-card-in" href="{% url 'accountant:payment_list' %}">
-      <span class="dash-card-icon"><i class="bx bx-credit-card" aria-hidden="true"></i></span>
-      <span class="dash-card-label">Payments This Month</span>
-      <span class="dash-card-value">TZS {{ payments_month|floatformat:"0g" }}</span>
-      <span class="dash-card-link">View payments <i class="bx bx-right-arrow-alt" aria-hidden="true"></i></span>
-    </a>
-    <a class="dash-card dash-card-out" href="{% url 'accountant:expense_list' %}">
-      <span class="dash-card-icon"><i class="bx bx-wallet" aria-hidden="true"></i></span>
-      <span class="dash-card-label">Expenses This Month</span>
-      <span class="dash-card-value">TZS {{ expenses_month|floatformat:"0g" }}</span>
-      <span class="dash-card-link">View expenses <i class="bx bx-right-arrow-alt" aria-hidden="true"></i></span>
-    </a>
-    <a class="dash-card {% if net_month < 0 %}dash-card-negative{% else %}dash-card-net{% endif %}" href="{% url 'accountant:reports' %}">
-      <span class="dash-card-icon"><i class="bx bx-trending-up" aria-hidden="true"></i></span>
-      <span class="dash-card-label">Net Income This Month</span>
-      <span class="dash-card-value">TZS {{ net_month|floatformat:"0g" }}</span>
-      <span class="dash-card-link">View report <i class="bx bx-right-arrow-alt" aria-hidden="true"></i></span>
-    </a>
-  </div>
-  <p class="dash-note">Net income is actual payments collected minus actual expenses. Quotations and invoices are never counted.</p>
+<section class="dash-stats" aria-label="Today at a glance">
+  <a class="dash-stat-card" href="{% url 'accountant:payment_list' %}">
+    <span class="dash-stat-icon"><i class="bx bx-credit-card" aria-hidden="true"></i></span>
+    <div class="dash-stat-body">
+      <span class="dash-stat-label">Payments Collected Today</span>
+      <span class="dash-stat-value">{{ payments_today|floatformat:"0g" }}</span>
+      <span class="dash-stat-hint">TZS</span>
+    </div>
+  </a>
+  <a class="dash-stat-card" href="{% url 'accountant:expense_list' %}">
+    <span class="dash-stat-icon"><i class="bx bx-wallet" aria-hidden="true"></i></span>
+    <div class="dash-stat-body">
+      <span class="dash-stat-label">Expenses Today</span>
+      <span class="dash-stat-value">{{ expenses_today|floatformat:"0g" }}</span>
+      <span class="dash-stat-hint">TZS</span>
+    </div>
+  </a>
+  <a class="dash-stat-card{% if net_today < 0 %} dash-stat-negative{% endif %}" href="{% url 'accountant:reports' %}">
+    <span class="dash-stat-icon"><i class="bx bx-trending-up" aria-hidden="true"></i></span>
+    <div class="dash-stat-body">
+      <span class="dash-stat-label">Net Income Today</span>
+      <span class="dash-stat-value">{{ net_today|floatformat:"0g" }}</span>
+      <span class="dash-stat-hint">{% if net_today < 0 %}Negative balance{% else %}TZS{% endif %}</span>
+    </div>
+  </a>
+  <a class="dash-stat-card{% if outstanding_debt %} dash-stat-warning{% endif %}" href="{% url 'accountant:debt_credit' %}">
+    <span class="dash-stat-icon"><i class="bx bx-error-circle" aria-hidden="true"></i></span>
+    <div class="dash-stat-body">
+      <span class="dash-stat-label">Outstanding Debt</span>
+      <span class="dash-stat-value">{{ outstanding_debt|floatformat:"0g" }}</span>
+      <span class="dash-stat-hint">{% if outstanding_debt %}Needs follow-up{% else %}All clear{% endif %}</span>
+    </div>
+  </a>
+  <a class="dash-stat-card{% if credit_outstanding %} dash-stat-warning{% endif %}" href="{% url 'accountant:debt_credit' %}">
+    <span class="dash-stat-icon"><i class="bx bx-transfer" aria-hidden="true"></i></span>
+    <div class="dash-stat-body">
+      <span class="dash-stat-label">Credit Outstanding</span>
+      <span class="dash-stat-value">{{ credit_outstanding|floatformat:"0g" }}</span>
+      <span class="dash-stat-hint">{% if credit_outstanding %}Needs follow-up{% else %}All clear{% endif %}</span>
+    </div>
+  </a>
 </section>
 
-<div class="dash-columns">
-  <section class="card dash-panel" aria-labelledby="dash-channels-heading">
-    <div class="card-header">
-      <h2 id="dash-channels-heading">Collections by Channel</h2>
-    </div>
-    <div class="table-wrap">
-      <table class="table">
-        <thead>
-          <tr>
-            <th scope="col">Channel</th>
-            <th scope="col" class="dash-num">Today (TZS)</th>
-            <th scope="col" class="dash-num">This Month (TZS)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for channel in channels %}
-          <tr>
-            <td>{{ channel.name }}</td>
-            <td class="dash-num">{{ channel.today|floatformat:"0g" }}</td>
-            <td class="dash-num">{{ channel.month|floatformat:"0g" }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </section>
+<div class="dash-grid">
+  <div class="dash-col">
+    <section class="dash-panel" aria-labelledby="dash-month-heading">
+      <div class="dash-panel-head">
+        <h3 id="dash-month-heading"><i class="bx bx-calendar" aria-hidden="true"></i> This Month</h3>
+        <span>Actual payments minus actual expenses</span>
+      </div>
+      <div class="dash-month">
+        <a class="dash-month-item" href="{% url 'accountant:payment_list' %}">
+          <span class="dash-month-label">Payments</span>
+          <span class="dash-month-value">TZS {{ payments_month|floatformat:"0g" }}</span>
+        </a>
+        <a class="dash-month-item" href="{% url 'accountant:expense_list' %}">
+          <span class="dash-month-label">Expenses</span>
+          <span class="dash-month-value">TZS {{ expenses_month|floatformat:"0g" }}</span>
+        </a>
+        <a class="dash-month-item{% if net_month < 0 %} dash-month-negative{% endif %}" href="{% url 'accountant:reports' %}">
+          <span class="dash-month-label">Net Income</span>
+          <span class="dash-month-value">TZS {{ net_month|floatformat:"0g" }}</span>
+        </a>
+      </div>
+      <p class="dash-note">Quotations and invoices are never counted.</p>
+    </section>
 
-  <section class="card dash-panel" aria-labelledby="dash-actions-heading">
-    <div class="card-header">
-      <h2 id="dash-actions-heading">Quick Actions</h2>
-    </div>
-    <div class="dash-actions">
-      <a class="btn btn-primary" href="{% url 'accountant:payment_add' %}"><i class="bx bx-plus-circle" aria-hidden="true"></i>Record Payment</a>
-      <a class="btn btn-secondary" href="{% url 'accountant:expense_list' %}"><i class="bx bx-wallet" aria-hidden="true"></i>Expenses</a>
-      <a class="btn btn-outline" href="{% url 'accountant:quotation_list' %}"><i class="bx bx-file" aria-hidden="true"></i>Quotations</a>
-      <a class="btn btn-outline" href="{% url 'accountant:invoice_list' %}"><i class="bx bx-file-blank" aria-hidden="true"></i>Invoices</a>
-    </div>
-  </section>
-</div>
+    <section class="dash-panel" aria-labelledby="dash-channels-heading">
+      <div class="dash-panel-head">
+        <h3 id="dash-channels-heading"><i class="bx bx-line-chart" aria-hidden="true"></i> Collections by Channel</h3>
+        <span>Today and this month</span>
+      </div>
+      <div class="dash-table-wrap">
+        <table class="dash-table">
+          <thead>
+            <tr>
+              <th scope="col">Channel</th>
+              <th scope="col" class="dash-num">Today (TZS)</th>
+              <th scope="col" class="dash-num">This Month (TZS)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for channel in channels %}
+            <tr>
+              <td>{{ channel.name }}</td>
+              <td class="dash-num">{{ channel.today|floatformat:"0g" }}</td>
+              <td class="dash-num">{{ channel.month|floatformat:"0g" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-<section class="card dash-panel" aria-labelledby="dash-release-heading">
-  <div class="card-header">
-    <h2 id="dash-release-heading">COAs Awaiting Release</h2>
-    {% if perms.coa.authorize_release %}
-    <a class="btn btn-outline btn-sm" href="{% url 'accountant:release_queue' %}">Open release queue</a>
-    {% endif %}
-  </div>
-  {% if awaiting_release %}
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th scope="col">Reference No.</th>
-          <th scope="col">COA No.</th>
-          <th scope="col" class="dash-num">Outstanding (TZS)</th>
-          <th scope="col">Payment Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in awaiting_release %}
-        <tr>
-          <td><a href="{% url 'accountant:reference_list' %}?q={{ row.reference|urlencode }}">{{ row.reference }}</a></td>
-          <td>{{ row.coa_number }}</td>
-          <td class="dash-num">{{ row.outstanding|floatformat:"0g" }}</td>
-          <td><span class="badge badge-warning">{{ row.status }}</span></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <p class="empty-state">No COAs are waiting on payment.</p>
-  {% endif %}
-</section>
-
-<section class="card dash-panel" aria-labelledby="dash-overdue-heading">
-  <div class="card-header">
-    <h2 id="dash-overdue-heading">Overdue Credit</h2>
-    <a class="btn btn-outline btn-sm" href="{% url 'accountant:debt_credit' %}">View all</a>
-  </div>
-  {% if overdue_credit %}
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th scope="col">Reference No.</th>
-          <th scope="col" class="dash-num">Outstanding (TZS)</th>
-          <th scope="col">Due Date</th>
-          <th scope="col" class="dash-num">Days Overdue</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in overdue_credit %}
-        <tr>
-          <td><a href="{% url 'accountant:reference_list' %}?q={{ row.reference|urlencode }}">{{ row.reference }}</a></td>
-          <td class="dash-num">{{ row.outstanding|floatformat:"0g" }}</td>
-          <td>{{ row.due_date|date:"Y-m-d" }}</td>
-          <td class="dash-num"><span class="badge badge-danger">{{ row.days_overdue }}</span></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <p class="empty-state">No overdue credit.</p>
-  {% endif %}
-</section>
-
-<section class="card dash-panel" aria-labelledby="dash-recent-heading">
-  <div class="card-header">
-    <h2 id="dash-recent-heading">Recent Payments</h2>
-    <a class="btn btn-outline btn-sm" href="{% url 'accountant:payment_list' %}">View all</a>
-  </div>
-  {% if recent_payments %}
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th scope="col">Date</th>
-          <th scope="col">Reference No.</th>
-          <th scope="col" class="dash-num">Amount (TZS)</th>
-          <th scope="col">Method</th>
-          <th scope="col">Receipt No.</th>
-        </tr>
-      </thead>
-      <tbody>
+    <section class="dash-panel" aria-labelledby="dash-recent-heading">
+      <div class="dash-panel-head">
+        <h3 id="dash-recent-heading"><i class="bx bx-receipt" aria-hidden="true"></i> Recent Payments</h3>
+        <a href="{% url 'accountant:payment_list' %}" class="dash-link">View all</a>
+      </div>
+      {% if recent_payments %}
+      <ul class="dash-list">
         {% for row in recent_payments %}
-        <tr>
-          <td>{{ row.payment_date|date:"Y-m-d" }}</td>
-          <td><a href="{% url 'accountant:reference_list' %}?q={{ row.reference|urlencode }}">{{ row.reference }}</a></td>
-          <td class="dash-num">{{ row.amount|floatformat:"0g" }}</td>
-          <td>{{ row.method }}</td>
-          <td>{{ row.receipt_number }}</td>
-        </tr>
+        <li class="dash-list-item">
+          <a class="dash-list-ref" href="{% url 'accountant:reference_list' %}?q={{ row.reference|urlencode }}">{{ row.reference }}</a>
+          <span class="dash-list-text">TZS {{ row.amount|floatformat:"0g" }} · {{ row.method }}</span>
+          <span class="dash-list-meta">{{ row.payment_date|date:"d M Y H:i" }}</span>
+        </li>
         {% endfor %}
-      </tbody>
-    </table>
+      </ul>
+      {% else %}
+      <p class="dash-empty">No payments recorded yet.</p>
+      {% endif %}
+    </section>
   </div>
-  {% else %}
-  <p class="empty-state">No payments recorded yet.</p>
-  {% endif %}
-</section>
+
+  <div class="dash-col">
+    <section class="dash-panel" aria-labelledby="dash-actions-heading">
+      <div class="dash-panel-head">
+        <h3 id="dash-actions-heading"><i class="bx bx-bolt-circle" aria-hidden="true"></i> Quick Actions</h3>
+      </div>
+      <div class="dash-actions">
+        <a class="btn btn-primary" href="{% url 'accountant:payment_add' %}"><i class="bx bx-plus-circle" aria-hidden="true"></i>Record Payment</a>
+        <a class="btn btn-secondary" href="{% url 'accountant:expense_list' %}"><i class="bx bx-wallet" aria-hidden="true"></i>Expenses</a>
+        <a class="btn btn-outline" href="{% url 'accountant:quotation_list' %}"><i class="bx bx-file" aria-hidden="true"></i>Quotations</a>
+        <a class="btn btn-outline" href="{% url 'accountant:invoice_list' %}"><i class="bx bx-file-blank" aria-hidden="true"></i>Invoices</a>
+      </div>
+    </section>
+
+    <section class="dash-panel" aria-labelledby="dash-release-heading">
+      <div class="dash-panel-head">
+        <h3 id="dash-release-heading"><i class="bx bx-lock-open-alt" aria-hidden="true"></i> COAs Awaiting Release</h3>
+        {% if perms.coa.authorize_release %}
+        <a href="{% url 'accountant:release_queue' %}" class="dash-link">Open queue</a>
+        {% endif %}
+      </div>
+      {% if awaiting_release %}
+      <ul class="dash-list">
+        {% for row in awaiting_release %}
+        <li class="dash-list-item">
+          <a class="dash-list-ref" href="{% url 'accountant:reference_list' %}?q={{ row.reference|urlencode }}">{{ row.reference }}</a>
+          <span class="dash-list-text">{{ row.coa_number }} · TZS {{ row.outstanding|floatformat:"0g" }}</span>
+          <span class="dash-badge dash-badge-warning">{{ row.status }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="dash-empty">No COAs are waiting on payment.</p>
+      {% endif %}
+    </section>
+
+    <section class="dash-panel" aria-labelledby="dash-overdue-heading">
+      <div class="dash-panel-head">
+        <h3 id="dash-overdue-heading"><i class="bx bx-alarm-exclamation" aria-hidden="true"></i> Overdue Credit</h3>
+        <a href="{% url 'accountant:debt_credit' %}" class="dash-link">View all</a>
+      </div>
+      {% if overdue_credit %}
+      <ul class="dash-list">
+        {% for row in overdue_credit %}
+        <li class="dash-list-item">
+          <a class="dash-list-ref" href="{% url 'accountant:reference_list' %}?q={{ row.reference|urlencode }}">{{ row.reference }}</a>
+          <span class="dash-list-text">TZS {{ row.outstanding|floatformat:"0g" }} · due {{ row.due_date|date:"d M Y" }}</span>
+          <span class="dash-badge dash-badge-danger">{{ row.days_overdue }} day{{ row.days_overdue|pluralize }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="dash-empty">No overdue credit.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'accountant/js/dashboard.js' %}" defer></script>
 {% endblock %}
