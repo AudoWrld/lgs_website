@@ -1,0 +1,44 @@
+{% extends 'accountant/base_accountant.html' %}
+{% load static %}
+
+{% block title %}Edit Expense — LGS Accountant{% endblock %}
+{% block page_title %}Edit Expense{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'accountant/css/expenses.css' %}" />
+{% endblock %}
+
+{% block content %}
+<section class="ex-panel ex-narrow" aria-labelledby="ex-form-heading">
+  <div class="ex-head">
+    <h2 id="ex-form-heading"><i class="bx bx-edit" aria-hidden="true"></i> Draft Expense</h2>
+    <span class="ex-badge ex-badge-warning">Draft — not yet counted</span>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="ex-form" novalidate>
+    {% csrf_token %}
+    {% include 'accountant/_expense_fields.html' %}
+
+    <div class="ex-actions">
+      <button type="submit" name="action" value="save" class="btn btn-secondary"><i class="bx bx-save" aria-hidden="true"></i>Save Changes</button>
+      <button type="submit" name="action" value="submit" class="btn btn-primary" id="ex-submit-btn"><i class="bx bx-check-circle" aria-hidden="true"></i>Submit Expense</button>
+      <a class="btn btn-outline" href="{% url 'accountant:expense_list' %}">Back</a>
+    </div>
+    <p class="ex-help">Check the details carefully before submitting. Submitted expenses cannot be edited and are included in income reports.</p>
+  </form>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    var button = document.getElementById("ex-submit-btn");
+    if (!button) return;
+    button.addEventListener("click", function (event) {
+      if (!window.confirm("Submit this expense? It cannot be edited after submission.")) {
+        event.preventDefault();
+      }
+    });
+  })();
+</script>
+{% endblock %}

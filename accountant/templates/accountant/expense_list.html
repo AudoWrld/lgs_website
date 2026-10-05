@@ -1,0 +1,115 @@
+{% extends 'accountant/base_accountant.html' %}
+{% load static %}
+
+{% block title %}Expenses — LGS Accountant{% endblock %}
+{% block page_title %}Expenses{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'accountant/css/expenses.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="ex-summary">
+  <div class="ex-stat ex-stat-out">
+    <span class="ex-stat-label">Total Expenses (filtered)</span>
+    <span class="ex-stat-value">TZS {{ total_amount|floatformat:"2g" }}</span>
+  </div>
+  <div class="ex-stat">
+    <span class="ex-stat-label">Expense Records</span>
+    <span class="ex-stat-value">{{ total_count }}</span>
+  </div>
+</div>
+
+{% if my_drafts %}
+<section class="ex-panel" aria-labelledby="ex-drafts-heading">
+  <div class="ex-head">
+    <h2 id="ex-drafts-heading"><i class="bx bx-edit" aria-hidden="true"></i> My Drafts</h2>
+    <span class="ex-legend">Not counted until submitted</span>
+  </div>
+  <ul class="ex-drafts">
+    {% for draft in my_drafts %}
+    <li>
+      <div>
+        <strong>{{ draft.get_category_display }}</strong>
+        <span>TZS {{ draft.amount|floatformat:"2g" }}</span>
+      </div>
+      <a class="btn btn-outline btn-sm" href="{% url 'accountant:expense_edit' draft.slug %}">Continue</a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="ex-panel">
+  <div class="ex-head">
+    <h2><i class="bx bx-receipt" aria-hidden="true"></i> Expense History</h2>
+    <a class="btn btn-primary" href="{% url 'accountant:expense_add' %}"><i class="bx bx-plus" aria-hidden="true"></i>Add Expense</a>
+  </div>
+
+  <form method="get" class="ex-filter">
+    <div class="ex-group">
+      <label for="ex-q">Search</label>
+      <input type="search" id="ex-q" name="q" value="{{ query }}" placeholder="Description, payee or document no." autocomplete="off" />
+    </div>
+    <div class="ex-group">
+      <label for="ex-category">Category</label>
+      <select id="ex-category" name="category">
+        <option value="">All categories</option>
+        {% for code, label in categories %}
+        <option value="{{ code }}" {% if code == category %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="ex-group">
+      <label for="ex-from">From</label>
+      <input type="date" id="ex-from" name="from" value="{{ date_from }}" />
+    </div>
+    <div class="ex-group">
+      <label for="ex-to">To</label>
+      <input type="date" id="ex-to" name="to" value="{{ date_to }}" />
+    </div>
+    <div class="ex-filter-actions">
+      <button type="submit" class="btn btn-secondary"><i class="bx bx-filter-alt" aria-hidden="true"></i>Filter</button>
+      <a class="btn btn-outline" href="{% url 'accountant:expense_list' %}">Clear</a>
+    </div>
+  </form>
+
+  {% if page_obj.object_list %}
+  <div class="ex-table-wrap">
+    <table class="ex-table">
+      <thead>
+        <tr>
+          <th scope="col">Date</th>
+          <th scope="col">Category</th>
+          <th scope="col">Description</th>
+          <th scope="col">Payee Ref.</th>
+          <th scope="col">Document No.</th>
+          <th scope="col">Method</th>
+          <th scope="col" class="ex-num">Amount (TZS)</th>
+          <th scope="col">Evidence</th>
+          <th scope="col">Recorded By</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for expense in page_obj.object_list %}
+        <tr>
+          <td data-label="Date" class="ex-date">{{ expense.expense_date|date:"Y-m-d" }}</td>
+          <td data-label="Category"><span class="ex-badge">{% if expense.category == 'OTHER' and expense.other_category %}{{ expense.other_category }}{% else %}{{ expense.get_category_display }}{% endif %}</span></td>
+          <td data-label="Description" class="ex-desc">{{ expense.description }}</td>
+          <td data-label="Payee Ref.">{% if expense.supplier_reference %}{{ expense.supplier_reference }}{% else %}<span class="ex-muted">—</span>{% endif %}</td>
+          <td data-label="Document No.">{% if expense.document_number %}{{ expense.document_number }}{% else %}<span class="ex-muted">—</span>{% endif %}</td>
+          <td data-label="Method">{{ expense.get_payment_method_display }}</td>
+          <td data-label="Amount (TZS)" class="ex-num ex-amount">{{ expense.amount|floatformat:"2g" }}</td>
+          <td data-label="Evidence">{% if expense.evidence %}<a class="ex-link" href="{{ expense.evidence.url }}" target="_blank" rel="noopener"><i class="bx bx-paperclip" aria-hidden="true"></i> View</a>{% else %}<span class="ex-muted">—</span>{% endif %}</td>
+          <td data-label="Recorded By">{% with name=expense.added_by.get_full_name %}{% if name %}{{ name }}{% else %}<span class="ex-muted">—</span>{% endif %}{% endwith %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include 'accountant/_pagination.html' %}
+  {% else %}
+  <p class="ex-empty">No expenses found.</p>
+  {% endif %}
+</section>
+{% endblock %}

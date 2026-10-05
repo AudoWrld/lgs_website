@@ -1,0 +1,106 @@
+{% if form.non_field_errors %}
+<ul class="ex-errors">
+  {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+</ul>
+{% endif %}
+
+<div class="ex-row">
+  <div class="ex-group">
+    <label for="{{ form.category.id_for_label }}">Category <span class="ex-req" aria-hidden="true">*</span><span class="ex-sr">required</span></label>
+    {{ form.category }}
+    {% for error in form.category.errors %}<p class="ex-error">{{ error }}</p>{% endfor %}
+  </div>
+  <div class="ex-group" id="ex-other-group">
+    <label for="{{ form.other_category.id_for_label }}">Specify Category <span class="ex-req" aria-hidden="true">*</span><span class="ex-sr">required</span></label>
+    {{ form.other_category }}
+    {% for error in form.other_category.errors %}<p class="ex-error">{{ error }}</p>{% endfor %}
+  </div>
+</div>
+
+<div class="ex-group">
+  <label for="{{ form.description.id_for_label }}">Description <span class="ex-req" aria-hidden="true">*</span><span class="ex-sr">required</span></label>
+  {{ form.description }}
+  {% for error in form.description.errors %}<p class="ex-error">{{ error }}</p>{% endfor %}
+</div>
+
+<div class="ex-row">
+  <div class="ex-group">
+    <label for="{{ form.expense_date.id_for_label }}">Expense Date <span class="ex-req" aria-hidden="true">*</span><span class="ex-sr">required</span></label>
+    {{ form.expense_date }}
+    {% for error in form.expense_date.errors %}<p class="ex-error">{{ error }}</p>{% endfor %}
+  </div>
+  <div class="ex-group">
+    <label for="{{ form.amount.id_for_label }}">Amount (TZS) <span class="ex-req" aria-hidden="true">*</span><span class="ex-sr">required</span></label>
+    {{ form.amount }}
+    {% for error in form.amount.errors %}<p class="ex-error">{{ error }}</p>{% endfor %}
+  </div>
+</div>
+
+<div class="ex-group">
+  <label for="{{ form.payment_method.id_for_label }}">Payment Method <span class="ex-req" aria-hidden="true">*</span><span class="ex-sr">required</span></label>
+  {{ form.payment_method }}
+  {% for error in form.payment_method.errors %}<p class="ex-error">{{ error }}</p>{% endfor %}
+</div>
+
+<div class="ex-row">
+  <div class="ex-group">
+    <label for="{{ form.supplier_reference.id_for_label }}">Supplier / Payee Reference <span class="ex-optional">(optional)</span></label>
+    {{ form.supplier_reference }}
+    {% for error in form.supplier_reference.errors %}<p class="ex-error">{{ error }}</p>{% endfor %}
+  </div>
+  <div class="ex-group">
+    <label for="{{ form.document_number.id_for_label }}">Receipt / Document Number <span class="ex-optional">(optional)</span></label>
+    {{ form.document_number }}
+    {% for error in form.document_number.errors %}<p class="ex-error">{{ error }}</p>{% endfor %}
+  </div>
+</div>
+
+<div class="ex-group" id="ex-evidence-group">
+  <label for="{{ form.evidence.id_for_label }}">Supporting Evidence <span class="ex-optional">(optional)</span></label>
+  {% if expense and expense.evidence %}
+  <div class="ex-current">
+    {% if expense.evidence_is_image %}
+    <a href="{{ expense.evidence.url }}" target="_blank" rel="noopener"><img src="{{ expense.evidence.url }}" alt="Current evidence" /></a>
+    {% endif %}
+    <span>Current file: <a href="{{ expense.evidence.url }}" target="_blank" rel="noopener">View</a></span>
+  </div>
+  {% endif %}
+  {{ form.evidence }}
+  <p class="ex-help">{{ form.evidence.help_text }}</p>
+  {% for error in form.evidence.errors %}<p class="ex-error">{{ error }}</p>{% endfor %}
+</div>
+
+<script>
+  (function () {
+    var category = document.getElementById("{{ form.category.id_for_label }}");
+    var otherGroup = document.getElementById("ex-other-group");
+    var otherInput = document.getElementById("{{ form.other_category.id_for_label }}");
+    var method = document.getElementById("{{ form.payment_method.id_for_label }}");
+    var evidenceGroup = document.getElementById("ex-evidence-group");
+    var evidenceInput = document.getElementById("{{ form.evidence.id_for_label }}");
+
+    function updateCategory() {
+      if (!category || !otherGroup || !otherInput) return;
+      var isOther = category.value === "OTHER";
+      otherGroup.hidden = !isOther;
+      if (isOther) {
+        otherInput.setAttribute("required", "required");
+      } else {
+        otherInput.removeAttribute("required");
+        otherInput.value = "";
+      }
+    }
+
+    function updateEvidence() {
+      if (!method || !evidenceGroup) return;
+      var show = method.value !== "" && method.value !== "CASH";
+      evidenceGroup.hidden = !show;
+      if (!show && evidenceInput) evidenceInput.value = "";
+    }
+
+    if (category) category.addEventListener("change", updateCategory);
+    if (method) method.addEventListener("change", updateEvidence);
+    updateCategory();
+    updateEvidence();
+  })();
+</script>
