@@ -1,0 +1,100 @@
+{% extends 'accountant/base_accountant.html' %}
+{% load static %}
+
+{% block title %}Quotations — LGS Accountant{% endblock %}
+{% block page_title %}Quotations{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'accountant/css/quotations.css' %}" />
+{% endblock %}
+
+{% block content %}
+<header class="qt-banner">
+  <div class="qt-banner-icon"><i class="bx bx-file" aria-hidden="true"></i></div>
+  <div class="qt-banner-text">
+    <h1 class="qt-banner-title">Quotations</h1>
+    <p class="qt-banner-sub">Proposed price documents. Never counted as money collected.</p>
+  </div>
+  <div class="qt-banner-side">
+    <a class="btn btn-primary" href="{% url 'accountant:quotation_add' %}"><i class="bx bx-plus-circle" aria-hidden="true"></i>New Quotation</a>
+  </div>
+</header>
+
+<form method="get" class="qt-filter">
+  {% if form.errors %}
+  <ul class="qt-errors">
+    {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+    {% for field in form %}{% for error in field.errors %}<li>{{ field.label }}: {{ error }}</li>{% endfor %}{% endfor %}
+  </ul>
+  {% endif %}
+
+  <div class="qt-field">
+    <label for="{{ form.q.id_for_label }}">{{ form.q.label }}</label>
+    {{ form.q }}
+  </div>
+  <div class="qt-field">
+    <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
+    {{ form.status }}
+  </div>
+  <div class="qt-field">
+    <label for="{{ form.date_from.id_for_label }}">{{ form.date_from.label }}</label>
+    {{ form.date_from }}
+  </div>
+  <div class="qt-field">
+    <label for="{{ form.date_to.id_for_label }}">{{ form.date_to.label }}</label>
+    {{ form.date_to }}
+  </div>
+  <div class="qt-actions">
+    <button type="submit" class="btn btn-secondary"><i class="bx bx-filter-alt" aria-hidden="true"></i>Filter</button>
+    <a class="btn btn-outline" href="{% url 'accountant:quotation_list' %}">Reset</a>
+  </div>
+</form>
+
+<section class="qt-panel" aria-labelledby="qt-list-heading">
+  <div class="qt-head">
+    <h2 id="qt-list-heading"><i class="bx bx-list-ul" aria-hidden="true"></i> All Quotations</h2>
+    <span class="qt-meta">{{ total_count }} quotation{{ total_count|pluralize }}</span>
+  </div>
+
+  {% if rows %}
+  <div class="qt-table-wrap">
+    <table class="qt-table">
+      <thead>
+        <tr>
+          <th scope="col">Quotation No.</th>
+          <th scope="col">Date</th>
+          <th scope="col">Valid Until</th>
+          <th scope="col">Status</th>
+          <th scope="col" class="qt-num">Total (TZS)</th>
+          <th scope="col">Created By</th>
+          <th scope="col"><span class="qt-sr">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="qt-ref"><a href="{% url 'accountant:quotation_detail' row.quotation.pk %}">{{ row.quotation.quotation_number }}</a></td>
+          <td class="qt-nowrap">{{ row.quotation.quotation_date|date:"Y-m-d" }}</td>
+          <td class="qt-nowrap">{{ row.quotation.valid_until|date:"Y-m-d" }}</td>
+          <td><span class="qt-badge qt-badge-{{ row.quotation.effective_status|lower }}">{{ row.quotation.effective_status_display }}</span></td>
+          <td class="qt-num">{{ row.total|floatformat:"2g" }}</td>
+          <td>{{ row.quotation.created_by.get_full_name|default:row.quotation.created_by.get_username }}</td>
+          <td class="qt-num"><a class="btn btn-outline btn-sm" href="{% url 'accountant:quotation_detail' row.quotation.pk %}">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <div class="qt-pager">
+    {% if page_obj.has_previous %}<a class="btn btn-outline btn-sm" href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Previous</a>{% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a class="btn btn-outline btn-sm" href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Next</a>{% endif %}
+  </div>
+  {% endif %}
+  {% else %}
+  <p class="qt-empty">No quotations found.</p>
+  {% endif %}
+</section>
+{% endblock %}

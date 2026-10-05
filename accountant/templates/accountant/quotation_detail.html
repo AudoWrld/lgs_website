@@ -1,0 +1,142 @@
+{% extends 'accountant/base_accountant.html' %}
+{% load static %}
+
+{% block title %}{{ quotation.quotation_number }} — LGS Accountant{% endblock %}
+{% block page_title %}Quotation{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'accountant/css/quotations.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="qt-print-head">
+  <strong>LGS Portal</strong>
+  <span>Quotation</span>
+</div>
+
+<header class="qt-banner">
+  <div class="qt-banner-icon"><i class="bx bx-file" aria-hidden="true"></i></div>
+  <div class="qt-banner-text">
+    <h1 class="qt-banner-title">{{ quotation.quotation_number }}</h1>
+    <p class="qt-banner-sub">
+      <span class="qt-badge qt-badge-{{ status|lower }}">{{ status_display }}</span>
+      &nbsp;Valid until {{ quotation.valid_until|date:"d M Y" }}
+    </p>
+  </div>
+  <div class="qt-banner-side qt-noprint">
+    <a class="btn btn-outline" href="{% url 'accountant:quotation_list' %}"><i class="bx bx-arrow-back" aria-hidden="true"></i>Back</a>
+    {% if can_edit %}<a class="btn btn-outline" href="{% url 'accountant:quotation_edit' quotation.pk %}"><i class="bx bx-edit" aria-hidden="true"></i>Edit</a>{% endif %}
+    {% if can_send %}
+    <form method="post" action="{% url 'accountant:quotation_send' quotation.pk %}" class="qt-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-secondary"><i class="bx bx-send" aria-hidden="true"></i>Mark as Sent</button>
+    </form>
+    {% endif %}
+    {% if can_accept %}
+    <form method="post" action="{% url 'accountant:quotation_accept' quotation.pk %}" class="qt-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary"><i class="bx bx-check-circle" aria-hidden="true"></i>Mark as Accepted</button>
+    </form>
+    {% endif %}
+    {% if can_expire %}
+    <form method="post" action="{% url 'accountant:quotation_expire' quotation.pk %}" class="qt-inline" onsubmit="return confirm('Mark this quotation as expired?');">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline qt-danger"><i class="bx bx-time" aria-hidden="true"></i>Expire</button>
+    </form>
+    {% endif %}
+    <button type="button" class="btn btn-outline" onclick="window.print()"><i class="bx bx-printer" aria-hidden="true"></i>Print</button>
+  </div>
+</header>
+
+<section class="qt-panel" aria-labelledby="qt-summary-heading">
+  <div class="qt-head">
+    <h2 id="qt-summary-heading"><i class="bx bx-info-circle" aria-hidden="true"></i> Summary</h2>
+  </div>
+  <dl class="qt-summary">
+    <div><dt>Quotation No.</dt><dd>{{ quotation.quotation_number }}</dd></div>
+    <div><dt>Date</dt><dd>{{ quotation.quotation_date|date:"d M Y" }}</dd></div>
+    <div><dt>Valid Until</dt><dd>{{ quotation.valid_until|date:"d M Y" }}</dd></div>
+    <div><dt>Status</dt><dd>{{ status_display }}</dd></div>
+    {% if quotation.client_label %}<div><dt>Internal Label</dt><dd>{{ quotation.client_label }}</dd></div>{% endif %}
+    <div><dt>Created By</dt><dd>{{ quotation.created_by.get_full_name|default:quotation.created_by.get_username }}</dd></div>
+    {% if quotation.sent_at %}<div><dt>Sent</dt><dd>{{ quotation.sent_at|date:"d M Y H:i" }}</dd></div>{% endif %}
+    {% if quotation.accepted_at %}<div><dt>Accepted</dt><dd>{{ quotation.accepted_at|date:"d M Y H:i" }}</dd></div>{% endif %}
+    {% if quotation.updated_by %}<div><dt>Last Updated By</dt><dd>{{ quotation.updated_by.get_full_name|default:quotation.updated_by.get_username }}</dd></div>{% endif %}
+  </dl>
+</section>
+
+<section class="qt-panel" aria-labelledby="qt-lines-heading">
+  <div class="qt-head">
+    <h2 id="qt-lines-heading"><i class="bx bx-list-check" aria-hidden="true"></i> Requested Services</h2>
+    <span class="qt-meta">{{ items|length }} item{{ items|length|pluralize }}</span>
+  </div>
+  {% if items %}
+  <div class="qt-table-wrap">
+    <table class="qt-table">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Service</th>
+          <th scope="col" class="qt-num">Qty / Samples</th>
+          <th scope="col" class="qt-num">Unit Price (TZS)</th>
+          <th scope="col" class="qt-num">Line Total (TZS)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td class="qt-nowrap">{{ forloop.counter }}</td>
+          <td>
+            {{ item.service }}
+            {% if item.description %}<span class="qt-sub">{{ item.description }}</span>{% endif %}
+          </td>
+          <td class="qt-num">{{ item.quantity }}</td>
+          <td class="qt-num">{{ item.unit_price|floatformat:"2g" }}</td>
+          <td class="qt-num">{{ item.line_total|floatformat:"2g" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4" class="qt-num">Subtotal</td>
+          <td class="qt-num">{{ subtotal|floatformat:"2g" }}</td>
+        </tr>
+        <tr>
+          <td colspan="4" class="qt-num">Discount</td>
+          <td class="qt-num">{{ quotation.discount|floatformat:"2g" }}</td>
+        </tr>
+        <tr class="qt-grand">
+          <td colspan="4" class="qt-num">Total Quoted Amount</td>
+          <td class="qt-num">TZS {{ total_amount|floatformat:"2g" }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% else %}
+  <p class="qt-empty">No services have been added.</p>
+  {% endif %}
+</section>
+
+{% if quotation.terms or quotation.notes %}
+<div class="qt-two">
+  {% if quotation.terms %}
+  <section class="qt-panel" aria-labelledby="qt-terms-heading">
+    <div class="qt-head">
+      <h2 id="qt-terms-heading"><i class="bx bx-shield-quarter" aria-hidden="true"></i> Terms</h2>
+    </div>
+    <p class="qt-text">{{ quotation.terms|linebreaksbr }}</p>
+  </section>
+  {% endif %}
+  {% if quotation.notes %}
+  <section class="qt-panel" aria-labelledby="qt-notes-heading">
+    <div class="qt-head">
+      <h2 id="qt-notes-heading"><i class="bx bx-notepad" aria-hidden="true"></i> Notes</h2>
+    </div>
+    <p class="qt-text">{{ quotation.notes|linebreaksbr }}</p>
+  </section>
+  {% endif %}
+</div>
+{% endif %}
+
+<p class="qt-footnote">This quotation is a proposed price only. It is not an invoice, a receipt or money collected.</p>
+{% endblock %}
