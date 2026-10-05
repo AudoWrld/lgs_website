@@ -5,25 +5,30 @@
 {% block page_title %}Add Expense{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'accountant/css/expenses.css' %}" />
+<link rel="stylesheet" href="{% static 'accountant/css/expense_form.css' %}" />
 {% endblock %}
 
 {% block content %}
-<section class="ex-panel ex-narrow" aria-labelledby="ex-form-heading">
-  <div class="ex-head">
-    <h2 id="ex-form-heading"><i class="bx bx-plus-circle" aria-hidden="true"></i> New Expense</h2>
-    <span class="ex-legend"><span class="ex-req" aria-hidden="true">*</span> Required</span>
-  </div>
-
-  <form method="post" enctype="multipart/form-data" class="ex-form" novalidate>
-    {% csrf_token %}
-    {% include 'accountant/_expense_fields.html' %}
-
-    <div class="ex-actions">
-      <button type="submit" class="btn btn-primary"><i class="bx bx-save" aria-hidden="true"></i>Save Draft</button>
-      <a class="btn btn-outline" href="{% url 'accountant:expense_list' %}">Cancel</a>
+<div class="ef-layout">
+  <section class="ef-panel" aria-labelledby="ef-form-heading">
+    <div class="ef-head">
+      <h2 id="ef-form-heading"><i class="bx bx-plus-circle" aria-hidden="true"></i> New Expense</h2>
+      <span class="ef-legend"><span class="ef-req" aria-hidden="true">*</span> Required</span>
     </div>
-    <p class="ex-help">The expense is saved as a draft first. You can review it and submit it on the next page.</p>
-  </form>
-</section>
+
+    <form method="post" enctype="multipart/form-data" class="ef-form" novalidate>
+      {% csrf_token %}
+      {% include 'accountant/_expense_form_fields.html' %}
+
+      <div class="ef-actions">
+        <button type="submit" class="btn btn-primary"><i class="bx bx-save" aria-hidden="true"></i>Save Draft</button>
+        <a class="btn btn-outline" href="{% url 'accountant:expense_list' %}">Cancel</a>
+      </div>
+    </form>
+  </section>
+
+  <div class="ef-side">
+    {% include 'accountant/_expense_notes.html' %}
+  </div>
+</div>
 {% endblock %}

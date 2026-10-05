@@ -1,34 +1,154 @@
 {% extends 'accountant/base_accountant.html' %}
 {% load static %}
 
-{% block title %}Add Expense — LGS Accountant{% endblock %}
-{% block page_title %}Add Expense{% endblock %}
+{% block title %}Record Payment — LGS Accountant{% endblock %}
+{% block page_title %}Record Payment{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'accountant/css/expense_form.css' %}" />
+<link rel="stylesheet" href="{% static 'accountant/css/payment_add.css' %}" />
 {% endblock %}
 
 {% block content %}
-<div class="ef-layout">
-  <section class="ef-panel" aria-labelledby="ef-form-heading">
-    <div class="ef-head">
-      <h2 id="ef-form-heading"><i class="bx bx-plus-circle" aria-hidden="true"></i> New Expense</h2>
-      <span class="ef-legend"><span class="ef-req" aria-hidden="true">*</span> Required</span>
+<div class="pay-layout">
+  <section class="pay-panel" aria-labelledby="pay-form-heading">
+    <div class="pay-head">
+      <h2 id="pay-form-heading"><i class="bx bx-plus-circle" aria-hidden="true"></i> New Payment</h2>
+      <span class="pay-legend"><span class="pay-req" aria-hidden="true">*</span> Required</span>
     </div>
 
-    <form method="post" enctype="multipart/form-data" class="ef-form" novalidate>
+    <form method="post" class="pay-form" novalidate>
       {% csrf_token %}
-      {% include 'accountant/_expense_form_fields.html' %}
 
-      <div class="ef-actions">
-        <button type="submit" class="btn btn-primary"><i class="bx bx-save" aria-hidden="true"></i>Save Draft</button>
-        <a class="btn btn-outline" href="{% url 'accountant:expense_list' %}">Cancel</a>
+      {% if form.non_field_errors %}
+      <ul class="pay-errors">
+        {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+
+      <div class="pay-group">
+        <label for="{{ form.reference.id_for_label }}">Reference Number <span class="pay-req" aria-hidden="true">*</span><span class="pay-sr">required</span></label>
+        {{ form.reference }}
+        {% for error in form.reference.errors %}<p class="pay-error">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div class="pay-row">
+        <div class="pay-group">
+          <label for="{{ form.amount.id_for_label }}">Amount (TZS) <span class="pay-req" aria-hidden="true">*</span><span class="pay-sr">required</span></label>
+          {{ form.amount }}
+          {% for error in form.amount.errors %}<p class="pay-error">{{ error }}</p>{% endfor %}
+        </div>
+        <div class="pay-group">
+          <label for="{{ form.payment_method.id_for_label }}">Payment Method <span class="pay-req" aria-hidden="true">*</span><span class="pay-sr">required</span></label>
+          {{ form.payment_method }}
+          {% for error in form.payment_method.errors %}<p class="pay-error">{{ error }}</p>{% endfor %}
+        </div>
+      </div>
+
+      <div class="pay-group" id="pay-txref-group">
+        <label for="{{ form.transaction_reference.id_for_label }}">Transaction Reference <span class="pay-req" aria-hidden="true">*</span><span class="pay-sr">required</span></label>
+        {{ form.transaction_reference }}
+        <p class="pay-help">Required for every payment method except cash.</p>
+        {% for error in form.transaction_reference.errors %}<p class="pay-error">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div class="pay-group">
+        <label for="{{ form.remarks.id_for_label }}">Remarks <span class="pay-optional">(optional)</span></label>
+        {{ form.remarks }}
+        {% for error in form.remarks.errors %}<p class="pay-error">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div class="pay-actions">
+        <button type="submit" class="btn btn-primary"><i class="bx bx-save" aria-hidden="true"></i>Save Payment</button>
+        <p class="pay-help">Check the details carefully before saving. Saved payments cannot be edited.</p>
       </div>
     </form>
   </section>
 
-  <div class="ef-side">
-    {% include 'accountant/_expense_notes.html' %}
+  <div class="pay-side">
+    <section class="pay-panel" aria-labelledby="pay-balance-heading">
+      <div class="pay-head">
+        <h2 id="pay-balance-heading"><i class="bx bx-wallet" aria-hidden="true"></i> Reference Balance</h2>
+      </div>
+
+      <form method="get" class="pay-lookup">
+        <div class="pay-group">
+          <label for="lookup-reference">Reference Number</label>
+          <input type="text" id="lookup-reference" name="reference" value="{{ lookup }}" autocomplete="off" />
+        </div>
+        <button type="submit" class="btn btn-secondary"><i class="bx bx-search" aria-hidden="true"></i>Check</button>
+      </form>
+
+      {% if summary %}
+      <dl class="pay-balance">
+        <div class="pay-balance-row"><dt>Reference</dt><dd>{{ summary.submission.reference }}</dd></div>
+        <div class="pay-balance-row"><dt>Gross Amount</dt><dd>TZS {{ summary.gross_amount|floatformat:"2g" }}</dd></div>
+        <div class="pay-balance-row"><dt>Discount</dt><dd>TZS {{ summary.discount|floatformat:"2g" }}</dd></div>
+        <div class="pay-balance-row"><dt>Net Payable</dt><dd>TZS {{ summary.net_amount_payable|floatformat:"2g" }}</dd></div>
+        <div class="pay-balance-row"><dt>Amount Paid</dt><dd>TZS {{ summary.total_amount_paid|floatformat:"2g" }}</dd></div>
+        <div class="pay-balance-row pay-balance-key"><dt>Outstanding</dt><dd>TZS {{ summary.outstanding_balance|floatformat:"2g" }}</dd></div>
+        <div class="pay-balance-row">
+          <dt>Status</dt>
+          <dd><span class="pay-badge {% if summary.payment_status == 'PAID' %}pay-badge-success{% elif summary.payment_status == 'UNPAID' %}pay-badge-danger{% else %}pay-badge-warning{% endif %}">{{ summary.get_payment_status_display }}</span></dd>
+        </div>
+      </dl>
+      {% if summary.unpriced_quotation_count %}
+      <p class="pay-note">{{ summary.unpriced_quotation_count }} quoted service{{ summary.unpriced_quotation_count|pluralize }} still waiting for a price.</p>
+      {% endif %}
+      {% else %}
+      <p class="pay-empty">Enter a Reference Number to see its balance.</p>
+      {% endif %}
+    </section>
+
+    {% if accounts %}
+    <section class="pay-panel" aria-labelledby="pay-accounts-heading">
+      <div class="pay-head">
+        <h2 id="pay-accounts-heading"><i class="bx bx-building-house" aria-hidden="true"></i> LGS Payment Accounts</h2>
+      </div>
+      <ul class="pay-accounts">
+        {% for account in accounts %}
+        <li>
+          <strong>{% if account.bank_name %}{{ account.bank_name }}{% else %}Lipa Number{% endif %}</strong>
+          <span>{{ account.account_number }}</span>
+          <span>{{ account.account_name }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{{ form.reference_required_methods|json_script:"pay-required-methods" }}
+<script>
+  (function () {
+    var method = document.getElementById("{{ form.payment_method.id_for_label }}");
+    var group = document.getElementById("pay-txref-group");
+    var input = document.getElementById("{{ form.transaction_reference.id_for_label }}");
+    var data = document.getElementById("pay-required-methods");
+    if (!method || !group || !input || !data) return;
+
+    var required = JSON.parse(data.textContent);
+
+    function update() {
+      var value = method.value;
+      var needsReference = required.indexOf(value) !== -1;
+      var hide = value !== "" && !needsReference;
+
+      group.hidden = hide;
+      if (needsReference) {
+        input.setAttribute("required", "required");
+        input.setAttribute("aria-required", "true");
+      } else {
+        input.removeAttribute("required");
+        input.setAttribute("aria-required", "false");
+      }
+      if (hide) input.value = "";
+    }
+
+    method.addEventListener("change", update);
+    update();
+  })();
+</script>
 {% endblock %}
