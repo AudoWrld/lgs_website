@@ -12,7 +12,7 @@ from django.utils import timezone
 from payments.models import Payment
 from samples.models import Sample, Service
 
-from .models import COA, COAGroup, COAGroupSample, COAReportingPreference
+from .models import COA, COAGroup, COAGroupSample, COAReleaseAuthorization, COAReportingPreference
 from .pdf import Block, CoaDoc, render_coa_pdf, render_coa_png
 
 logger = logging.getLogger(__name__)
@@ -412,3 +412,42 @@ def generate_coas(submission, user, base_url=None):
         except Exception:
             logger.exception("COA file build failed for %s", coa.coa_number)
     return coas
+
+
+def authorize_release(coa, user, reason):
+    reason = (reason or "").strip()
+    if len(reason) < 5:
+        raise ValidationError("A reason of at least 5 characters is required.")
+
+    with transaction.atomic():
+        locked = (
+            COA.objects.select_for_update()
+            .select_related("submission", "submission__payment")
+            .get(pk=coa.pk)
+        )
+        if locked.status != COA.PAYMENT_PENDING:
+            raise ValidationError("This COA is no longer awaiting release.")
+
+        payment = getattr(locked.submission, "payment", None)
+        if payment is None or payment.credit_start_date is None:
+            raise ValidationError(
+                "Release can only be authorized for approved credit or billing cases."
+            )
+        if payment.outstanding_balance <= 0:
+            raise ValidationError(
+                "This reference is fully paid and will be released automatically."
+            )
+
+        COAReleaseAuthorization.objects.create(
+            coa=locked,
+            authorized_by=user,
+            reason=reason,
+            outstanding_at_release=payment.outstanding_balance,
+            payment_status_at_release=payment.payment_status,
+            credit_start_date=payment.credit_start_date,
+            credit_due_date=payment.credit_due_date,
+        )
+        locked.status = COA.RELEASED
+        locked.released_at = timezone.now()
+        locked.save(update_fields=["status", "released_at", "updated_at"])
+    return locked
