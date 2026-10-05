@@ -120,3 +120,12 @@ class ReportFilterForm(forms.Form):
         data["end"] = end
         data["label"] = label
         return data
+
+
+class ReleaseForm(forms.Form):
+    reason = forms.CharField(
+        label="Reason for release",
+        min_length=5,
+        max_length=500,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )

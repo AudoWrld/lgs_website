@@ -1,152 +1,60 @@
 {% extends 'accountant/base_accountant.html' %}
-{% load static %}
 
-{% block title %}Reports — LGS Accountant{% endblock %}
-{% block page_title %}Reports{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'accountant/css/accountant_pages.css' %}" />
-{% endblock %}
+{% block title %}Report Release — LGS Accountant{% endblock %}
+{% block page_title %}Report Release{% endblock %}
 
 {% block content %}
-<section class="card">
-  <form method="get" class="filter-bar" id="report-filter">
-    <div class="form-group">
-      <label for="{{ form.period.id_for_label }}">Period</label>
-      {{ form.period }}
-    </div>
-    <div class="form-group" data-period="daily">
-      <label for="{{ form.date.id_for_label }}">Date</label>
-      {{ form.date }}
-    </div>
-    <div class="form-group" data-period="monthly">
-      <label for="{{ form.month.id_for_label }}">Month</label>
-      {{ form.month }}
-    </div>
-    <div class="form-group" data-period="yearly">
-      <label for="{{ form.year.id_for_label }}">Year</label>
-      {{ form.year }}
-    </div>
-    <div class="form-group" data-period="custom">
-      <label for="{{ form.date_from.id_for_label }}">From</label>
-      {{ form.date_from }}
-    </div>
-    <div class="form-group" data-period="custom">
-      <label for="{{ form.date_to.id_for_label }}">To</label>
-      {{ form.date_to }}
-    </div>
-    <div class="filter-actions">
-      <button type="submit" class="btn btn-secondary"><i class="bx bx-bar-chart-alt-2" aria-hidden="true"></i>Generate</button>
-    </div>
-  </form>
-  {{ form.non_field_errors }}
-  {% for field in form %}{% for error in field.errors %}<p class="field-error">{{ field.label }}: {{ error }}</p>{% endfor %}{% endfor %}
-</section>
-
-<h2 class="dash-heading">Report for {{ label }}</h2>
-
-<div class="summary-strip">
-  <div class="summary-item is-in">
-    <span class="summary-label">Payments Collected</span>
-    <span class="summary-value">TZS {{ payments_total|floatformat:"2g" }}</span>
-  </div>
-  <div class="summary-item is-out">
-    <span class="summary-label">Expenses</span>
-    <span class="summary-value">TZS {{ expenses_total|floatformat:"2g" }}</span>
-  </div>
-  <div class="summary-item">
-    <span class="summary-label">Net Income</span>
-    <span class="summary-value {% if net_total < 0 %}is-negative{% endif %}">TZS {{ net_total|floatformat:"2g" }}</span>
-  </div>
-  <div class="summary-item is-debt">
-    <span class="summary-label">Outstanding Debt (now)</span>
-    <span class="summary-value">TZS {{ outstanding_debt|floatformat:"2g" }}</span>
-  </div>
-  <div class="summary-item is-debt">
-    <span class="summary-label">Credit Outstanding (now)</span>
-    <span class="summary-value">TZS {{ credit_outstanding|floatformat:"2g" }}</span>
-  </div>
-</div>
-<p class="help-text">Net income is payments collected minus expenses. Quotations and invoices are never counted. Debt and credit show the position today, not at the end of the period. Expenses will appear once the expense records are connected.</p>
-
-<section class="card">
+<section class="card" aria-labelledby="release-heading">
   <div class="card-header">
-    <h2>Collections by Channel</h2>
+    <h2 id="release-heading">COAs Awaiting Release</h2>
+    <span class="badge">{{ total_count }} pending</span>
   </div>
+  {% if rows %}
   <div class="table-wrap">
     <table class="table">
       <thead>
         <tr>
-          <th scope="col">Channel</th>
-          <th scope="col" class="num">Collected (TZS)</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for channel in channels %}
-        <tr>
-          <td>{{ channel.name }}</td>
-          <td class="num">{{ channel.today|floatformat:"2g" }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
-
-<section class="card">
-  <div class="card-header">
-    <h2>Payments in this Period</h2>
-    <span class="help-text">{{ transaction_count }} transaction{{ transaction_count|pluralize }}</span>
-  </div>
-  {% if page_obj.object_list %}
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th scope="col">Date</th>
           <th scope="col">Reference No.</th>
-          <th scope="col" class="num">Amount (TZS)</th>
-          <th scope="col">Method</th>
-          <th scope="col">Receipt No.</th>
+          <th scope="col">COA No.</th>
+          <th scope="col" style="text-align:right">Outstanding (TZS)</th>
+          <th scope="col">Payment Status</th>
+          <th scope="col">Credit Due</th>
+          <th scope="col">Action</th>
         </tr>
       </thead>
       <tbody>
-        {% for tx in page_obj.object_list %}
+        {% for row in rows %}
         <tr>
-          <td>{{ tx.created_at|date:"Y-m-d H:i" }}</td>
-          <td>{{ tx.payment.submission.reference }}</td>
-          <td class="num">{{ tx.amount|floatformat:"2g" }}</td>
-          <td>{{ tx.get_payment_method_display }}</td>
-          <td>—</td>
+          <td>{{ row.reference }}</td>
+          <td>{{ row.coa_number }}</td>
+          <td style="text-align:right">{{ row.outstanding|floatformat:"0g" }}</td>
+          <td><span class="badge badge-warning">{{ row.status }}</span></td>
+          <td>{% if row.credit_due_date %}{{ row.credit_due_date|date:"Y-m-d" }}{% else %}&mdash;{% endif %}</td>
+          <td>
+            {% if row.eligible %}
+            <a class="btn btn-primary btn-sm" href="{% url 'accountant:release_authorize' row.id %}">Review &amp; Release</a>
+            {% else %}
+            <span class="help-text">Awaiting full payment</span>
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
-  {% include 'accountant/_pagination.html' %}
+  {% if page_obj.has_other_pages %}
+  <div class="page-actions" style="margin-top:1rem">
+    {% if page_obj.has_previous %}
+    <a class="btn btn-outline btn-sm" href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Previous</a>
+    {% endif %}
+    <span class="help-text">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a class="btn btn-outline btn-sm" href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Next</a>
+    {% endif %}
+  </div>
+  {% endif %}
   {% else %}
-  <p class="empty-state">No payments in this period.</p>
+  <p class="empty-state">No COAs are waiting on payment.</p>
   {% endif %}
 </section>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-  (function () {
-    var form = document.getElementById("report-filter");
-    if (!form) return;
-    var select = form.querySelector("select[name='period']");
-    var groups = form.querySelectorAll("[data-period]");
-
-    function sync() {
-      var value = select.value || "daily";
-      groups.forEach(function (group) {
-        group.classList.toggle("is-hidden", group.getAttribute("data-period") !== value);
-      });
-    }
-
-    select.addEventListener("change", sync);
-    sync();
-  })();
-</script>
 {% endblock %}

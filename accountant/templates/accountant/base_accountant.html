@@ -201,15 +201,14 @@
               </a>
             </li>
             {% if perms.coa.authorize_release %}
-            <li>
-              <a
-                href="{% url 'accountant:release_queue' %}"
-                class="{% if request.resolver_match.url_name == 'release_queue' %}active{% endif %}"
-              >
-                <i class="bx bx-lock-open icon" aria-hidden="true"></i>Report
-                Release
-              </a>
-            </li>
+              <li>
+                <a
+                  href="{% url 'accountant:release_queue' %}"
+                  class="{% if request.resolver_match.url_name == 'release_queue' or request.resolver_match.url_name == 'release_authorize' %}active{% endif %}"
+                >
+                  <i class="bx bx-lock-open icon" aria-hidden="true"></i>Report Release
+                </a>
+              </li>
             {% endif %}
           </ul>
 
