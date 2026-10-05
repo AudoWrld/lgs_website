@@ -75,7 +75,8 @@ SEED_USERS = [
 class Command(BaseCommand):
     help = (
         "Seeds one test user per role (customer, reception, chemist, "
-        "quantity_control, accountant), all with password 'passwd'. Development/testing "
+        "quantity_control, accountant), all with password 'passwd'. The "
+        "accountant can authorize report release by default. Development/testing "
         "use only — never run against a production database."
     )
 
@@ -98,6 +99,12 @@ class Command(BaseCommand):
                 )
             )
             created_count += 1
+
+        accountant = User.objects.filter(email="accountant@gmail.com").first()
+        if accountant is not None:
+            can_release = accountant.has_perm("coa.authorize_release")
+            style = self.style.SUCCESS if can_release else self.style.ERROR
+            self.stdout.write(style(f"Accountant can authorize release: {can_release}"))
 
         self.stdout.write(
             self.style.SUCCESS(f"\n{created_count} created, {skipped_count} skipped.")

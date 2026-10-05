@@ -243,6 +243,10 @@ class User(AbstractUser):
         ADMINISTRATOR,
     )
 
+    ROLE_DEFAULT_PERMISSIONS = {
+        ACCOUNTANT: frozenset({"coa.authorize_release"}),
+    }
+
     username = None
 
     email = models.EmailField(
@@ -382,6 +386,11 @@ class User(AbstractUser):
             )
 
         return False
+
+    def has_perm(self, perm, obj=None):
+        if self.is_active and perm in self.ROLE_DEFAULT_PERMISSIONS.get(self.role, ()):
+            return True
+        return super().has_perm(perm, obj)
 
 
 class Client(models.Model):
