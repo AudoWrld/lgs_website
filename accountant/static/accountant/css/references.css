@@ -74,7 +74,7 @@
 
 .ref-table {
   width: 100%;
-  min-width: 820px;
+  min-width: 720px;
   border-collapse: collapse;
   font-size: var(--fs-small);
 }
@@ -416,4 +416,8 @@
   .ref-row-actions {
     display: none;
   }
+}
+
+.ref-columns {
+  padding-bottom: 15px;
 }

@@ -26,7 +26,7 @@
     </div>
   </form>
 
-  {% if page_obj.object_list %}
+    {% if page_obj.object_list %}
   <div class="ref-table-wrap">
     <table class="ref-table">
       <thead>
@@ -37,7 +37,6 @@
           <th scope="col" class="ref-num">Paid (TZS)</th>
           <th scope="col" class="ref-num">Outstanding (TZS)</th>
           <th scope="col">Status</th>
-          <th scope="col">COA</th>
           <th scope="col"><span class="ref-sr">Actions</span></th>
         </tr>
       </thead>
@@ -51,15 +50,6 @@
           <td class="ref-num">{{ payment.outstanding_balance|floatformat:"0g" }}</td>
           <td>
             <span class="ref-badge {% if payment.payment_status == 'PAID' %}ref-badge-success{% elif payment.payment_status == 'UNPAID' %}ref-badge-danger{% else %}ref-badge-warning{% endif %}">{{ payment.get_payment_status_display }}</span>
-          </td>
-          <td>
-            {% with coas=payment.submission.coas.all %}
-              {% if coas %}
-                {% for coa in coas %}<span class="ref-coa">{{ coa.get_status_display }}</span>{% endfor %}
-              {% else %}
-                <span class="ref-muted">&mdash;</span>
-              {% endif %}
-            {% endwith %}
           </td>
           <td>
             <div class="ref-row-actions">
