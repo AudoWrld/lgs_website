@@ -43,7 +43,7 @@
     <span class="dash-stat-icon"><i class="bx bx-credit-card" aria-hidden="true"></i></span>
     <div class="dash-stat-body">
       <span class="dash-stat-label">Payments Collected Today</span>
-      <span class="dash-stat-value">{{ payments_today|floatformat:"0g" }}</span>
+      <span class="dash-stat-value" title="TZS {{ payments_today|floatformat:'0g' }}">{{ payments_today|floatformat:"0g" }}</span>
       <span class="dash-stat-hint">TZS</span>
     </div>
   </a>
@@ -51,7 +51,7 @@
     <span class="dash-stat-icon"><i class="bx bx-wallet" aria-hidden="true"></i></span>
     <div class="dash-stat-body">
       <span class="dash-stat-label">Expenses Today</span>
-      <span class="dash-stat-value">{{ expenses_today|floatformat:"0g" }}</span>
+      <span class="dash-stat-value" title="TZS {{ expenses_today|floatformat:'0g' }}">{{ expenses_today|floatformat:"0g" }}</span>
       <span class="dash-stat-hint">TZS</span>
     </div>
   </a>
@@ -59,7 +59,7 @@
     <span class="dash-stat-icon"><i class="bx bx-trending-up" aria-hidden="true"></i></span>
     <div class="dash-stat-body">
       <span class="dash-stat-label">Net Income Today</span>
-      <span class="dash-stat-value">{{ net_today|floatformat:"0g" }}</span>
+      <span class="dash-stat-value" title="TZS {{ net_today|floatformat:'0g' }}">{{ net_today|floatformat:"0g" }}</span>
       <span class="dash-stat-hint">{% if net_today < 0 %}Negative balance{% else %}TZS{% endif %}</span>
     </div>
   </a>
@@ -67,7 +67,7 @@
     <span class="dash-stat-icon"><i class="bx bx-error-circle" aria-hidden="true"></i></span>
     <div class="dash-stat-body">
       <span class="dash-stat-label">Outstanding Debt</span>
-      <span class="dash-stat-value">{{ outstanding_debt|floatformat:"0g" }}</span>
+      <span class="dash-stat-value" title="TZS {{ outstanding_debt|floatformat:'0g' }}">{{ outstanding_debt|floatformat:"0g" }}</span>
       <span class="dash-stat-hint">{% if outstanding_debt %}Needs follow-up{% else %}All clear{% endif %}</span>
     </div>
   </a>
@@ -75,7 +75,7 @@
     <span class="dash-stat-icon"><i class="bx bx-transfer" aria-hidden="true"></i></span>
     <div class="dash-stat-body">
       <span class="dash-stat-label">Credit Outstanding</span>
-      <span class="dash-stat-value">{{ credit_outstanding|floatformat:"0g" }}</span>
+      <span class="dash-stat-value" title="TZS {{ credit_outstanding|floatformat:'0g' }}">{{ credit_outstanding|floatformat:"0g" }}</span>
       <span class="dash-stat-hint">{% if credit_outstanding %}Needs follow-up{% else %}All clear{% endif %}</span>
     </div>
   </a>
@@ -91,15 +91,15 @@
       <div class="dash-month">
         <a class="dash-month-item" href="{% url 'accountant:payment_list' %}">
           <span class="dash-month-label">Payments</span>
-          <span class="dash-month-value">TZS {{ payments_month|floatformat:"0g" }}</span>
+          <span class="dash-month-value" title="TZS {{ payments_month|floatformat:'0g' }}">TZS {{ payments_month|floatformat:"0g" }}</span>
         </a>
         <a class="dash-month-item" href="{% url 'accountant:expense_list' %}">
           <span class="dash-month-label">Expenses</span>
-          <span class="dash-month-value">TZS {{ expenses_month|floatformat:"0g" }}</span>
+          <span class="dash-month-value" title="TZS {{ expenses_month|floatformat:'0g' }}">TZS {{ expenses_month|floatformat:"0g" }}</span>
         </a>
         <a class="dash-month-item{% if net_month < 0 %} dash-month-negative{% endif %}" href="{% url 'accountant:reports' %}">
           <span class="dash-month-label">Net Income</span>
-          <span class="dash-month-value">TZS {{ net_month|floatformat:"0g" }}</span>
+          <span class="dash-month-value" title="TZS {{ net_month|floatformat:'0g' }}">TZS {{ net_month|floatformat:"0g" }}</span>
         </a>
       </div>
       <p class="dash-note">Quotations and invoices are never counted.</p>
