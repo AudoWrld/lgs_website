@@ -29,7 +29,8 @@ RECENT_LIMIT = 5
 RELEASE_LIMIT = 5
 OVERDUE_LIMIT = 5
 PAGE_SIZE = 20
-REPORT_ROW_LIMIT = 10
+REPORT_PAGE_SIZE = 5
+REPORT_ROW_LIMIT = 5
 RELEASE_PERMISSION = "coa.authorize_release"
 
 
@@ -453,9 +454,11 @@ def reports(request):
     open_balances = _open_balances()
     credit_balances = _credit_balances()
 
-    page_obj, querystring = _paginate(request, transactions)
+    page_obj, querystring = _paginate(
+        request, transactions, size=REPORT_PAGE_SIZE, param="page"
+    )
     expense_page, expense_querystring = _paginate(
-        request, period_expenses, param="epage"
+        request, period_expenses, size=REPORT_PAGE_SIZE, param="epage"
     )
 
     context = {
