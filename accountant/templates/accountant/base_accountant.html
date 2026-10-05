@@ -161,7 +161,7 @@
             <li>
               <a
                 href="{% url 'accountant:expense_list' %}"
-                class="{% if request.resolver_match.url_name == 'expense_list' %}active{% endif %}"
+                class="{% if request.resolver_match.url_name == 'expense_list' or request.resolver_match.url_name == 'expense_add' or request.resolver_match.url_name == 'expense_edit' %}active{% endif %}"
               >
                 <i class="bx bx-wallet icon" aria-hidden="true"></i>Expenses
               </a>
