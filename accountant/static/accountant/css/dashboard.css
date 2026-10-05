@@ -1,55 +1,190 @@
-:root {
-  --ink: #263238;
-  --muted: #65747a;
-  --navy: #123e5b;
-  --orange: #f39a2b;
-  --line: #d8e0e2;
-  --paper: #ffffff;
-  --ground: #eff3f3;
+.dash-section {
+  margin-bottom: 1.5rem;
 }
 
-* {
-  box-sizing: border-box;
-}
-
-body {
-  min-width: 320px;
-  min-height: 100vh;
-  margin: 0;
-  background: var(--ground);
-  color: var(--ink);
-  font-family: "Space Grotesk", "Segoe UI", sans-serif;
-}
-
-.accountant-page {
-  display: grid;
-  min-height: 100vh;
-  place-items: center;
-  padding: 1.5rem;
-}
-
-.accountant-panel {
-  width: min(100%, 680px);
-  padding: clamp(1.5rem, 5vw, 3rem);
-  border: 1px solid var(--line);
-  border-top: 4px solid var(--orange);
-  background: var(--paper);
-}
-
-.accountant-label {
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 700;
+.dash-heading {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-}
-
-.accountant-panel h1 {
-  margin: 0.7rem 0 0.4rem;
-  color: var(--navy);
-  font-size: 1.65rem;
-}
-
-.accountant-panel p {
-  margin: 0;
   color: var(--muted);
+  margin: 0 0 0.75rem;
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.dash-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dash-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.1rem 1.1rem 1rem;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--navy);
+  color: var(--charcoal);
+  text-decoration: none;
+  min-width: 0;
+}
+
+.dash-card:hover {
+  text-decoration: none;
+  border-color: var(--navy);
+}
+
+.dash-card:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
+.dash-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: var(--info-bg);
+  color: var(--navy);
+  font-size: 1.25rem;
+}
+
+.dash-card-label {
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.dash-card-value {
+  font-family: var(--font-head);
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.dash-card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.dash-card-in {
+  border-top-color: var(--success-text);
+}
+
+.dash-card-in .dash-card-icon {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
+.dash-card-out {
+  border-top-color: var(--orange);
+}
+
+.dash-card-out .dash-card-icon {
+  background: var(--warning-bg);
+  color: var(--orange-dark);
+}
+
+.dash-card-net {
+  border-top-color: var(--navy);
+}
+
+.dash-card-negative {
+  border-top-color: var(--error-text);
+}
+
+.dash-card-negative .dash-card-icon {
+  background: var(--error-bg);
+  color: var(--error-text);
+}
+
+.dash-card-negative .dash-card-value {
+  color: var(--error-text);
+}
+
+.dash-card-debt {
+  border-top-color: var(--error-text);
+}
+
+.dash-card-debt .dash-card-icon {
+  background: var(--error-bg);
+  color: var(--error-text);
+}
+
+.dash-card-credit {
+  border-top-color: var(--orange-dark);
+}
+
+.dash-card-credit .dash-card-icon {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.dash-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.dash-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.dash-panel {
+  min-width: 0;
+}
+
+.dash-num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-actions {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.dash-actions .btn {
+  justify-content: flex-start;
+}
+
+@media (max-width: 1200px) {
+  .dash-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .dash-grid,
+  .dash-grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dash-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .dash-grid,
+  .dash-grid-3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
