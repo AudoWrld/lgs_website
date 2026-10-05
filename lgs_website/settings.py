@@ -20,7 +20,7 @@ INSTALLED_APPS = [
     "coa",
     "samples",
     "worksheet",
-    "expences",
+    "expenses",
     "submissions",
     "payments",
     "client",

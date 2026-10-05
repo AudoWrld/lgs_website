@@ -28,8 +28,8 @@ from coa.models import (
     COAReportingPreference,
     COAReportingPreferenceChange,
 )
-from expences.forms import ExpenseForm
-from expences.models import Expense
+from expenses.forms import ExpenseForm
+from expenses.models import Expense
 from payments.models import Payment, PaymentAccount
 from payments.views import payment_detail, payment_list
 from reception.pdf import render_client_submission_form_pdf, render_worksheet_pdf

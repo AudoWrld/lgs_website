@@ -16,13 +16,13 @@ from django.utils.dateparse import parse_date
 from accounts.decorators import accountant_required
 from coa.models import COA
 from coa.services import authorize_release, release_if_paid
-from expences.models import Expense
+from expenses.models import Expense
 from payments.models import Payment, PaymentAccount, PaymentTransaction
 from submissions.models import Submission
 
 from .forms import PaymentForm, ReleaseForm, ReportFilterForm
 from django.db.models import DecimalField, ExpressionWrapper, F, Q, Sum
-from expences.forms import ExpenseForm
+from expenses.forms import ExpenseForm
 
 ZERO = Decimal("0.00")
 DASH = "\u2014"
