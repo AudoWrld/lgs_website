@@ -8,24 +8,25 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import DecimalField, ExpressionWrapper, F, Sum
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
 from accounts.decorators import accountant_required
 from coa.models import COA
-from coa.services import release_if_paid
+from coa.services import authorize_release, release_if_paid
 from payments.models import Payment, PaymentAccount, PaymentTransaction
 from submissions.models import Submission
 
-from .forms import PaymentForm, ReportFilterForm
+from .forms import PaymentForm, ReleaseForm, ReportFilterForm
 
 ZERO = Decimal("0.00")
 DASH = "\u2014"
 RECENT_LIMIT = 10
 RELEASE_LIMIT = 10
 PAGE_SIZE = 20
+RELEASE_PERMISSION = "coa.authorize_release"
 
 
 def _total(queryset, field):
@@ -103,10 +104,14 @@ def _channel_rows(today_queryset, month_queryset=None):
 def _release_row(coa):
     payment = getattr(coa.submission, "payment", None)
     return {
+        "id": coa.pk,
         "reference": coa.submission.reference,
         "coa_number": coa.coa_number,
         "outstanding": payment.outstanding_balance if payment else ZERO,
         "status": payment.get_payment_status_display() if payment else DASH,
+        "credit_start_date": payment.credit_start_date if payment else None,
+        "credit_due_date": payment.credit_due_date if payment else None,
+        "eligible": bool(payment and payment.credit_start_date),
         "created_at": coa.created_at,
     }
 
@@ -328,7 +333,7 @@ def debt_credit(request):
 
 @accountant_required
 def release_queue(request):
-    if not request.user.has_perm("coa.authorize_release"):
+    if not request.user.has_perm(RELEASE_PERMISSION):
         raise PermissionDenied
 
     coas = _pending_coas()
@@ -340,6 +345,35 @@ def release_queue(request):
         "total_count": coas.count(),
     }
     return render(request, "accountant/release_queue.html", context)
+
+
+@accountant_required
+def release_authorize(request, pk):
+    if not request.user.has_perm(RELEASE_PERMISSION):
+        raise PermissionDenied
+
+    coa = get_object_or_404(_pending_coas(), pk=pk)
+    row = _release_row(coa)
+    form = ReleaseForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        try:
+            authorize_release(coa, request.user, form.cleaned_data["reason"])
+        except ValidationError as exc:
+            for message in exc.messages:
+                form.add_error(None, message)
+        else:
+            messages.success(
+                request,
+                f"Release authorized for {row['reference']} ({row['coa_number']}).",
+            )
+            return redirect("accountant:release_queue")
+
+    return render(
+        request,
+        "accountant/release_authorize.html",
+        {"row": row, "form": form},
+    )
 
 
 @accountant_required

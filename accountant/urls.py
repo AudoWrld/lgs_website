@@ -37,5 +37,10 @@ urlpatterns = [
     ),
     path("debt-credit/", views.debt_credit, name="debt_credit"),
     path("release-queue/", views.release_queue, name="release_queue"),
+    path(
+        "release-queue/<int:pk>/",
+        views.release_authorize,
+        name="release_authorize",
+    ),
     path("reports/", views.reports, name="reports"),
 ]
