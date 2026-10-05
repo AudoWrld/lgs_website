@@ -17,25 +17,39 @@ PERIOD_CHOICES = [
 
 
 class PaymentForm(forms.Form):
-    reference = forms.CharField(max_length=50, label="Reference Number")
+    reference = forms.CharField(
+        max_length=50,
+        label="Reference Number",
+        widget=forms.TextInput(
+            attrs={"placeholder": "e.g. LGS/260925/01", "autocomplete": "off"}
+        ),
+    )
     amount = forms.DecimalField(
         min_value=Decimal("0.01"),
         max_digits=14,
         decimal_places=2,
         label="Amount (TZS)",
+        widget=forms.NumberInput(attrs={"step": "0.01", "inputmode": "decimal"}),
     )
     payment_method = forms.ChoiceField(
         choices=[("", "Select method")] + list(Payment.METHOD_CHOICES),
         label="Payment Method",
     )
     transaction_reference = forms.CharField(
-        max_length=100, required=False, label="Transaction Reference"
+        max_length=100,
+        required=False,
+        label="Transaction Reference",
+        widget=forms.TextInput(attrs={"autocomplete": "off"}),
     )
     remarks = forms.CharField(
         required=False, widget=forms.Textarea(attrs={"rows": 3}), label="Remarks"
     )
 
     submission = None
+
+    @property
+    def reference_required_methods(self):
+        return sorted(Payment.METHODS_REQUIRING_REFERENCE)
 
     def clean_reference(self):
         reference = self.cleaned_data["reference"].strip()
@@ -51,12 +65,17 @@ class PaymentForm(forms.Form):
         data = super().clean()
         method = data.get("payment_method")
         reference = (data.get("transaction_reference") or "").strip()
-        data["transaction_reference"] = reference
-        if method in Payment.METHODS_REQUIRING_REFERENCE and not reference:
+        requires_reference = method in Payment.METHODS_REQUIRING_REFERENCE
+
+        if requires_reference and not reference:
             self.add_error(
                 "transaction_reference",
                 "Transaction Reference is required for this payment method.",
             )
+        if method and not requires_reference:
+            reference = ""
+
+        data["transaction_reference"] = reference
         return data
 
 
