@@ -189,6 +189,9 @@ class COA(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        permissions = [
+            ("authorize_release", "Can authorize financial release of a COA"),
+        ]
 
     def __str__(self):
         return self.coa_number
@@ -208,3 +211,43 @@ class COA(models.Model):
     @property
     def is_payment_pending(self):
         return self.status == self.PAYMENT_PENDING
+
+    @property
+    def is_financially_released(self):
+        return hasattr(self, "release_authorization")
+
+
+class COAReleaseAuthorization(models.Model):
+    coa = models.OneToOneField(
+        COA,
+        on_delete=models.PROTECT,
+        related_name="release_authorization",
+    )
+    authorized_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="coa_release_authorizations",
+    )
+    authorized_at = models.DateTimeField(auto_now_add=True)
+    reason = models.TextField()
+    outstanding_at_release = models.DecimalField(max_digits=14, decimal_places=2)
+    payment_status_at_release = models.CharField(max_length=20)
+    credit_start_date = models.DateField(null=True, blank=True)
+    credit_due_date = models.DateField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-authorized_at"]
+        verbose_name = "COA Release Authorization"
+
+    def __str__(self):
+        return f"{self.coa.coa_number} released by {self.authorized_by_id}"
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ValidationError("Release authorizations cannot be edited.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("Release authorizations cannot be deleted.")
