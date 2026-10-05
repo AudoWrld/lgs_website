@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "chemist",
     "accountant.apps.AccountantConfig",
     "quantity_control",
+    "quotations",
 ]
 
 MIDDLEWARE = [
