@@ -1,6 +1,23 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
 from django.db import models
+from django.utils import timezone
 from django.utils.text import slugify
+
+MAX_EVIDENCE_MB = 5
+ALLOWED_EVIDENCE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "pdf"]
+IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
+ALLOWED_ADDER_ROLES = ["RECEPTION", "ACCOUNTANT"]
+
+
+def validate_evidence_size(file):
+    if file.size > MAX_EVIDENCE_MB * 1024 * 1024:
+        raise ValidationError(f"File must be {MAX_EVIDENCE_MB} MB or smaller.")
+
+
+def expense_evidence_path(instance, filename):
+    return f"expenses/evidence/{timezone.now():%Y/%m}/{filename}"
 
 
 class Expense(models.Model):
@@ -55,13 +72,23 @@ class Expense(models.Model):
     ]
 
     category = models.CharField(max_length=30, choices=CATEGORY_CHOICES)
-    slug = models.SlugField(
-        max_length=160, unique=True, editable=False, blank=True
-    )
+    slug = models.SlugField(max_length=160, unique=True, editable=False, blank=True)
     other_category = models.CharField(max_length=100, blank=True)
     description = models.CharField(max_length=255)
+    expense_date = models.DateField(default=timezone.localdate)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     payment_method = models.CharField(max_length=15, choices=PAYMENT_METHOD_CHOICES)
+    supplier_reference = models.CharField(max_length=150, blank=True)
+    document_number = models.CharField(max_length=100, blank=True)
+    evidence = models.FileField(
+        upload_to=expense_evidence_path,
+        blank=True,
+        null=True,
+        validators=[
+            FileExtensionValidator(ALLOWED_EVIDENCE_EXTENSIONS),
+            validate_evidence_size,
+        ],
+    )
 
     is_submitted = models.BooleanField(default=False)
     submitted_at = models.DateTimeField(null=True, blank=True)
@@ -72,14 +99,14 @@ class Expense(models.Model):
         null=True,
         blank=True,
         related_name="expenses_added",
-        limit_choices_to={"role": "RECEPTION"},
+        limit_choices_to={"role__in": ALLOWED_ADDER_ROLES},
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["-created_at"]
+        ordering = ["-expense_date", "-created_at"]
 
     def __str__(self):
         return f"{self.get_category_display()} — {self.amount}"
@@ -91,12 +118,20 @@ class Expense(models.Model):
     objects = models.Manager()
     reception_visible = ReceptionVisibleManager()
 
+    @property
+    def evidence_is_image(self):
+        if not self.evidence:
+            return False
+        return self.evidence.name.lower().rsplit(".", 1)[-1] in IMAGE_EXTENSIONS
+
     def save(self, *args, **kwargs):
         if not self.slug:
             base = slugify(f"{self.category}-{self.description}") or "expense"
             candidate = base
             suffix = 2
-            while type(self).objects.filter(slug=candidate).exclude(pk=self.pk).exists():
+            while (
+                type(self).objects.filter(slug=candidate).exclude(pk=self.pk).exists()
+            ):
                 candidate = f"{base}-{suffix}"
                 suffix += 1
             self.slug = candidate
