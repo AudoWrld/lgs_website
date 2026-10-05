@@ -42,7 +42,11 @@ class ExpenseForm(forms.ModelForm):
                 attrs={"placeholder": "Supplier or payee name / reference"}
             ),
             "document_number": forms.TextInput(
-                attrs={"placeholder": "e.g. M-Pesa or bank transaction code"}
+                attrs={
+                    "placeholder": "e.g. M-Pesa or bank transaction code",
+                    "style": "text-transform: uppercase;",
+                    "autocomplete": "off",
+                }
             ),
             "evidence": forms.FileInput(
                 attrs={
@@ -83,14 +87,23 @@ class ExpenseForm(forms.ModelForm):
             cleaned["document_number"] = ""
             cleaned["evidence"] = False
         elif method:
-            number = (cleaned.get("document_number") or "").strip()
+            number = (cleaned.get("document_number") or "").strip().upper()
             if not number:
                 self.add_error(
                     "document_number",
                     "Receipt number is required unless the payment is cash.",
                 )
             else:
-                cleaned["document_number"] = number
+                duplicate = Expense.objects.filter(
+                    document_number__iexact=number
+                ).exclude(pk=self.instance.pk)
+                if duplicate.exists():
+                    self.add_error(
+                        "document_number",
+                        "This receipt number has already been used.",
+                    )
+                else:
+                    cleaned["document_number"] = number
             if removing and not uploading:
                 cleaned["evidence"] = False
 
