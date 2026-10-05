@@ -18,11 +18,16 @@ urlpatterns = [
         {"heading": "Receipts"},
         name="receipt_list",
     ),
+    path("quotations/", views.quotation_list, name="quotation_list"),
+    path("quotations/add/", views.quotation_add, name="quotation_add"),
+    path("quotations/<int:pk>/", views.quotation_detail, name="quotation_detail"),
+    path("quotations/<int:pk>/edit/", views.quotation_edit, name="quotation_edit"),
+    path("quotations/<int:pk>/send/", views.quotation_send, name="quotation_send"),
     path(
-        "quotations/",
-        views.placeholder,
-        {"heading": "Quotations"},
-        name="quotation_list",
+        "quotations/<int:pk>/accept/", views.quotation_accept, name="quotation_accept"
+    ),
+    path(
+        "quotations/<int:pk>/expire/", views.quotation_expire, name="quotation_expire"
     ),
     path(
         "invoices/",
