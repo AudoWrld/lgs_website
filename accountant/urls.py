@@ -9,6 +9,7 @@ urlpatterns = [
     path("", RedirectView.as_view(pattern_name="accountant:dashboard")),
     path("dashboard/", views.dashboard, name="dashboard"),
     path("references/", views.reference_list, name="reference_list"),
+    path("references/<int:pk>/", views.reference_detail, name="reference_detail"),
     path("payments/add/", views.payment_add, name="payment_add"),
     path("payments/", views.payment_list, name="payment_list"),
     path(

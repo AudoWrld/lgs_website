@@ -212,6 +212,7 @@ def reference_list(request):
     payments = (
         Payment.objects.filter(submission__is_submitted=True)
         .select_related("submission")
+        .prefetch_related("submission__coas")
         .order_by("-submission__submitted_at", "-id")
     )
     if query:
@@ -225,6 +226,33 @@ def reference_list(request):
         "total_count": payments.count(),
     }
     return render(request, "accountant/reference_list.html", context)
+
+
+@accountant_required
+def reference_detail(request, pk):
+    payment = get_object_or_404(
+        Payment.objects.filter(submission__is_submitted=True).select_related(
+            "submission"
+        ),
+        pk=pk,
+    )
+    transactions = (
+        PaymentTransaction.objects.filter(payment=payment)
+        .select_related("recorded_by")
+        .order_by("created_at", "id")
+    )
+    context = {
+        "payment": payment,
+        "submission": payment.submission,
+        "transactions": transactions,
+        "coas": payment.submission.coas.all(),
+        "is_overdue": bool(
+            payment.credit_due_date
+            and payment.outstanding_balance > 0
+            and payment.credit_due_date < _overdue_cutoff()
+        ),
+    }
+    return render(request, "accountant/reference_detail.html", context)
 
 
 @accountant_required
