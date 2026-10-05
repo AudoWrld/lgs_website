@@ -29,8 +29,9 @@
     <div class="form-group">
       <label for="debt-status">Show</label>
       <select id="debt-status" name="status">
-        <option value="all" {% if kind != 'credit' %}selected{% endif %}>All outstanding</option>
+        <option value="all" {% if kind != 'credit' and kind != 'overdue' %}selected{% endif %}>All outstanding</option>
         <option value="credit" {% if kind == 'credit' %}selected{% endif %}>Credit only</option>
+        <option value="overdue" {% if kind == 'overdue' %}selected{% endif %}>Overdue credit</option>
       </select>
     </div>
     <div class="filter-actions">
@@ -45,10 +46,11 @@
       <thead>
         <tr>
           <th scope="col">Reference No.</th>
-          <th scope="col">Submission Date</th>
           <th scope="col" class="num">Amount Due (TZS)</th>
           <th scope="col" class="num">Amount Paid (TZS)</th>
           <th scope="col" class="num">Outstanding (TZS)</th>
+          <th scope="col">Credit Due Date</th>
+          <th scope="col" class="num">Days Overdue</th>
           <th scope="col">Status</th>
           <th scope="col"><span class="visually-hidden">Actions</span></th>
         </tr>
@@ -57,12 +59,17 @@
         {% for payment in page_obj.object_list %}
         <tr>
           <td>{{ payment.submission.reference }}</td>
-          <td>{{ payment.submission.submitted_at|date:"Y-m-d" }}</td>
           <td class="num">{{ payment.net_amount_payable|floatformat:"2g" }}</td>
           <td class="num">{{ payment.total_amount_paid|floatformat:"2g" }}</td>
           <td class="num">{{ payment.balance|floatformat:"2g" }}</td>
+          <td>{{ payment.credit_due_date|date:"Y-m-d"|default:"—" }}</td>
+          <td class="num">{% if payment.days_overdue %}<span class="badge badge-danger">{{ payment.days_overdue }}</span>{% else %}—{% endif %}</td>
           <td>
+            {% if payment.credit_start_date %}
+            <span class="badge {% if payment.is_overdue %}badge-danger{% else %}badge-warning{% endif %}">{{ payment.credit_status }}</span>
+            {% else %}
             <span class="badge {% if payment.payment_status == 'UNPAID' %}badge-danger{% else %}badge-warning{% endif %}">{{ payment.get_payment_status_display }}</span>
+            {% endif %}
           </td>
           <td><a class="btn btn-outline btn-sm" href="{% url 'accountant:payment_add' %}?reference={{ payment.submission.reference|urlencode }}">Record payment</a></td>
         </tr>

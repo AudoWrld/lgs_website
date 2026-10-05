@@ -1,9 +1,11 @@
+from datetime import timedelta
 from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Sum
+from django.utils import timezone
 
 from samples.models import SampleService, Service
 
@@ -58,6 +60,9 @@ class Payment(models.Model):
     )
     remarks = models.TextField(blank=True)
 
+    credit_start_date = models.DateField(null=True, blank=True)
+    credit_due_date = models.DateField(null=True, blank=True)
+
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -82,6 +87,54 @@ class Payment(models.Model):
             service__pricing_type=Service.QUOTATION,
             quoted_price__isnull=True,
         ).count()
+
+    @property
+    def is_credit(self):
+        return self.credit_start_date is not None and self.outstanding_balance > 0
+
+    @property
+    def days_overdue(self):
+        if not self.is_credit or self.credit_due_date is None:
+            return 0
+        grace = getattr(settings, "CREDIT_GRACE_DAYS", 0)
+        late = (timezone.localdate() - self.credit_due_date).days - grace
+        return max(late, 0)
+
+    @property
+    def is_overdue(self):
+        return self.days_overdue > 0
+
+    @property
+    def credit_status(self):
+        if self.credit_start_date is None:
+            return ""
+        if self.outstanding_balance <= 0:
+            return "Settled"
+        if self.is_overdue:
+            return "Overdue"
+        if self.total_amount_paid > 0:
+            return "Partially Paid"
+        return "Active Credit"
+
+    def apply_credit_terms(self):
+        if self.payment_status != self.CREDIT or self.credit_start_date is not None:
+            return False
+        start = timezone.localdate()
+        days = getattr(settings, "CREDIT_DEFAULT_DAYS", 7)
+        self.credit_start_date = start
+        self.credit_due_date = start + timedelta(days=days)
+        return True
+
+    def save(self, *args, **kwargs):
+        changed = self.apply_credit_terms()
+        update_fields = kwargs.get("update_fields")
+        if changed and update_fields is not None:
+            kwargs["update_fields"] = {
+                *update_fields,
+                "credit_start_date",
+                "credit_due_date",
+            }
+        super().save(*args, **kwargs)
 
     def recalculate_gross_amount(self):
         total = SampleService.objects.filter(
@@ -152,6 +205,15 @@ class Payment(models.Model):
             raise ValidationError(
                 "A quotation amount has not been entered for every quoted service. "
                 "The payment cannot be marked Paid yet."
+            )
+
+        if (
+            self.credit_start_date
+            and self.credit_due_date
+            and self.credit_due_date < self.credit_start_date
+        ):
+            raise ValidationError(
+                "The credit due date cannot be before the credit start date."
             )
 
 

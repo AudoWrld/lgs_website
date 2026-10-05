@@ -1,6 +1,8 @@
+from datetime import timedelta
 from decimal import Decimal
 from urllib.parse import quote
 
+from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
@@ -47,6 +49,35 @@ def _open_balances():
         .annotate(balance=balance)
         .filter(balance__gt=0)
     )
+
+
+def _credit_balances():
+    return _open_balances().filter(credit_start_date__isnull=False)
+
+
+def _overdue_cutoff():
+    grace = getattr(settings, "CREDIT_GRACE_DAYS", 0)
+    return timezone.localdate() - timedelta(days=grace)
+
+
+def _overdue_credit_rows(limit=None):
+    overdue = (
+        _credit_balances()
+        .filter(credit_due_date__lt=_overdue_cutoff())
+        .select_related("submission")
+        .order_by("credit_due_date")
+    )
+    if limit:
+        overdue = overdue[:limit]
+    return [
+        {
+            "reference": payment.submission.reference,
+            "outstanding": payment.balance,
+            "due_date": payment.credit_due_date,
+            "days_overdue": payment.days_overdue,
+        }
+        for payment in overdue
+    ]
 
 
 def _by_method(queryset):
@@ -127,12 +158,10 @@ def _dashboard_context():
         "expenses_month": expenses_month,
         "net_month": payments_month - expenses_month,
         "outstanding_debt": _total(open_balances, "balance"),
-        "credit_outstanding": _total(
-            open_balances.filter(payment_status=Payment.CREDIT), "balance"
-        ),
+        "credit_outstanding": _total(_credit_balances(), "balance"),
         "channels": _channel_rows(today_tx, month_tx),
         "awaiting_release": [_release_row(c) for c in _pending_coas()[:RELEASE_LIMIT]],
-        "overdue_credit": [],
+        "overdue_credit": _overdue_credit_rows(limit=10),
         "recent_payments": _recent_payments(),
     }
 
@@ -278,8 +307,10 @@ def debt_credit(request):
         .select_related("submission")
         .order_by("submission__submitted_at", "id")
     )
-    if kind == "credit":
-        balances = balances.filter(payment_status=Payment.CREDIT)
+    if kind in ("credit", "overdue"):
+        balances = balances.filter(credit_start_date__isnull=False)
+    if kind == "overdue":
+        balances = balances.filter(credit_due_date__lt=_overdue_cutoff())
     if query:
         balances = balances.filter(submission__reference__icontains=query)
 
@@ -342,9 +373,7 @@ def reports(request):
         "net_total": payments_total - expenses_total,
         "transaction_count": transactions.count(),
         "outstanding_debt": _total(open_balances, "balance"),
-        "credit_outstanding": _total(
-            open_balances.filter(payment_status=Payment.CREDIT), "balance"
-        ),
+        "credit_outstanding": _total(_credit_balances(), "balance"),
         "channels": _channel_rows(transactions),
         "page_obj": page_obj,
         "querystring": querystring,
