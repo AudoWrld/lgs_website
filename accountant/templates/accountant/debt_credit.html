@@ -1,0 +1,78 @@
+{% extends 'accountant/base_accountant.html' %}
+{% load static %}
+
+{% block title %}Debt &amp; Credit — LGS Accountant{% endblock %}
+{% block page_title %}Debt &amp; Credit{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'accountant/css/accountant_pages.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="summary-strip">
+  <div class="summary-item is-debt">
+    <span class="summary-label">Total Outstanding (filtered)</span>
+    <span class="summary-value">TZS {{ total_outstanding|floatformat:"2g" }}</span>
+  </div>
+  <div class="summary-item">
+    <span class="summary-label">References</span>
+    <span class="summary-value">{{ total_count }}</span>
+  </div>
+</div>
+
+<section class="card">
+  <form method="get" class="filter-bar">
+    <div class="form-group">
+      <label for="debt-q">Reference Number</label>
+      <input type="search" id="debt-q" name="q" value="{{ query }}" />
+    </div>
+    <div class="form-group">
+      <label for="debt-status">Show</label>
+      <select id="debt-status" name="status">
+        <option value="all" {% if kind != 'credit' %}selected{% endif %}>All outstanding</option>
+        <option value="credit" {% if kind == 'credit' %}selected{% endif %}>Credit only</option>
+      </select>
+    </div>
+    <div class="filter-actions">
+      <button type="submit" class="btn btn-secondary"><i class="bx bx-filter-alt" aria-hidden="true"></i>Filter</button>
+      <a class="btn btn-outline" href="{% url 'accountant:debt_credit' %}">Clear</a>
+    </div>
+  </form>
+
+  {% if page_obj.object_list %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">Reference No.</th>
+          <th scope="col">Submission Date</th>
+          <th scope="col" class="num">Amount Due (TZS)</th>
+          <th scope="col" class="num">Amount Paid (TZS)</th>
+          <th scope="col" class="num">Outstanding (TZS)</th>
+          <th scope="col">Status</th>
+          <th scope="col"><span class="visually-hidden">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for payment in page_obj.object_list %}
+        <tr>
+          <td>{{ payment.submission.reference }}</td>
+          <td>{{ payment.submission.submitted_at|date:"Y-m-d" }}</td>
+          <td class="num">{{ payment.net_amount_payable|floatformat:"2g" }}</td>
+          <td class="num">{{ payment.total_amount_paid|floatformat:"2g" }}</td>
+          <td class="num">{{ payment.balance|floatformat:"2g" }}</td>
+          <td>
+            <span class="badge {% if payment.payment_status == 'UNPAID' %}badge-danger{% else %}badge-warning{% endif %}">{{ payment.get_payment_status_display }}</span>
+          </td>
+          <td><a class="btn btn-outline btn-sm" href="{% url 'accountant:payment_add' %}?reference={{ payment.submission.reference|urlencode }}">Record payment</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include 'accountant/_pagination.html' %}
+  {% else %}
+  <p class="empty-state">No outstanding balances.</p>
+  {% endif %}
+</section>
+{% endblock %}

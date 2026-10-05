@@ -1,0 +1,116 @@
+{% extends 'accountant/base_accountant.html' %}
+{% load static %}
+
+{% block title %}Record Payment — LGS Accountant{% endblock %}
+{% block page_title %}Record Payment{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'accountant/css/accountant_pages.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="pay-layout">
+  <section class="card" aria-labelledby="pay-form-heading">
+    <div class="card-header">
+      <h2 id="pay-form-heading">New Payment</h2>
+    </div>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+
+      <div class="form-group">
+        <label for="{{ form.reference.id_for_label }}">Reference Number</label>
+        {{ form.reference }}
+        {% for error in form.reference.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="{{ form.amount.id_for_label }}">Amount (TZS)</label>
+          {{ form.amount }}
+          {% for error in form.amount.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+        </div>
+        <div class="form-group">
+          <label for="{{ form.payment_method.id_for_label }}">Payment Method</label>
+          {{ form.payment_method }}
+          {% for error in form.payment_method.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="{{ form.transaction_reference.id_for_label }}">Transaction Reference</label>
+        {{ form.transaction_reference }}
+        <p class="help-text">Required for M-Pesa, Bank and Lipa Number payments.</p>
+        {% for error in form.transaction_reference.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div class="form-group">
+        <label for="{{ form.remarks.id_for_label }}">Remarks</label>
+        {{ form.remarks }}
+        {% for error in form.remarks.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+
+      <button type="submit" class="btn btn-primary"><i class="bx bx-save" aria-hidden="true"></i>Save Payment</button>
+      <p class="help-text">Check the details carefully before saving.</p>
+    </form>
+  </section>
+
+  <div>
+    <section class="card" aria-labelledby="pay-balance-heading">
+      <div class="card-header">
+        <h2 id="pay-balance-heading">Reference Balance</h2>
+      </div>
+      <form method="get" class="inline-form">
+        <div class="form-group">
+          <label for="lookup-reference">Reference Number</label>
+          <input type="text" id="lookup-reference" name="reference" value="{{ lookup }}" />
+        </div>
+        <button type="submit" class="btn btn-secondary">Check</button>
+      </form>
+
+      {% if summary %}
+      <dl class="balance-list">
+        <dt>Reference</dt>
+        <dd>{{ summary.submission.reference }}</dd>
+        <dt>Gross Amount</dt>
+        <dd>TZS {{ summary.gross_amount|floatformat:"2g" }}</dd>
+        <dt>Discount</dt>
+        <dd>TZS {{ summary.discount|floatformat:"2g" }}</dd>
+        <dt>Net Payable</dt>
+        <dd>TZS {{ summary.net_amount_payable|floatformat:"2g" }}</dd>
+        <dt>Amount Paid</dt>
+        <dd>TZS {{ summary.total_amount_paid|floatformat:"2g" }}</dd>
+        <dt>Outstanding</dt>
+        <dd>TZS {{ summary.outstanding_balance|floatformat:"2g" }}</dd>
+        <dt>Status</dt>
+        <dd>
+          <span class="badge {% if summary.payment_status == 'PAID' %}badge-success{% elif summary.payment_status == 'UNPAID' %}badge-danger{% else %}badge-warning{% endif %}">{{ summary.get_payment_status_display }}</span>
+        </dd>
+      </dl>
+      {% if summary.unpriced_quotation_count %}
+      <p class="help-text">{{ summary.unpriced_quotation_count }} quoted service{{ summary.unpriced_quotation_count|pluralize }} still waiting for a price.</p>
+      {% endif %}
+      {% else %}
+      <p class="help-text">Enter a Reference Number to see its balance.</p>
+      {% endif %}
+    </section>
+
+    {% if accounts %}
+    <section class="card" aria-labelledby="pay-accounts-heading">
+      <div class="card-header">
+        <h2 id="pay-accounts-heading">LGS Payment Accounts</h2>
+      </div>
+      <ul class="account-list">
+        {% for account in accounts %}
+        <li>
+          <strong>{% if account.bank_name %}{{ account.bank_name }}{% else %}Lipa Number{% endif %}</strong>
+          <span>{{ account.account_number }}</span>
+          <span>{{ account.account_name }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

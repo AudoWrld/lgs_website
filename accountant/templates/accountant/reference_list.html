@@ -1,0 +1,62 @@
+{% extends 'accountant/base_accountant.html' %}
+{% load static %}
+
+{% block title %}References — LGS Accountant{% endblock %}
+{% block page_title %}References{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'accountant/css/accountant_pages.css' %}" />
+{% endblock %}
+
+{% block content %}
+<section class="card">
+  <form method="get" class="filter-bar">
+    <div class="form-group">
+      <label for="ref-q">Reference Number</label>
+      <input type="search" id="ref-q" name="q" value="{{ query }}" placeholder="e.g. LGS/260925/01" />
+    </div>
+    <div class="filter-actions">
+      <button type="submit" class="btn btn-secondary"><i class="bx bx-search" aria-hidden="true"></i>Search</button>
+      {% if query %}<a class="btn btn-outline" href="{% url 'accountant:reference_list' %}">Clear</a>{% endif %}
+    </div>
+  </form>
+
+  <p class="help-text">{{ total_count }} reference{{ total_count|pluralize }} found.</p>
+
+  {% if page_obj.object_list %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">Reference No.</th>
+          <th scope="col">Submission Date</th>
+          <th scope="col" class="num">Amount Due (TZS)</th>
+          <th scope="col" class="num">Amount Paid (TZS)</th>
+          <th scope="col" class="num">Outstanding (TZS)</th>
+          <th scope="col">Status</th>
+          <th scope="col"><span class="visually-hidden">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for payment in page_obj.object_list %}
+        <tr>
+          <td>{{ payment.submission.reference }}</td>
+          <td>{{ payment.submission.submitted_at|date:"Y-m-d" }}</td>
+          <td class="num">{{ payment.net_amount_payable|floatformat:"2g" }}</td>
+          <td class="num">{{ payment.total_amount_paid|floatformat:"2g" }}</td>
+          <td class="num">{{ payment.outstanding_balance|floatformat:"2g" }}</td>
+          <td>
+            <span class="badge {% if payment.payment_status == 'PAID' %}badge-success{% elif payment.payment_status == 'UNPAID' %}badge-danger{% else %}badge-warning{% endif %}">{{ payment.get_payment_status_display }}</span>
+          </td>
+          <td><a class="btn btn-outline btn-sm" href="{% url 'accountant:payment_add' %}?reference={{ payment.submission.reference|urlencode }}">Record payment</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include 'accountant/_pagination.html' %}
+  {% else %}
+  <p class="empty-state">No references found.</p>
+  {% endif %}
+</section>
+{% endblock %}

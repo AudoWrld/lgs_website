@@ -1,0 +1,55 @@
+{% extends 'accountant/base_accountant.html' %}
+{% load static %}
+
+{% block title %}Report Release — LGS Accountant{% endblock %}
+{% block page_title %}Report Release{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'accountant/css/accountant_pages.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="summary-strip">
+  <div class="summary-item is-out">
+    <span class="summary-label">COAs Waiting on Payment</span>
+    <span class="summary-value">{{ total_count }}</span>
+  </div>
+</div>
+
+<section class="card">
+  <div class="card-header">
+    <h2>Generated COAs Awaiting Release</h2>
+  </div>
+  <p class="help-text">These COAs are QC approved and generated. They stay locked until the balance is cleared. Authorizing release before full payment needs the release authorization record, which is not built yet.</p>
+
+  {% if rows %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">Reference No.</th>
+          <th scope="col">COA No.</th>
+          <th scope="col">Generated</th>
+          <th scope="col" class="num">Outstanding (TZS)</th>
+          <th scope="col">Payment Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>{{ row.reference }}</td>
+          <td>{{ row.coa_number }}</td>
+          <td>{{ row.created_at|date:"Y-m-d H:i" }}</td>
+          <td class="num">{{ row.outstanding|floatformat:"2g" }}</td>
+          <td><span class="badge badge-warning">{{ row.status }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include 'accountant/_pagination.html' %}
+  {% else %}
+  <p class="empty-state">No COAs are waiting on payment.</p>
+  {% endif %}
+</section>
+{% endblock %}
