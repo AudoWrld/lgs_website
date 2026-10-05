@@ -16,6 +16,7 @@ from django.utils.dateparse import parse_date
 from accounts.decorators import accountant_required
 from coa.models import COA
 from coa.services import authorize_release, release_if_paid
+from expences.models import Expense
 from payments.models import Payment, PaymentAccount, PaymentTransaction
 from submissions.models import Submission
 
@@ -39,6 +40,10 @@ def _paginate(request, queryset, size=PAGE_SIZE):
     params = request.GET.copy()
     params.pop("page", None)
     return page, params.urlencode()
+
+
+def _submitted_expenses():
+    return Expense.objects.filter(is_submitted=True)
 
 
 def _open_balances():
@@ -149,10 +154,16 @@ def _dashboard_context():
         created_at__year=today.year, created_at__month=today.month
     )
 
+    submitted_expenses = _submitted_expenses()
+    today_expenses = submitted_expenses.filter(created_at__date=today)
+    month_expenses = submitted_expenses.filter(
+        created_at__year=today.year, created_at__month=today.month
+    )
+
     payments_today = _total(today_tx, "amount")
     payments_month = _total(month_tx, "amount")
-    expenses_today = ZERO
-    expenses_month = ZERO
+    expenses_today = _total(today_expenses, "amount")
+    expenses_month = _total(month_expenses, "amount")
 
     open_balances = _open_balances()
 
@@ -421,8 +432,12 @@ def reports(request):
         "payment__submission"
     ).filter(created_at__date__gte=start, created_at__date__lte=end)
 
+    period_expenses = _submitted_expenses().filter(
+        created_at__date__gte=start, created_at__date__lte=end
+    )
+
     payments_total = _total(transactions, "amount")
-    expenses_total = ZERO
+    expenses_total = _total(period_expenses, "amount")
     open_balances = _open_balances()
 
     page_obj, querystring = _paginate(request, transactions)
