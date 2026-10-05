@@ -30,6 +30,7 @@ RECENT_LIMIT = 5
 RELEASE_LIMIT = 5
 OVERDUE_LIMIT = 5
 PAGE_SIZE = 20
+REPORT_ROW_LIMIT = 10
 RELEASE_PERMISSION = "coa.authorize_release"
 
 
@@ -37,10 +38,10 @@ def _total(queryset, field):
     return queryset.aggregate(total=Sum(field))["total"] or ZERO
 
 
-def _paginate(request, queryset, size=PAGE_SIZE):
-    page = Paginator(queryset, size).get_page(request.GET.get("page"))
+def _paginate(request, queryset, size=PAGE_SIZE, param="page"):
+    page = Paginator(queryset, size).get_page(request.GET.get(param))
     params = request.GET.copy()
-    params.pop("page", None)
+    params.pop(param, None)
     return page, params.urlencode()
 
 
@@ -157,9 +158,9 @@ def _dashboard_context():
     )
 
     submitted_expenses = _submitted_expenses()
-    today_expenses = submitted_expenses.filter(created_at__date=today)
+    today_expenses = submitted_expenses.filter(expense_date=today)
     month_expenses = submitted_expenses.filter(
-        created_at__year=today.year, created_at__month=today.month
+        expense_date__year=today.year, expense_date__month=today.month
     )
 
     payments_today = _total(today_tx, "amount")
@@ -430,19 +431,29 @@ def reports(request):
         start = end = today
         label = today.isoformat()
 
-    transactions = PaymentTransaction.objects.select_related(
-        "payment__submission"
-    ).filter(created_at__date__gte=start, created_at__date__lte=end)
+    transactions = (
+        PaymentTransaction.objects.select_related("payment__submission")
+        .filter(created_at__date__gte=start, created_at__date__lte=end)
+        .order_by("-created_at")
+    )
 
-    period_expenses = _submitted_expenses().filter(
-        created_at__date__gte=start, created_at__date__lte=end
+    period_expenses = (
+        _submitted_expenses()
+        .filter(expense_date__gte=start, expense_date__lte=end)
+        .select_related("added_by")
+        .order_by("-expense_date", "-created_at")
     )
 
     payments_total = _total(transactions, "amount")
     expenses_total = _total(period_expenses, "amount")
     open_balances = _open_balances()
+    credit_balances = _credit_balances()
 
     page_obj, querystring = _paginate(request, transactions)
+    expense_page, expense_querystring = _paginate(
+        request, period_expenses, param="epage"
+    )
+
     context = {
         "form": form,
         "label": label,
@@ -452,11 +463,20 @@ def reports(request):
         "expenses_total": expenses_total,
         "net_total": payments_total - expenses_total,
         "transaction_count": transactions.count(),
+        "expense_count": period_expenses.count(),
         "outstanding_debt": _total(open_balances, "balance"),
-        "credit_outstanding": _total(_credit_balances(), "balance"),
+        "credit_outstanding": _total(credit_balances, "balance"),
         "channels": _channel_rows(transactions),
         "page_obj": page_obj,
         "querystring": querystring,
+        "expense_page": expense_page,
+        "expense_querystring": expense_querystring,
+        "debt_rows": open_balances.select_related("submission").order_by(
+            "submission__submitted_at"
+        )[:REPORT_ROW_LIMIT],
+        "credit_rows": credit_balances.select_related("submission").order_by(
+            "credit_due_date"
+        )[:REPORT_ROW_LIMIT],
     }
     return render(request, "accountant/reports.html", context)
 
