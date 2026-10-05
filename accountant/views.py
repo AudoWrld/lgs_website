@@ -21,6 +21,8 @@ from payments.models import Payment, PaymentAccount, PaymentTransaction
 from submissions.models import Submission
 
 from .forms import PaymentForm, ReleaseForm, ReportFilterForm
+from django.db.models import DecimalField, ExpressionWrapper, F, Q, Sum
+from expences.forms import ExpenseForm
 
 ZERO = Decimal("0.00")
 DASH = "\u2014"
@@ -457,6 +459,92 @@ def reports(request):
         "querystring": querystring,
     }
     return render(request, "accountant/reports.html", context)
+
+
+@accountant_required
+def expense_list(request):
+    query = request.GET.get("q", "").strip()
+    category = request.GET.get("category", "").strip()
+    date_from = parse_date(request.GET.get("from", "") or "")
+    date_to = parse_date(request.GET.get("to", "") or "")
+
+    expenses = Expense.objects.filter(is_submitted=True).select_related("added_by")
+    if query:
+        expenses = expenses.filter(
+            Q(description__icontains=query)
+            | Q(supplier_reference__icontains=query)
+            | Q(document_number__icontains=query)
+        )
+    if category:
+        expenses = expenses.filter(category=category)
+    if date_from:
+        expenses = expenses.filter(expense_date__gte=date_from)
+    if date_to:
+        expenses = expenses.filter(expense_date__lte=date_to)
+
+    page_obj, querystring = _paginate(request, expenses)
+    context = {
+        "query": query,
+        "category": category,
+        "date_from": request.GET.get("from", ""),
+        "date_to": request.GET.get("to", ""),
+        "categories": Expense.CATEGORY_CHOICES,
+        "page_obj": page_obj,
+        "querystring": querystring,
+        "total_count": expenses.count(),
+        "total_amount": _total(expenses, "amount"),
+        "my_drafts": Expense.objects.filter(
+            is_submitted=False, added_by=request.user
+        ).order_by("-created_at"),
+    }
+    return render(request, "accountant/expense_list.html", context)
+
+
+@accountant_required
+def expense_add(request):
+    if request.method == "POST":
+        form = ExpenseForm(request.POST, request.FILES)
+        if form.is_valid():
+            expense = form.save(commit=False)
+            expense.is_submitted = False
+            expense.added_by = request.user
+            expense.save()
+            return redirect("accountant:expense_edit", slug=expense.slug)
+    else:
+        form = ExpenseForm()
+
+    return render(request, "accountant/expense_add.html", {"form": form})
+
+
+@accountant_required
+def expense_edit(request, slug):
+    expense = get_object_or_404(
+        Expense, slug=slug, is_submitted=False, added_by=request.user
+    )
+
+    if request.method == "POST":
+        form = ExpenseForm(request.POST, request.FILES, instance=expense)
+        if form.is_valid():
+            action = request.POST.get("action")
+            if action == "submit":
+                expense = form.save(commit=False)
+                expense.is_submitted = True
+                expense.submitted_at = timezone.now()
+                expense.save()
+                messages.success(request, "Expense submitted successfully.")
+                return redirect("accountant:expense_list")
+
+            form.save()
+            messages.success(request, "Expense changes saved.")
+            return redirect("accountant:expense_edit", slug=expense.slug)
+    else:
+        form = ExpenseForm(instance=expense)
+
+    return render(
+        request,
+        "accountant/expense_edit.html",
+        {"form": form, "expense": expense},
+    )
 
 
 @accountant_required

@@ -19,12 +19,6 @@ urlpatterns = [
         name="receipt_list",
     ),
     path(
-        "expenses/",
-        views.placeholder,
-        {"heading": "Expenses"},
-        name="expense_list",
-    ),
-    path(
         "quotations/",
         views.placeholder,
         {"heading": "Quotations"},
@@ -36,6 +30,9 @@ urlpatterns = [
         {"heading": "Invoices"},
         name="invoice_list",
     ),
+    path("expenses/", views.expense_list, name="expense_list"),
+    path("expenses/add/", views.expense_add, name="expense_add"),
+    path("expenses/<slug:slug>/edit/", views.expense_edit, name="expense_edit"),
     path("debt-credit/", views.debt_credit, name="debt_credit"),
     path("release-queue/", views.release_queue, name="release_queue"),
     path(
