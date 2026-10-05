@@ -203,7 +203,7 @@
       <h2 id="rp-credit-heading"><i class="bx bx-time-five" aria-hidden="true"></i> Credit Outstanding</h2>
       <span class="rp-meta">As of today, earliest due first</span>
     </div>
-    {% if credit_rows %}
+    {% if credit_page.object_list %}
     <div class="rp-table-wrap">
       <table class="rp-table">
         <thead>
@@ -215,7 +215,7 @@
           </tr>
         </thead>
         <tbody>
-          {% for payment in credit_rows %}
+          {% for payment in credit_page.object_list %}
           <tr>
             <td class="rp-ref">{{ payment.submission.reference }}</td>
             <td class="rp-num">{{ payment.balance|floatformat:"2g" }}</td>
@@ -226,7 +226,13 @@
         </tbody>
       </table>
     </div>
-    <p class="rp-more"><a href="{% url 'accountant:debt_credit' %}?status=credit">View all credit</a></p>
+    {% if credit_page.has_other_pages %}
+    <div class="rp-pager">
+      {% if credit_page.has_previous %}<a class="btn btn-outline btn-sm" href="?cpage={{ credit_page.previous_page_number }}{% if credit_querystring %}&{{ credit_querystring }}{% endif %}#rp-credit">Previous</a>{% endif %}
+      <span>Page {{ credit_page.number }} of {{ credit_page.paginator.num_pages }}</span>
+      {% if credit_page.has_next %}<a class="btn btn-outline btn-sm" href="?cpage={{ credit_page.next_page_number }}{% if credit_querystring %}&{{ credit_querystring }}{% endif %}#rp-credit">Next</a>{% endif %}
+    </div>
+    {% endif %}
     {% else %}
     <p class="rp-empty">No credit outstanding.</p>
     {% endif %}
@@ -238,7 +244,7 @@
     <h2 id="rp-debt-heading"><i class="bx bx-error-circle" aria-hidden="true"></i> Outstanding Debt</h2>
     <span class="rp-meta">As of today, oldest first</span>
   </div>
-  {% if debt_rows %}
+  {% if debt_page.object_list %}
   <div class="rp-table-wrap">
     <table class="rp-table">
       <thead>
@@ -250,7 +256,7 @@
         </tr>
       </thead>
       <tbody>
-        {% for payment in debt_rows %}
+        {% for payment in debt_page.object_list %}
         <tr>
           <td class="rp-ref">{{ payment.submission.reference }}</td>
           <td class="rp-num">{{ payment.net_amount_payable|floatformat:"2g" }}</td>
@@ -261,7 +267,13 @@
       </tbody>
     </table>
   </div>
-  <p class="rp-more"><a href="{% url 'accountant:debt_credit' %}">View all outstanding balances</a></p>
+  {% if debt_page.has_other_pages %}
+  <div class="rp-pager">
+    {% if debt_page.has_previous %}<a class="btn btn-outline btn-sm" href="?dpage={{ debt_page.previous_page_number }}{% if debt_querystring %}&{{ debt_querystring }}{% endif %}#rp-debt">Previous</a>{% endif %}
+    <span>Page {{ debt_page.number }} of {{ debt_page.paginator.num_pages }}</span>
+    {% if debt_page.has_next %}<a class="btn btn-outline btn-sm" href="?dpage={{ debt_page.next_page_number }}{% if debt_querystring %}&{{ debt_querystring }}{% endif %}#rp-debt">Next</a>{% endif %}
+  </div>
+  {% endif %}
   {% else %}
   <p class="rp-empty">No outstanding debt.</p>
   {% endif %}

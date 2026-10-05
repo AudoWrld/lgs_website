@@ -29,8 +29,7 @@ RECENT_LIMIT = 5
 RELEASE_LIMIT = 5
 OVERDUE_LIMIT = 5
 PAGE_SIZE = 20
-REPORT_PAGE_SIZE = 5
-REPORT_ROW_LIMIT = 5
+REPORT_PAGE_SIZE = 4
 RELEASE_PERMISSION = "coa.authorize_release"
 
 
@@ -439,26 +438,40 @@ def reports(request):
     transactions = (
         PaymentTransaction.objects.select_related("payment__submission")
         .filter(created_at__date__gte=start, created_at__date__lte=end)
-        .order_by("-created_at")
+        .order_by("-created_at", "-id")
     )
 
     period_expenses = (
         _submitted_expenses()
         .filter(expense_date__gte=start, expense_date__lte=end)
         .select_related("added_by")
-        .order_by("-expense_date", "-created_at")
+        .order_by("-expense_date", "-created_at", "-id")
+    )
+
+    open_balances = _open_balances()
+    credit_balances = _credit_balances()
+
+    debt_qs = open_balances.select_related("submission").order_by(
+        "submission__submitted_at", "id"
+    )
+    credit_qs = credit_balances.select_related("submission").order_by(
+        "credit_due_date", "id"
     )
 
     payments_total = _total(transactions, "amount")
     expenses_total = _total(period_expenses, "amount")
-    open_balances = _open_balances()
-    credit_balances = _credit_balances()
 
     page_obj, querystring = _paginate(
         request, transactions, size=REPORT_PAGE_SIZE, param="page"
     )
     expense_page, expense_querystring = _paginate(
         request, period_expenses, size=REPORT_PAGE_SIZE, param="epage"
+    )
+    debt_page, debt_querystring = _paginate(
+        request, debt_qs, size=REPORT_PAGE_SIZE, param="dpage"
+    )
+    credit_page, credit_querystring = _paginate(
+        request, credit_qs, size=REPORT_PAGE_SIZE, param="cpage"
     )
 
     context = {
@@ -478,12 +491,10 @@ def reports(request):
         "querystring": querystring,
         "expense_page": expense_page,
         "expense_querystring": expense_querystring,
-        "debt_rows": open_balances.select_related("submission").order_by(
-            "submission__submitted_at"
-        )[:REPORT_ROW_LIMIT],
-        "credit_rows": credit_balances.select_related("submission").order_by(
-            "credit_due_date"
-        )[:REPORT_ROW_LIMIT],
+        "debt_page": debt_page,
+        "debt_querystring": debt_querystring,
+        "credit_page": credit_page,
+        "credit_querystring": credit_querystring,
     }
     return render(request, "accountant/reports.html", context)
 
