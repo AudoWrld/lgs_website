@@ -23,8 +23,9 @@ from .forms import PaymentForm, ReleaseForm, ReportFilterForm
 
 ZERO = Decimal("0.00")
 DASH = "\u2014"
-RECENT_LIMIT = 10
-RELEASE_LIMIT = 10
+RECENT_LIMIT = 5
+RELEASE_LIMIT = 5
+OVERDUE_LIMIT = 5
 PAGE_SIZE = 20
 RELEASE_PERMISSION = "coa.authorize_release"
 
@@ -166,7 +167,7 @@ def _dashboard_context():
         "credit_outstanding": _total(_credit_balances(), "balance"),
         "channels": _channel_rows(today_tx, month_tx),
         "awaiting_release": [_release_row(c) for c in _pending_coas()[:RELEASE_LIMIT]],
-        "overdue_credit": _overdue_credit_rows(limit=10),
+        "overdue_credit": _overdue_credit_rows(limit=OVERDUE_LIMIT),
         "recent_payments": _recent_payments(),
     }
 

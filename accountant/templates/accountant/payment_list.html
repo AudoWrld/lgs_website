@@ -5,28 +5,28 @@
 {% block page_title %}Payment History{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'accountant/css/accountant_pages.css' %}" />
+<link rel="stylesheet" href="{% static 'accountant/css/payment_list.css' %}" />
 {% endblock %}
 
 {% block content %}
-<div class="summary-strip">
-  <div class="summary-item is-in">
-    <span class="summary-label">Total Collected (filtered)</span>
-    <span class="summary-value">TZS {{ total_amount|floatformat:"2g" }}</span>
+<div class="pl-summary">
+  <div class="pl-stat pl-stat-in">
+    <span class="pl-stat-label">Total Collected (filtered)</span>
+    <span class="pl-stat-value">TZS {{ total_amount|floatformat:"2g" }}</span>
   </div>
-  <div class="summary-item">
-    <span class="summary-label">Transactions</span>
-    <span class="summary-value">{{ total_count }}</span>
+  <div class="pl-stat">
+    <span class="pl-stat-label">Transactions</span>
+    <span class="pl-stat-value">{{ total_count }}</span>
   </div>
 </div>
 
-<section class="card">
-  <form method="get" class="filter-bar">
-    <div class="form-group">
+<section class="pl-panel">
+  <form method="get" class="pl-filter">
+    <div class="pl-field">
       <label for="pay-q">Reference Number</label>
-      <input type="search" id="pay-q" name="q" value="{{ query }}" />
+      <input type="search" id="pay-q" name="q" value="{{ query }}" autocomplete="off" />
     </div>
-    <div class="form-group">
+    <div class="pl-field">
       <label for="pay-method">Method</label>
       <select id="pay-method" name="method">
         <option value="">All methods</option>
@@ -35,48 +35,48 @@
         {% endfor %}
       </select>
     </div>
-    <div class="form-group">
+    <div class="pl-field">
       <label for="pay-from">From</label>
       <input type="date" id="pay-from" name="from" value="{{ date_from }}" />
     </div>
-    <div class="form-group">
+    <div class="pl-field">
       <label for="pay-to">To</label>
       <input type="date" id="pay-to" name="to" value="{{ date_to }}" />
     </div>
-    <div class="filter-actions">
+    <div class="pl-actions">
       <button type="submit" class="btn btn-secondary"><i class="bx bx-filter-alt" aria-hidden="true"></i>Filter</button>
       <a class="btn btn-outline" href="{% url 'accountant:payment_list' %}">Clear</a>
     </div>
   </form>
 
   {% if page_obj.object_list %}
-  <div class="table-wrap">
-    <table class="table">
+  <div class="pl-table-wrap">
+    <table class="pl-table">
       <thead>
         <tr>
           <th scope="col">Date</th>
           <th scope="col">Reference No.</th>
-          <th scope="col" class="num">Amount (TZS)</th>
+          <th scope="col" class="pl-num">Amount (TZS)</th>
           <th scope="col">Method</th>
           <th scope="col">Transaction Ref.</th>
           <th scope="col">Status After</th>
-          <th scope="col" class="num">Outstanding After (TZS)</th>
+          <th scope="col" class="pl-num">Outstanding After (TZS)</th>
           <th scope="col">Recorded By</th>
         </tr>
       </thead>
       <tbody>
         {% for tx in page_obj.object_list %}
         <tr>
-          <td>{{ tx.created_at|date:"Y-m-d H:i" }}</td>
-          <td>{{ tx.payment.submission.reference }}</td>
-          <td class="num">{{ tx.amount|floatformat:"2g" }}</td>
-          <td>{{ tx.get_payment_method_display }}</td>
-          <td>{{ tx.transaction_reference|default:"—" }}</td>
-          <td>
-            <span class="badge {% if tx.resulting_status == 'PAID' %}badge-success{% elif tx.resulting_status == 'UNPAID' %}badge-danger{% else %}badge-warning{% endif %}">{{ tx.get_resulting_status_display }}</span>
+          <td data-label="Date" class="pl-date">{{ tx.created_at|date:"Y-m-d H:i" }}</td>
+          <td data-label="Reference No." class="pl-ref">{{ tx.payment.submission.reference }}</td>
+          <td data-label="Amount (TZS)" class="pl-num pl-amount">{{ tx.amount|floatformat:"2g" }}</td>
+          <td data-label="Method">{{ tx.get_payment_method_display }}</td>
+          <td data-label="Transaction Ref.">{% if tx.transaction_reference %}{{ tx.transaction_reference }}{% else %}<span class="pl-muted">—</span>{% endif %}</td>
+          <td data-label="Status After">
+            <span class="pl-badge {% if tx.resulting_status == 'PAID' %}pl-badge-success{% elif tx.resulting_status == 'UNPAID' %}pl-badge-danger{% else %}pl-badge-warning{% endif %}">{{ tx.get_resulting_status_display }}</span>
           </td>
-          <td class="num">{{ tx.resulting_outstanding|floatformat:"2g" }}</td>
-          <td>{{ tx.recorded_by.get_full_name|default:"—" }}</td>
+          <td data-label="Outstanding After (TZS)" class="pl-num">{{ tx.resulting_outstanding|floatformat:"2g" }}</td>
+          <td data-label="Recorded By">{% with name=tx.recorded_by.get_full_name %}{% if name %}{{ name }}{% else %}<span class="pl-muted">—</span>{% endif %}{% endwith %}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -84,7 +84,7 @@
   </div>
   {% include 'accountant/_pagination.html' %}
   {% else %}
-  <p class="empty-state">No payments found.</p>
+  <p class="pl-empty">No payments found.</p>
   {% endif %}
 </section>
 {% endblock %}
