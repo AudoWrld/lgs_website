@@ -50,7 +50,7 @@
 
 <div class="ef-group" id="ef-evidence-group">
   <label>Supporting Evidence <span class="ef-optional">(optional)</span></label>
-  <input type="hidden" name="remove_evidence" id="ef-remove-flag" value="0" />
+  <input type="hidden" name="remove_evidence" id="ef-remove-flag" value="" />
   {{ form.evidence }}
 
   <div class="ef-drop" id="ef-drop" tabindex="0" role="button" aria-label="Upload supporting evidence">
@@ -174,7 +174,7 @@
       releaseUrl();
       var isImage = IMAGES.indexOf(ext) !== -1;
       if (isImage) objectUrl = URL.createObjectURL(file);
-      removeFlag.value = "0";
+      removeFlag.value = "";
       showPreview(isImage, objectUrl, file.name, formatSize(file.size));
     }
 
@@ -182,7 +182,7 @@
       fileInput.value = "";
       showError("");
       clearPreview();
-      removeFlag.value = hadExisting ? "1" : "0";
+      removeFlag.value = hadExisting ? "1" : "";
     }
 
     function updateCategory() {

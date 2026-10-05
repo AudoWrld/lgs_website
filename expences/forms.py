@@ -8,7 +8,7 @@ from .models import (
 
 
 class ExpenseForm(forms.ModelForm):
-    remove_evidence = forms.BooleanField(required=False)
+    remove_evidence = forms.CharField(required=False, widget=forms.HiddenInput)
 
     class Meta:
         model = Expense
@@ -65,6 +65,8 @@ class ExpenseForm(forms.ModelForm):
         category = cleaned.get("category")
         other_category = (cleaned.get("other_category") or "").strip()
         method = cleaned.get("payment_method")
+        removing = (cleaned.get("remove_evidence") or "").strip() == "1"
+        uploading = bool(self.files.get("evidence"))
 
         if category == Expense.OTHER:
             if not other_category:
@@ -89,7 +91,7 @@ class ExpenseForm(forms.ModelForm):
                 )
             else:
                 cleaned["document_number"] = number
-            if cleaned.get("remove_evidence") and not self.files.get("evidence"):
+            if removing and not uploading:
                 cleaned["evidence"] = False
 
         return cleaned
