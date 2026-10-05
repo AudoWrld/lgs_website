@@ -55,14 +55,6 @@
       <span class="dash-stat-hint">TZS</span>
     </div>
   </a>
-  <a class="dash-stat-card{% if net_today < 0 %} dash-stat-negative{% endif %}" href="{% url 'accountant:reports' %}">
-    <span class="dash-stat-icon"><i class="bx bx-trending-up" aria-hidden="true"></i></span>
-    <div class="dash-stat-body">
-      <span class="dash-stat-label">Net Income Today</span>
-      <span class="dash-stat-value" title="TZS {{ net_today|floatformat:'0g' }}">{{ net_today|floatformat:"0g" }}</span>
-      <span class="dash-stat-hint">{% if net_today < 0 %}Negative balance{% else %}TZS{% endif %}</span>
-    </div>
-  </a>
   <a class="dash-stat-card{% if outstanding_debt %} dash-stat-warning{% endif %}" href="{% url 'accountant:debt_credit' %}">
     <span class="dash-stat-icon"><i class="bx bx-error-circle" aria-hidden="true"></i></span>
     <div class="dash-stat-body">
