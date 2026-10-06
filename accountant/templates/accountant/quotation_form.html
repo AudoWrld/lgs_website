@@ -5,18 +5,21 @@
 {% block page_title %}{% if is_edit %}Edit Quotation{% else %}New Quotation{% endif %}{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
 <link rel="stylesheet" href="{% static 'accountant/css/quotations.css' %}" />
 {% endblock %}
 
 {% block content %}
-<header class="qt-banner">
-  <div class="qt-banner-icon"><i class="bx bx-file" aria-hidden="true"></i></div>
-  <div class="qt-banner-text">
-    <h1 class="qt-banner-title">{% if is_edit %}{{ quotation.quotation_number }}{% else %}New Quotation{% endif %}</h1>
-    <p class="qt-banner-sub">{% if is_edit %}Draft quotations can be edited until they are sent.{% else %}The quotation number is generated when you save.{% endif %}</p>
+<header class="qt-hero">
+  <div class="qt-hero-main">
+    <span class="qt-hero-icon"><i class="bx bx-file" aria-hidden="true"></i></span>
+    <div>
+      <h1 class="qt-hero-title">{% if is_edit %}{{ quotation.quotation_number }}{% else %}New Quotation{% endif %}</h1>
+      <p class="qt-hero-sub">{% if is_edit %}Draft quotations can be edited until they are sent.{% else %}The quotation number is generated when you save.{% endif %}</p>
+    </div>
   </div>
-  <div class="qt-banner-side">
-    <a class="btn btn-outline" href="{% if is_edit %}{% url 'accountant:quotation_detail' quotation.pk %}{% else %}{% url 'accountant:quotation_list' %}{% endif %}">Cancel</a>
+  <div class="qt-hero-actions">
+    <a class="qt-hero-btn qt-hero-btn--ghost" href="{% if is_edit %}{% url 'accountant:quotation_detail' quotation.pk %}{% else %}{% url 'accountant:quotation_list' %}{% endif %}"><i class="bx bx-arrow-back" aria-hidden="true"></i>Cancel</a>
   </div>
 </header>
 
@@ -24,141 +27,147 @@
   {% csrf_token %}
 
   {% if form.non_field_errors or formset.non_form_errors %}
-  <ul class="qt-errors qt-errors-block">
+  <ul class="qt-errors" role="alert">
     {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
     {% for error in formset.non_form_errors %}<li>{{ error }}</li>{% endfor %}
   </ul>
   {% endif %}
 
-  <section class="qt-panel" aria-labelledby="qt-details-heading">
-    <div class="qt-head">
-      <h2 id="qt-details-heading"><i class="bx bx-info-circle" aria-hidden="true"></i> Details</h2>
-    </div>
-    <div class="qt-form-grid">
-      <div class="qt-field">
-        <label for="{{ form.quotation_date.id_for_label }}">{{ form.quotation_date.label }}</label>
-        {{ form.quotation_date }}
-        {% for error in form.quotation_date.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
-      </div>
-      <div class="qt-field">
-        <label for="{{ form.valid_until.id_for_label }}">{{ form.valid_until.label }}</label>
-        {{ form.valid_until }}
-        {% for error in form.valid_until.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
-      </div>
-      <div class="qt-field qt-span-2">
-        <label for="{{ form.client_label.id_for_label }}">{{ form.client_label.label }}</label>
-        {{ form.client_label }}
-        <span class="qt-help">Internal note only. Do not enter client names or contact details.</span>
-        {% for error in form.client_label.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
-      </div>
-    </div>
-  </section>
+  <div class="qt-layout">
+    <div class="qt-main">
+      <section class="qt-panel" aria-labelledby="qt-details-heading">
+        <div class="qt-head">
+          <h2 id="qt-details-heading"><i class="bx bx-info-circle" aria-hidden="true"></i> Details</h2>
+        </div>
+        <div class="qt-form-grid">
+          <div class="qt-field">
+            <label for="{{ form.quotation_date.id_for_label }}">{{ form.quotation_date.label }}</label>
+            {{ form.quotation_date }}
+            {% for error in form.quotation_date.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="qt-field">
+            <label for="{{ form.valid_until.id_for_label }}">{{ form.valid_until.label }}</label>
+            {{ form.valid_until }}
+            {% for error in form.valid_until.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="qt-field qt-span-2">
+            <label for="{{ form.client_label.id_for_label }}">{{ form.client_label.label }}</label>
+            {{ form.client_label }}
+            <span class="qt-help">Internal note only. Do not enter client names or contact details.</span>
+            {% for error in form.client_label.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
+          </div>
+        </div>
+      </section>
 
-  <section class="qt-panel" aria-labelledby="qt-items-heading">
-    <div class="qt-head">
-      <h2 id="qt-items-heading"><i class="bx bx-list-check" aria-hidden="true"></i> Requested Services</h2>
-      <button type="button" class="btn btn-outline btn-sm" id="qt-add-row"><i class="bx bx-plus" aria-hidden="true"></i>Add Service</button>
+      <section class="qt-panel" aria-labelledby="qt-items-heading">
+        <div class="qt-head">
+          <h2 id="qt-items-heading"><i class="bx bx-list-check" aria-hidden="true"></i> Requested Services</h2>
+          <button type="button" class="btn btn-outline btn-sm" id="qt-add-row"><i class="bx bx-plus" aria-hidden="true"></i>Add Service</button>
+        </div>
+
+        {{ formset.management_form }}
+
+        <div class="qt-items" id="qt-items">
+          {% for f in formset %}
+          <div class="qt-item" data-item>
+            {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+            <div class="qt-cell qt-cell-service">
+              <label for="{{ f.service.id_for_label }}">{{ f.service.label }}</label>
+              {{ f.service }}
+              {% for error in f.service.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
+            </div>
+            <div class="qt-cell qt-cell-desc">
+              <label for="{{ f.description.id_for_label }}">{{ f.description.label }}</label>
+              {{ f.description }}
+              {% for error in f.description.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
+            </div>
+            <div class="qt-cell qt-cell-qty">
+              <label for="{{ f.quantity.id_for_label }}">{{ f.quantity.label }}</label>
+              {{ f.quantity }}
+              {% for error in f.quantity.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
+            </div>
+            <div class="qt-cell qt-cell-price">
+              <label for="{{ f.unit_price.id_for_label }}">{{ f.unit_price.label }}</label>
+              {{ f.unit_price }}
+              {% for error in f.unit_price.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
+            </div>
+            <div class="qt-cell qt-cell-line">
+              <span class="qt-cell-label">Line Total</span>
+              <span class="qt-line" data-line>0.00</span>
+            </div>
+            <div class="qt-cell qt-cell-remove">
+              <label class="qt-remove" for="{{ f.DELETE.id_for_label }}">{{ f.DELETE }} Remove</label>
+            </div>
+            {% for error in f.non_field_errors %}<span class="qt-err qt-err-row">{{ error }}</span>{% endfor %}
+          </div>
+          {% endfor %}
+        </div>
+
+        <template id="qt-empty">
+          <div class="qt-item" data-item>
+            {% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+            <div class="qt-cell qt-cell-service">
+              <label for="{{ formset.empty_form.service.id_for_label }}">{{ formset.empty_form.service.label }}</label>
+              {{ formset.empty_form.service }}
+            </div>
+            <div class="qt-cell qt-cell-desc">
+              <label for="{{ formset.empty_form.description.id_for_label }}">{{ formset.empty_form.description.label }}</label>
+              {{ formset.empty_form.description }}
+            </div>
+            <div class="qt-cell qt-cell-qty">
+              <label for="{{ formset.empty_form.quantity.id_for_label }}">{{ formset.empty_form.quantity.label }}</label>
+              {{ formset.empty_form.quantity }}
+            </div>
+            <div class="qt-cell qt-cell-price">
+              <label for="{{ formset.empty_form.unit_price.id_for_label }}">{{ formset.empty_form.unit_price.label }}</label>
+              {{ formset.empty_form.unit_price }}
+            </div>
+            <div class="qt-cell qt-cell-line">
+              <span class="qt-cell-label">Line Total</span>
+              <span class="qt-line" data-line>0.00</span>
+            </div>
+            <div class="qt-cell qt-cell-remove">
+              <label class="qt-remove" for="{{ formset.empty_form.DELETE.id_for_label }}">{{ formset.empty_form.DELETE }} Remove</label>
+            </div>
+          </div>
+        </template>
+      </section>
+
+      <section class="qt-panel" aria-labelledby="qt-text-heading">
+        <div class="qt-head">
+          <h2 id="qt-text-heading"><i class="bx bx-notepad" aria-hidden="true"></i> Terms and Notes</h2>
+        </div>
+        <div class="qt-form-grid">
+          <div class="qt-field">
+            <label for="{{ form.terms.id_for_label }}">Terms</label>
+            {{ form.terms }}
+            {% for error in form.terms.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="qt-field">
+            <label for="{{ form.notes.id_for_label }}">Notes</label>
+            {{ form.notes }}
+            {% for error in form.notes.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
+          </div>
+        </div>
+      </section>
     </div>
 
-    {{ formset.management_form }}
-
-    <div class="qt-items" id="qt-items">
-      {% for f in formset %}
-      <div class="qt-item" data-item>
-        {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
-        <div class="qt-cell qt-cell-service">
-          <label for="{{ f.service.id_for_label }}">{{ f.service.label }}</label>
-          {{ f.service }}
-          {% for error in f.service.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
+    <aside class="qt-aside" aria-label="Quotation totals">
+      <div class="qt-aside-head">Summary</div>
+      <div class="qt-aside-body">
+        <div class="qt-aside-row"><span>Subtotal</span><strong id="qt-subtotal">0.00</strong></div>
+        <div class="qt-aside-discount">
+          <label for="{{ form.discount.id_for_label }}">{{ form.discount.label }}</label>
+          {{ form.discount }}
+          {% for error in form.discount.errors %}<span class="qt-err qt-err-right">{{ error }}</span>{% endfor %}
         </div>
-        <div class="qt-cell qt-cell-desc">
-          <label for="{{ f.description.id_for_label }}">{{ f.description.label }}</label>
-          {{ f.description }}
-          {% for error in f.description.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
-        </div>
-        <div class="qt-cell qt-cell-qty">
-          <label for="{{ f.quantity.id_for_label }}">{{ f.quantity.label }}</label>
-          {{ f.quantity }}
-          {% for error in f.quantity.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
-        </div>
-        <div class="qt-cell qt-cell-price">
-          <label for="{{ f.unit_price.id_for_label }}">{{ f.unit_price.label }}</label>
-          {{ f.unit_price }}
-          {% for error in f.unit_price.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
-        </div>
-        <div class="qt-cell qt-cell-line">
-          <span class="qt-cell-label">Line Total</span>
-          <span class="qt-line" data-line>0.00</span>
-        </div>
-        <div class="qt-cell qt-cell-remove">
-          <label class="qt-remove" for="{{ f.DELETE.id_for_label }}">{{ f.DELETE }} Remove</label>
-        </div>
-        {% for error in f.non_field_errors %}<span class="qt-err qt-err-row">{{ error }}</span>{% endfor %}
+        <div class="qt-aside-row qt-aside-total"><span>Total (TZS)</span><strong id="qt-total">0.00</strong></div>
       </div>
-      {% endfor %}
-    </div>
-
-    <template id="qt-empty">
-      <div class="qt-item" data-item>
-        {% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
-        <div class="qt-cell qt-cell-service">
-          <label for="{{ formset.empty_form.service.id_for_label }}">{{ formset.empty_form.service.label }}</label>
-          {{ formset.empty_form.service }}
-        </div>
-        <div class="qt-cell qt-cell-desc">
-          <label for="{{ formset.empty_form.description.id_for_label }}">{{ formset.empty_form.description.label }}</label>
-          {{ formset.empty_form.description }}
-        </div>
-        <div class="qt-cell qt-cell-qty">
-          <label for="{{ formset.empty_form.quantity.id_for_label }}">{{ formset.empty_form.quantity.label }}</label>
-          {{ formset.empty_form.quantity }}
-        </div>
-        <div class="qt-cell qt-cell-price">
-          <label for="{{ formset.empty_form.unit_price.id_for_label }}">{{ formset.empty_form.unit_price.label }}</label>
-          {{ formset.empty_form.unit_price }}
-        </div>
-        <div class="qt-cell qt-cell-line">
-          <span class="qt-cell-label">Line Total</span>
-          <span class="qt-line" data-line>0.00</span>
-        </div>
-        <div class="qt-cell qt-cell-remove">
-          <label class="qt-remove" for="{{ formset.empty_form.DELETE.id_for_label }}">{{ formset.empty_form.DELETE }} Remove</label>
-        </div>
+      <div class="qt-aside-foot">
+        <button type="submit" class="btn btn-primary"><i class="bx bx-save" aria-hidden="true"></i>{% if is_edit %}Save Changes{% else %}Save Quotation{% endif %}</button>
+        <a class="btn btn-outline" href="{% if is_edit %}{% url 'accountant:quotation_detail' quotation.pk %}{% else %}{% url 'accountant:quotation_list' %}{% endif %}">Cancel</a>
       </div>
-    </template>
-
-    <div class="qt-totals">
-      <div class="qt-totals-row"><span>Subtotal</span><strong id="qt-subtotal">0.00</strong></div>
-      <div class="qt-totals-row qt-totals-discount">
-        <label for="{{ form.discount.id_for_label }}">{{ form.discount.label }}</label>
-        {{ form.discount }}
-      </div>
-      {% for error in form.discount.errors %}<span class="qt-err qt-err-right">{{ error }}</span>{% endfor %}
-      <div class="qt-totals-row qt-totals-grand"><span>Total Quoted Amount (TZS)</span><strong id="qt-total">0.00</strong></div>
-    </div>
-  </section>
-
-  <section class="qt-panel" aria-labelledby="qt-text-heading">
-    <div class="qt-head">
-      <h2 id="qt-text-heading"><i class="bx bx-notepad" aria-hidden="true"></i> Terms and Notes</h2>
-    </div>
-    <div class="qt-form-grid">
-      <div class="qt-field">
-        <label for="{{ form.terms.id_for_label }}">Terms</label>
-        {{ form.terms }}
-        {% for error in form.terms.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
-      </div>
-      <div class="qt-field">
-        <label for="{{ form.notes.id_for_label }}">Notes</label>
-        {{ form.notes }}
-        {% for error in form.notes.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
-      </div>
-    </div>
-  </section>
-
-  <div class="qt-submit">
-    <button type="submit" class="btn btn-primary"><i class="bx bx-save" aria-hidden="true"></i>{% if is_edit %}Save Changes{% else %}Save Quotation{% endif %}</button>
-    <a class="btn btn-outline" href="{% if is_edit %}{% url 'accountant:quotation_detail' quotation.pk %}{% else %}{% url 'accountant:quotation_list' %}{% endif %}">Cancel</a>
+    </aside>
   </div>
 </form>
 {% endblock %}

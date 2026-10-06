@@ -5,22 +5,25 @@
 {% block page_title %}Quotations{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
 <link rel="stylesheet" href="{% static 'accountant/css/quotations.css' %}" />
 {% endblock %}
 
 {% block content %}
-<header class="qt-banner">
-  <div class="qt-banner-icon"><i class="bx bx-file" aria-hidden="true"></i></div>
-  <div class="qt-banner-text">
-    <h1 class="qt-banner-title">Quotations</h1>
-    <p class="qt-banner-sub">Proposed price documents. Never counted as money collected.</p>
+<header class="qt-hero">
+  <div class="qt-hero-main">
+    <span class="qt-hero-icon"><i class="bx bx-file" aria-hidden="true"></i></span>
+    <div>
+      <h1 class="qt-hero-title">Quotations</h1>
+      <p class="qt-hero-sub">Proposed price documents. They are never counted as money collected.</p>
+    </div>
   </div>
-  <div class="qt-banner-side">
-    <a class="btn btn-primary" href="{% url 'accountant:quotation_add' %}"><i class="bx bx-plus-circle" aria-hidden="true"></i>New Quotation</a>
+  <div class="qt-hero-actions">
+    <a class="qt-hero-btn qt-hero-btn--primary" href="{% url 'accountant:quotation_add' %}"><i class="bx bx-plus-circle" aria-hidden="true"></i>New Quotation</a>
   </div>
 </header>
 
-<form method="get" class="qt-filter">
+<form method="get" class="qt-filter" role="search">
   {% if form.errors %}
   <ul class="qt-errors">
     {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
@@ -45,7 +48,7 @@
     {{ form.date_to }}
   </div>
   <div class="qt-actions">
-    <button type="submit" class="btn btn-secondary"><i class="bx bx-filter-alt" aria-hidden="true"></i>Filter</button>
+    <button type="submit" class="btn btn-primary"><i class="bx bx-filter-alt" aria-hidden="true"></i>Filter</button>
     <a class="btn btn-outline" href="{% url 'accountant:quotation_list' %}">Reset</a>
   </div>
 </form>
@@ -74,12 +77,12 @@
         {% for row in rows %}
         <tr>
           <td class="qt-ref"><a href="{% url 'accountant:quotation_detail' row.quotation.pk %}">{{ row.quotation.quotation_number }}</a></td>
-          <td class="qt-nowrap">{{ row.quotation.quotation_date|date:"Y-m-d" }}</td>
-          <td class="qt-nowrap">{{ row.quotation.valid_until|date:"Y-m-d" }}</td>
+          <td class="qt-nowrap">{{ row.quotation.quotation_date|date:"d M Y" }}</td>
+          <td class="qt-nowrap">{{ row.quotation.valid_until|date:"d M Y" }}</td>
           <td><span class="qt-badge qt-badge-{{ row.quotation.effective_status|lower }}">{{ row.quotation.effective_status_display }}</span></td>
           <td class="qt-num">{{ row.total|floatformat:"2g" }}</td>
           <td>{{ row.quotation.created_by.get_full_name|default:row.quotation.created_by.get_username }}</td>
-          <td class="qt-num"><a class="btn btn-outline btn-sm" href="{% url 'accountant:quotation_detail' row.quotation.pk %}">View</a></td>
+          <td class="qt-num"><a class="btn btn-outline btn-sm" href="{% url 'accountant:quotation_detail' row.quotation.pk %}"><i class="bx bx-show" aria-hidden="true"></i>View</a></td>
         </tr>
         {% endfor %}
       </tbody>
@@ -87,11 +90,11 @@
   </div>
 
   {% if page_obj.has_other_pages %}
-  <div class="qt-pager">
-    {% if page_obj.has_previous %}<a class="btn btn-outline btn-sm" href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Previous</a>{% endif %}
+  <nav class="qt-pager" aria-label="Pagination">
+    {% if page_obj.has_previous %}<a class="btn btn-outline btn-sm" href="?page={{ page_obj.previous_page_number }}{% if querystring %}&amp;{{ querystring }}{% endif %}" rel="prev"><i class="bx bx-chevron-left" aria-hidden="true"></i>Previous</a>{% endif %}
     <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}<a class="btn btn-outline btn-sm" href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Next</a>{% endif %}
-  </div>
+    {% if page_obj.has_next %}<a class="btn btn-outline btn-sm" href="?page={{ page_obj.next_page_number }}{% if querystring %}&amp;{{ querystring }}{% endif %}" rel="next">Next<i class="bx bx-chevron-right" aria-hidden="true"></i></a>{% endif %}
+  </nav>
   {% endif %}
   {% else %}
   <p class="qt-empty">No quotations found.</p>

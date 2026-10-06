@@ -1,121 +1,167 @@
 {% extends 'accountant/base_accountant.html' %}
 {% load static %}
 
-{% block title %}{{ submission.reference }} — LGS Accountant{% endblock %}
-{% block page_title %}Reference Details{% endblock %}
+{% block title %}{{ quotation.quotation_number }} — LGS Accountant{% endblock %}
+{% block page_title %}Quotation{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'accountant/css/references.css' %}" />
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
+<link rel="stylesheet" href="{% static 'accountant/css/quotations.css' %}" />
 {% endblock %}
 
 {% block content %}
-<div class="ref-toolbar">
-  <a class="btn btn-outline btn-sm" href="{% url 'accountant:reference_list' %}"><i class="bx bx-arrow-back" aria-hidden="true"></i>Back to references</a>
-  {% if payment.outstanding_balance > 0 %}
-  <a class="btn btn-primary btn-sm" href="{% url 'accountant:payment_add' %}?reference={{ submission.reference|urlencode }}"><i class="bx bx-plus-circle" aria-hidden="true"></i>Add payment</a>
+<div class="qt-print-head">
+  <strong>LGS African Group Company Limited</strong>
+  <span>Quotation</span>
+</div>
+
+<header class="qt-hero">
+  <div class="qt-hero-main">
+    <span class="qt-hero-icon"><i class="bx bx-file" aria-hidden="true"></i></span>
+    <div>
+      <h1 class="qt-hero-title">{{ quotation.quotation_number }}</h1>
+      <p class="qt-hero-sub">
+        <span class="qt-badge qt-badge-{{ status|lower }}">{{ status_display }}</span>
+        <span>Valid until {{ quotation.valid_until|date:"d M Y" }}</span>
+      </p>
+    </div>
+  </div>
+  <div class="qt-hero-actions qt-noprint">
+    <a class="qt-hero-btn qt-hero-btn--ghost" href="{% url 'accountant:quotation_list' %}"><i class="bx bx-arrow-back" aria-hidden="true"></i>Back</a>
+    {% if can_edit %}<a class="qt-hero-btn qt-hero-btn--ghost" href="{% url 'accountant:quotation_edit' quotation.pk %}"><i class="bx bx-edit" aria-hidden="true"></i>Edit</a>{% endif %}
+    {% if can_send %}
+    <form method="post" action="{% url 'accountant:quotation_send' quotation.pk %}" class="qt-inline">
+      {% csrf_token %}
+      <button type="submit" class="qt-hero-btn qt-hero-btn--ghost"><i class="bx bx-send" aria-hidden="true"></i>Mark as Sent</button>
+    </form>
+    {% endif %}
+    {% if can_accept %}
+    <form method="post" action="{% url 'accountant:quotation_accept' quotation.pk %}" class="qt-inline">
+      {% csrf_token %}
+      <button type="submit" class="qt-hero-btn qt-hero-btn--primary"><i class="bx bx-check-circle" aria-hidden="true"></i>Mark as Accepted</button>
+    </form>
+    {% endif %}
+    {% if can_expire %}
+    <form method="post" action="{% url 'accountant:quotation_expire' quotation.pk %}" class="qt-inline" onsubmit="return confirm('Mark this quotation as expired?');">
+      {% csrf_token %}
+      <button type="submit" class="qt-hero-btn qt-hero-btn--danger"><i class="bx bx-time" aria-hidden="true"></i>Expire</button>
+    </form>
+    {% endif %}
+    <button type="button" class="qt-hero-btn qt-hero-btn--ghost" onclick="window.print()"><i class="bx bx-printer" aria-hidden="true"></i>Print</button>
+  </div>
+</header>
+
+{% with s=status|lower %}
+<nav class="qt-steps" aria-label="Quotation progress">
+  <div class="qt-step{% if s == 'draft' %} is-current{% else %} is-done{% endif %}">
+    <span class="qt-step-dot">{% if s == 'draft' %}1{% else %}<i class="bx bx-check" aria-hidden="true"></i>{% endif %}</span>
+    Draft
+  </div>
+  <span class="qt-step-line{% if s != 'draft' %} is-done{% endif %}"></span>
+  <div class="qt-step{% if s == 'sent' or s == 'expired' %} is-current{% elif s == 'accepted' %} is-done{% endif %}">
+    <span class="qt-step-dot">{% if s == 'accepted' %}<i class="bx bx-check" aria-hidden="true"></i>{% else %}2{% endif %}</span>
+    Sent
+  </div>
+  <span class="qt-step-line{% if s == 'accepted' %} is-done{% endif %}"></span>
+  <div class="qt-step{% if s == 'accepted' %} is-current{% endif %}">
+    <span class="qt-step-dot">3</span>
+    Accepted
+  </div>
+  {% if s == 'expired' %}
+  <span class="qt-step-expired"><i class="bx bx-time" aria-hidden="true"></i>Expired</span>
+  {% endif %}
+</nav>
+{% endwith %}
+
+<section class="qt-panel" aria-labelledby="qt-summary-heading">
+  <div class="qt-head">
+    <h2 id="qt-summary-heading"><i class="bx bx-info-circle" aria-hidden="true"></i> Summary</h2>
+  </div>
+  <dl class="qt-summary">
+    <div><dt>Quotation No.</dt><dd>{{ quotation.quotation_number }}</dd></div>
+    <div><dt>Date</dt><dd>{{ quotation.quotation_date|date:"d M Y" }}</dd></div>
+    <div><dt>Valid Until</dt><dd>{{ quotation.valid_until|date:"d M Y" }}</dd></div>
+    <div><dt>Status</dt><dd>{{ status_display }}</dd></div>
+    {% if quotation.client_label %}<div><dt>Internal Label</dt><dd>{{ quotation.client_label }}</dd></div>{% endif %}
+    <div><dt>Created By</dt><dd>{{ quotation.created_by.get_full_name|default:quotation.created_by.get_username }}</dd></div>
+    {% if quotation.sent_at %}<div><dt>Sent</dt><dd>{{ quotation.sent_at|date:"d M Y H:i" }}</dd></div>{% endif %}
+    {% if quotation.accepted_at %}<div><dt>Accepted</dt><dd>{{ quotation.accepted_at|date:"d M Y H:i" }}</dd></div>{% endif %}
+    {% if quotation.updated_by %}<div><dt>Last Updated By</dt><dd>{{ quotation.updated_by.get_full_name|default:quotation.updated_by.get_username }}</dd></div>{% endif %}
+  </dl>
+</section>
+
+<section class="qt-panel" aria-labelledby="qt-lines-heading">
+  <div class="qt-head">
+    <h2 id="qt-lines-heading"><i class="bx bx-list-check" aria-hidden="true"></i> Requested Services</h2>
+    <span class="qt-meta">{{ items|length }} item{{ items|length|pluralize }}</span>
+  </div>
+  {% if items %}
+  <div class="qt-table-wrap">
+    <table class="qt-table">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Service</th>
+          <th scope="col" class="qt-num">Qty / Samples</th>
+          <th scope="col" class="qt-num">Unit Price (TZS)</th>
+          <th scope="col" class="qt-num">Line Total (TZS)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td class="qt-nowrap">{{ forloop.counter }}</td>
+          <td>
+            {{ item.service }}
+            {% if item.description %}<span class="qt-sub">{{ item.description }}</span>{% endif %}
+          </td>
+          <td class="qt-num">{{ item.quantity }}</td>
+          <td class="qt-num">{{ item.unit_price|floatformat:"2g" }}</td>
+          <td class="qt-num">{{ item.line_total|floatformat:"2g" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4" class="qt-num">Subtotal</td>
+          <td class="qt-num">{{ subtotal|floatformat:"2g" }}</td>
+        </tr>
+        <tr>
+          <td colspan="4" class="qt-num">Discount</td>
+          <td class="qt-num">{{ quotation.discount|floatformat:"2g" }}</td>
+        </tr>
+        <tr class="qt-grand">
+          <td colspan="4" class="qt-num">Total Quoted Amount</td>
+          <td class="qt-num">TZS {{ total_amount|floatformat:"2g" }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% else %}
+  <p class="qt-empty">No services have been added.</p>
+  {% endif %}
+</section>
+
+{% if quotation.terms or quotation.notes %}
+<div class="qt-two">
+  {% if quotation.terms %}
+  <section class="qt-panel" aria-labelledby="qt-terms-heading">
+    <div class="qt-head">
+      <h2 id="qt-terms-heading"><i class="bx bx-shield-quarter" aria-hidden="true"></i> Terms</h2>
+    </div>
+    <p class="qt-text">{{ quotation.terms|linebreaksbr }}</p>
+  </section>
+  {% endif %}
+  {% if quotation.notes %}
+  <section class="qt-panel" aria-labelledby="qt-notes-heading">
+    <div class="qt-head">
+      <h2 id="qt-notes-heading"><i class="bx bx-notepad" aria-hidden="true"></i> Notes</h2>
+    </div>
+    <p class="qt-text">{{ quotation.notes|linebreaksbr }}</p>
+  </section>
   {% endif %}
 </div>
+{% endif %}
 
-<section class="ref-hero">
-  <div>
-    <span class="ref-hero-label">Reference Number</span>
-    <h2 class="ref-hero-title">{{ submission.reference }}</h2>
-    <span class="ref-hero-sub">Submitted {{ submission.submitted_at|date:"d M Y" }}</span>
-  </div>
-  <span class="ref-badge ref-badge-lg {% if payment.payment_status == 'PAID' %}ref-badge-success{% elif payment.payment_status == 'UNPAID' %}ref-badge-danger{% else %}ref-badge-warning{% endif %}">{{ payment.get_payment_status_display }}</span>
-</section>
-
-<section class="ref-stats" aria-label="Financial summary">
-  <div class="ref-stat">
-    <span class="ref-stat-label">Amount Due</span>
-    <span class="ref-stat-value">{{ payment.net_amount_payable|floatformat:"0g" }}</span>
-    <span class="ref-stat-hint">TZS</span>
-  </div>
-  <div class="ref-stat">
-    <span class="ref-stat-label">Amount Paid</span>
-    <span class="ref-stat-value">{{ payment.total_amount_paid|floatformat:"0g" }}</span>
-    <span class="ref-stat-hint">TZS</span>
-  </div>
-  <div class="ref-stat {% if payment.outstanding_balance > 0 %}ref-stat-warning{% else %}ref-stat-ok{% endif %}">
-    <span class="ref-stat-label">Outstanding</span>
-    <span class="ref-stat-value">{{ payment.outstanding_balance|floatformat:"0g" }}</span>
-    <span class="ref-stat-hint">{% if payment.outstanding_balance > 0 %}Balance remaining{% else %}Settled{% endif %}</span>
-  </div>
-</section>
-
-<div class="ref-columns">
-  <section class="ref-panel" aria-labelledby="ref-ledger-heading">
-    <div class="ref-head">
-      <h2 id="ref-ledger-heading"><i class="bx bx-receipt" aria-hidden="true"></i> Payment Ledger</h2>
-      <span class="ref-count">{{ transactions|length }} payment{{ transactions|length|pluralize }}</span>
-    </div>
-    {% if transactions %}
-    <div class="ref-table-wrap">
-      <table class="ref-table">
-        <thead>
-          <tr>
-            <th scope="col">Date</th>
-            <th scope="col">Method</th>
-            <th scope="col">Transaction Ref.</th>
-            <th scope="col" class="ref-num">Amount (TZS)</th>
-            <th scope="col" class="ref-num">Balance After (TZS)</th>
-            <th scope="col">Recorded By</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for tx in transactions %}
-          <tr>
-            <td>{{ tx.created_at|date:"d M Y H:i" }}</td>
-            <td>{{ tx.get_payment_method_display }}</td>
-            <td>{{ tx.transaction_reference|default:"—" }}</td>
-            <td class="ref-num">{{ tx.amount|floatformat:"0g" }}</td>
-            <td class="ref-num">{{ tx.resulting_outstanding|floatformat:"0g" }}</td>
-            <td>{{ tx.recorded_by.get_full_name|default:"—" }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <p class="ref-empty"><i class="bx bx-wallet" aria-hidden="true"></i>No payments recorded yet.</p>
-    {% endif %}
-  </section>
-
-  <div class="ref-side">
-    <section class="ref-panel" aria-labelledby="ref-credit-heading">
-      <div class="ref-head">
-        <h2 id="ref-credit-heading"><i class="bx bx-transfer" aria-hidden="true"></i> Credit</h2>
-        {% if is_overdue %}<span class="ref-badge ref-badge-danger">Overdue</span>{% endif %}
-      </div>
-      <dl class="ref-details">
-        <div class="ref-details-row">
-          <dt>Credit start</dt>
-          <dd>{% if payment.credit_start_date %}{{ payment.credit_start_date|date:"d M Y" }}{% else %}&mdash;{% endif %}</dd>
-        </div>
-        <div class="ref-details-row">
-          <dt>Credit due</dt>
-          <dd>{% if payment.credit_due_date %}{{ payment.credit_due_date|date:"d M Y" }}{% else %}&mdash;{% endif %}</dd>
-        </div>
-      </dl>
-    </section>
-
-    <section class="ref-panel" aria-labelledby="ref-coa-heading">
-      <div class="ref-head">
-        <h2 id="ref-coa-heading"><i class="bx bx-file" aria-hidden="true"></i> COA Status</h2>
-      </div>
-      {% if coas %}
-      <ul class="ref-list">
-        {% for coa in coas %}
-        <li class="ref-list-item">
-          <span class="ref-list-main">{{ coa.coa_number }}</span>
-          <span class="ref-coa">{{ coa.get_status_display }}</span>
-        </li>
-        {% endfor %}
-      </ul>
-      {% else %}
-      <p class="ref-empty ref-empty-sm">No COA generated yet.</p>
-      {% endif %}
-    </section>
-  </div>
-</div>
+<p class="qt-footnote"><i class="bx bx-info-circle" aria-hidden="true"></i><span>This quotation is a proposed price only. It is not an invoice, a receipt or money collected.</span></p>
 {% endblock %}
