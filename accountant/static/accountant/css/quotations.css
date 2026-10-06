@@ -272,7 +272,7 @@
 
 .qt-field textarea {
   min-height: 7rem;
-  resize: vertical;
+  resize: none;
 }
 
 .qt-field input:focus,
@@ -682,6 +682,13 @@
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+.qt-cell > label,
+.qt-cell-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .qt-line {

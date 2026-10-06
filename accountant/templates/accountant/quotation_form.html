@@ -82,12 +82,12 @@
               {% for error in f.description.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
             </div>
             <div class="qt-cell qt-cell-qty">
-              <label for="{{ f.quantity.id_for_label }}">{{ f.quantity.label }}</label>
+              <label for="{{ f.quantity.id_for_label }}">Qty</label>
               {{ f.quantity }}
               {% for error in f.quantity.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
             </div>
             <div class="qt-cell qt-cell-price">
-              <label for="{{ f.unit_price.id_for_label }}">{{ f.unit_price.label }}</label>
+              <label for="{{ f.unit_price.id_for_label }}">Price (TZS)</label>
               {{ f.unit_price }}
               {% for error in f.unit_price.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
             </div>
@@ -115,11 +115,11 @@
               {{ formset.empty_form.description }}
             </div>
             <div class="qt-cell qt-cell-qty">
-              <label for="{{ formset.empty_form.quantity.id_for_label }}">{{ formset.empty_form.quantity.label }}</label>
+              <label for="{{ formset.empty_form.quantity.id_for_label }}">Qty</label>
               {{ formset.empty_form.quantity }}
             </div>
             <div class="qt-cell qt-cell-price">
-              <label for="{{ formset.empty_form.unit_price.id_for_label }}">{{ formset.empty_form.unit_price.label }}</label>
+              <label for="{{ formset.empty_form.unit_price.id_for_label }}">Price (TZS)</label>
               {{ formset.empty_form.unit_price }}
             </div>
             <div class="qt-cell qt-cell-line">
