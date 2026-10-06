@@ -1,11 +1,65 @@
 {% if page_obj.has_other_pages %}
+<style>
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid var(--line);
+    background: var(--off-white);
+  }
+
+  .pagination .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    min-width: 5.5rem;
+    border-radius: 0;
+  }
+
+  .pagination .btn:hover {
+    border-color: var(--navy);
+    background: rgba(18, 62, 91, 0.06);
+    box-shadow: inset 0 -2px 0 var(--orange);
+  }
+
+  .pagination .btn:focus-visible {
+    outline: 2px solid var(--orange);
+    outline-offset: 2px;
+  }
+
+  .pagination-info {
+    flex: 1;
+    color: #6b7680;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 480px) {
+    .pagination { padding: 0.65rem 0.75rem; }
+    .pagination .btn { min-width: 4.5rem; }
+  }
+
+  @media print {
+    .pagination { display: none; }
+  }
+</style>
+
 <nav class="pagination" aria-label="Pagination">
   {% if page_obj.has_previous %}
-  <a class="btn btn-outline btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+  <a class="btn btn-outline btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.previous_page_number }}" rel="prev">
+    <i class='bx bx-chevron-left' aria-hidden="true"></i> Previous
+  </a>
   {% endif %}
   <span class="pagination-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
   {% if page_obj.has_next %}
-  <a class="btn btn-outline btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+  <a class="btn btn-outline btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.next_page_number }}" rel="next">
+    Next <i class='bx bx-chevron-right' aria-hidden="true"></i>
+  </a>
   {% endif %}
 </nav>
 {% endif %}
