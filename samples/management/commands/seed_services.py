@@ -60,7 +60,7 @@ SERVICES = [
     },
     {
         "name": "Conventional Cyanide Leaching Test",
-        "method_of_analysis": "Cyanide Leaching Test Method",
+        "method_of_analysis": "Bottle Test",
         "pricing_type": Service.FIXED,
         "unit_price": Decimal("30000.00"),
         "metallurgical_type": Service.CYANIDE_CONVENTIONAL,
@@ -71,7 +71,7 @@ SERVICES = [
     },
     {
         "name": "Cyanide Leaching Parameter Optimization",
-        "method_of_analysis": "Cyanide Leaching Parameter Optimization Method",
+        "method_of_analysis": "Bottle Test",
         "pricing_type": Service.QUOTATION,
         "unit_price": None,
         "metallurgical_type": Service.CYANIDE_OPTIMIZATION,
@@ -82,7 +82,7 @@ SERVICES = [
     },
     {
         "name": "Carbon Activity Test",
-        "method_of_analysis": "Carbon Activity Test Method",
+        "method_of_analysis": "Bottle Test",
         "pricing_type": Service.FIXED,
         "unit_price": Decimal("30000.00"),
         "metallurgical_type": Service.CARBON_ACTIVITY,

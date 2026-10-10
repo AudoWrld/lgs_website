@@ -349,6 +349,7 @@ class SampleServiceParameter(models.Model):
     CYANIDE = "CYANIDE"
     LIME = "LIME"
     WATER = "WATER"
+    ORE = "ORE"
     LEAD_NITRATE = "LEAD_NITRATE"
     AMMONIUM_SOLUTION = "AMMONIUM_SOLUTION"
     CAUSTIC_SODA = "CAUSTIC_SODA"
@@ -361,6 +362,7 @@ class SampleServiceParameter(models.Model):
         (CYANIDE, "Cyanide"),
         (LIME, "Lime"),
         (WATER, "Water"),
+        (ORE, "Ore"),
         (LEAD_NITRATE, "Lead Nitrate"),
         (AMMONIUM_SOLUTION, "Ammonium Solution"),
         (CAUSTIC_SODA, "Caustic Soda"),
@@ -369,8 +371,9 @@ class SampleServiceParameter(models.Model):
         (AMMONIUM_NITRATE_SALT, "Ammonium Nitrate Salt"),
         (OTHER, "Other Parameter — Specify"),
     ]
-    CONVENTIONAL_LEACHING_OPTIONS = [CYANIDE, LIME, WATER]
+    CONVENTIONAL_LEACHING_OPTIONS = [ORE, CYANIDE, LIME, WATER]
     OPTIMIZATION_OPTIONS = [
+        ORE,
         CYANIDE,
         LIME,
         LEAD_NITRATE,
