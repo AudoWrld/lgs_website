@@ -1,5 +1,4 @@
 import io
-import math
 import os
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -19,6 +18,8 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.platypus import (
     BaseDocTemplate,
     Frame,
+    KeepTogether,
+    NextPageTemplate,
     PageTemplate,
     Paragraph,
     Spacer,
@@ -29,16 +30,18 @@ from reportlab.platypus import (
 PAGE_W, PAGE_H = landscape(A4)
 MARGIN_X = 18 * mm
 FRAME_TOP = 42 * mm
-FRAME_BOTTOM = 50 * mm
-FOOTER_BASE = 9 * mm
+FRAME_BOTTOM = 35 * mm
+LATER_FRAME_TOP = 48 * mm
+FOOTER_BASE = 6 * mm
 
 BLUE = colors.HexColor("#0B3C91")
 COMPANY_BLUE = colors.HexColor("#1B3FD6")
 PURPLE = colors.HexColor("#7A2E8E")
-RED = colors.HexColor("#D4261C")
-STAMP_BLUE = colors.HexColor("#1B2FD0")
-STAMP_RED = colors.HexColor("#D01A1A")
-SIGN_BLUE = colors.HexColor("#2A1FBF")
+TITLE_ORANGE = colors.HexColor("#EB6A1A")
+STAMP_INK = colors.HexColor("#5B3E9A")
+STAMP_DATE_CX = 0.508
+STAMP_DATE_CY = 0.539
+STAMP_DATE_W = 0.455
 
 COMPANY_NAME = "LGS AFRICAN GROUP COMPANY LIMITED"
 ADDRESS_LINES = [
@@ -47,8 +50,6 @@ ADDRESS_LINES = [
     "Email: lgsafricansales2025@gmail.com",
     "Tel: +255 797 717 883   |   Website: www.lgsafrica.co.tz",
 ]
-STAMP_TOP_TEXT = "LGS AFRICAN GROUP CO. LTD"
-STAMP_BOTTOM_TEXT = "NYANG'HWALE BRANCH"
 
 MINERAL_DISCLAIMER = (
     "This report applies only to the sample(s) received and tested by LGS African "
@@ -72,6 +73,7 @@ class Block:
     rows: list
     metallurgical: bool = False
     bold_last_column: bool = False
+    spans: list = field(default_factory=list)
 
 
 @dataclass
@@ -86,6 +88,7 @@ class CoaDoc:
     verify_url: str = ""
     logo_path: str = ""
     signature_path: str = ""
+    stamp_path: str = ""
 
 
 def _style(name, **kw):
@@ -95,12 +98,26 @@ def _style(name, **kw):
 
 
 @lru_cache(maxsize=8)
-def _transparent_image(path):
+def _plain_image(path):
+    return ImageReader(path)
+
+
+def _trim(img):
+    box = img.getchannel("A").point(lambda v: 255 if v > 20 else 0).getbbox()
+    return img.crop(box) if box else img
+
+
+@lru_cache(maxsize=4)
+def _logo_rgba(path):
     from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
     img = Image.open(path).convert("RGBA")
+    if img.width > 600:
+        img = img.resize(
+            (600, max(1, round(img.height * 600 / img.width))), Image.LANCZOS
+        )
     if img.getchannel("A").getextrema()[0] < 250:
-        return ImageReader(img)
+        return _trim(img)
 
     r, g, b = img.convert("RGB").split()
     top = ImageChops.lighter(ImageChops.lighter(r, g), b)
@@ -129,164 +146,27 @@ def _transparent_image(path):
     background = background.filter(ImageFilter.MaxFilter(3))
     alpha = ImageChops.multiply(img.getchannel("A"), ImageChops.invert(background))
     img.putalpha(alpha)
-    return ImageReader(img)
+    return _trim(img)
 
 
-def _logo_source(path):
+@lru_cache(maxsize=4)
+def _logo_reader(path):
     try:
-        return _transparent_image(path)
+        return ImageReader(_logo_rgba(path))
     except Exception:
-        return path
+        return ImageReader(path)
 
 
-def _draw_arc_text(c, text, cx, cy, radius, top, size, span_deg):
-    font = "Helvetica-Bold"
-    widths = [stringWidth(ch, font, size) for ch in text]
-    natural = sum(widths) / radius
-    span = max(math.radians(span_deg), natural)
-    extra = (span - natural) / max(len(text) - 1, 1)
-    c.setFont(font, size)
-    acc = 0.0
-    for ch, w in zip(text, widths):
-        arc = w / radius
-        mid = acc + arc / 2
-        if top:
-            theta = math.pi / 2 + span / 2 - mid
-            rot = math.degrees(theta) - 90
-        else:
-            theta = 3 * math.pi / 2 - span / 2 + mid
-            rot = math.degrees(theta) + 90
-        c.saveState()
-        c.translate(cx + radius * math.cos(theta), cy + radius * math.sin(theta))
-        c.rotate(rot)
-        c.drawCentredString(0, 0, ch)
-        c.restoreState()
-        acc += arc + extra
+@lru_cache(maxsize=4)
+def _watermark_tile(path):
+    from PIL import Image
 
-
-def _draw_star(c, x, y, r):
-    p = c.beginPath()
-    for i in range(10):
-        ang = math.pi / 2 + i * math.pi / 5
-        rad = r if i % 2 == 0 else r * 0.42
-        px, py = x + rad * math.cos(ang), y + rad * math.sin(ang)
-        if i == 0:
-            p.moveTo(px, py)
-        else:
-            p.lineTo(px, py)
-    p.close()
-    c.drawPath(p, stroke=0, fill=1)
-
-
-def draw_stamp(c, cx, cy, issued_at):
-    c.saveState()
-    c.setStrokeColor(STAMP_BLUE)
-    c.setFillColor(STAMP_BLUE)
-    c.setLineWidth(2.0)
-    c.circle(cx, cy, 20 * mm, stroke=1, fill=0)
-    c.setLineWidth(0.8)
-    c.circle(cx, cy, 18.3 * mm, stroke=1, fill=0)
-    c.setLineWidth(1.0)
-    c.circle(cx, cy, 13.4 * mm, stroke=1, fill=0)
-    _draw_arc_text(c, STAMP_TOP_TEXT, cx, cy, 14.7 * mm, True, 8.5, 200)
-    _draw_arc_text(c, STAMP_BOTTOM_TEXT, cx, cy, 16.9 * mm, False, 8, 110)
-    for deg in (200, -20):
-        ang = math.radians(deg)
-        _draw_star(
-            c, cx + 15.9 * mm * math.cos(ang), cy + 15.9 * mm * math.sin(ang), 1.2 * mm
-        )
-    text = issued_at.strftime("%d %b %Y").upper()
-    font, size, scale = "Helvetica-Bold", 12, 0.84
-    width = stringWidth(text, font, size) * scale
-    c.setFillColor(STAMP_RED)
-    c.translate(cx, cy)
-    c.rotate(10)
-    t = c.beginText()
-    t.setFont(font, size)
-    t.setHorizScale(scale * 100)
-    t.setTextOrigin(-width / 2, -1.6 * mm)
-    t.textOut(text)
-    c.drawText(t)
-    c.restoreState()
-
-
-def _draw_signature_fallback(c, x, y):
-    c.saveState()
-    c.setStrokeColor(SIGN_BLUE)
-    c.setLineWidth(1.0)
-    c.setLineCap(1)
-    c.setLineJoin(1)
-
-    p = c.beginPath()
-    p.moveTo(x + 0.0 * mm, y + 3.4 * mm)
-    p.curveTo(
-        x + 2.0 * mm,
-        y + 5.4 * mm,
-        x + 9.0 * mm,
-        y + 5.2 * mm,
-        x + 14.8 * mm,
-        y + 4.4 * mm,
-    )
-    c.drawPath(p, stroke=1, fill=0)
-
-    p = c.beginPath()
-    p.moveTo(x + 14.8 * mm, y + 4.4 * mm)
-    p.curveTo(
-        x + 9.0 * mm,
-        y + 1.0 * mm,
-        x + 2.5 * mm,
-        y + 0.2 * mm,
-        x + 3.5 * mm,
-        y + 2.4 * mm,
-    )
-    p.curveTo(
-        x + 4.2 * mm,
-        y + 3.8 * mm,
-        x + 9.5 * mm,
-        y + 3.6 * mm,
-        x + 14.8 * mm,
-        y + 4.4 * mm,
-    )
-    c.drawPath(p, stroke=1, fill=0)
-
-    p = c.beginPath()
-    p.moveTo(x + 15.0 * mm, y + 4.0 * mm)
-    p.lineTo(x + 16.4 * mm, y + 14.3 * mm)
-    p.lineTo(x + 17.8 * mm, y + 4.2 * mm)
-    p.lineTo(x + 18.6 * mm, y + 8.0 * mm)
-    p.lineTo(x + 19.4 * mm, y + 3.8 * mm)
-    c.drawPath(p, stroke=1, fill=0)
-
-    p = c.beginPath()
-    px = 19.4
-    p.moveTo(x + px * mm, y + 3.8 * mm)
-    up = True
-    while px < 27.5:
-        px += 0.7
-        p.lineTo(x + px * mm, y + (8.0 if up else 3.0) * mm)
-        up = not up
-    c.drawPath(p, stroke=1, fill=0)
-
-    p = c.beginPath()
-    p.moveTo(x + 18.0 * mm, y + 4.4 * mm)
-    p.curveTo(
-        x + 24.0 * mm,
-        y + 5.6 * mm,
-        x + 29.0 * mm,
-        y + 3.4 * mm,
-        x + 34.4 * mm,
-        y + 4.6 * mm,
-    )
-    p.curveTo(
-        x + 35.4 * mm,
-        y + 4.9 * mm,
-        x + 35.6 * mm,
-        y + 5.8 * mm,
-        x + 35.0 * mm,
-        y + 6.5 * mm,
-    )
-    c.drawPath(p, stroke=1, fill=0)
-    c.restoreState()
+    logo = _logo_rgba(path)
+    scale = min(42 * mm / logo.width, 23 * mm / logo.height)
+    tile = logo.rotate(20, expand=True, resample=Image.BICUBIC)
+    alpha = tile.getchannel("A").point(lambda v: int(v * 0.045))
+    tile.putalpha(alpha)
+    return ImageReader(tile), tile.width * scale, tile.height * scale
 
 
 def _draw_qr(c, url, x, y, size):
@@ -302,44 +182,33 @@ def _draw_qr(c, url, x, y, size):
 def _draw_watermark(c, d):
     if not (d.logo_path and os.path.exists(d.logo_path)):
         return
-    source = _logo_source(d.logo_path)
-    c.saveState()
-    c.setFillAlpha(0.045)
-    w, h = 42 * mm, 23 * mm
-    step_x, step_y = 62 * mm, 46 * mm
-    row = 0
-    y = -10 * mm
-    while y < PAGE_H + 20 * mm:
-        x = -20 * mm + (step_x / 2 if row % 2 else 0)
-        while x < PAGE_W + 20 * mm:
-            c.saveState()
-            c.translate(x + w / 2, y + h / 2)
-            c.rotate(20)
-            c.drawImage(
-                source,
-                -w / 2,
-                -h / 2,
-                width=w,
-                height=h,
-                preserveAspectRatio=True,
-                mask="auto",
-            )
-            c.restoreState()
-            x += step_x
-        y += step_y
-        row += 1
-    c.restoreState()
+    if not getattr(c, "_wm_ready", False):
+        reader, w, h = _watermark_tile(d.logo_path)
+        step_x, step_y = 62 * mm, 46 * mm
+        c.beginForm("watermark")
+        row = 0
+        y = -10 * mm
+        while y < PAGE_H + 20 * mm:
+            x = -20 * mm + (step_x / 2 if row % 2 else 0)
+            while x < PAGE_W + 20 * mm:
+                c.drawImage(reader, x, y, width=w, height=h, mask="auto")
+                x += step_x
+            y += step_y
+            row += 1
+        c.endForm()
+        c._wm_ready = True
+    c.doForm("watermark")
 
 
 def _draw_letterhead(c, d):
     right = PAGE_W - MARGIN_X
     if d.logo_path and os.path.exists(d.logo_path):
         c.drawImage(
-            _logo_source(d.logo_path),
+            _logo_reader(d.logo_path),
             MARGIN_X,
-            PAGE_H - 38 * mm,
-            width=50 * mm,
-            height=28 * mm,
+            PAGE_H - 38.5 * mm,
+            width=54 * mm,
+            height=31 * mm,
             preserveAspectRatio=True,
             mask="auto",
             anchor="sw",
@@ -358,41 +227,85 @@ def _draw_letterhead(c, d):
     c.line(MARGIN_X, PAGE_H - 40 * mm, right, PAGE_H - 40 * mm)
 
 
+def _stamp_line(c, text, font, size, cx, y, max_w, color, char_space=0.0):
+    natural = stringWidth(text, font, size) + char_space * len(text)
+    scale = min(max(max_w / natural, 0.7), 1.1)
+    width = natural * scale
+    c.saveState()
+    t = c.beginText()
+    t.setFont(font, size)
+    t.setFillColor(color)
+    t.setCharSpace(char_space)
+    t.setHorizScale(scale * 100)
+    t.setTextOrigin(cx - width / 2, y)
+    t.textOut(text)
+    c.drawText(t)
+    c.restoreState()
+
+
+def draw_stamp(c, path, cx, y, width, issued_at):
+    reader = _plain_image(path)
+    iw, ih = reader.getSize()
+    height = width * ih / iw
+    x = cx - width / 2
+    c.drawImage(reader, x, y, width=width, height=height, mask="auto")
+    text = issued_at.strftime("%d %b %Y").upper()
+    _stamp_line(
+        c,
+        text,
+        "Helvetica-Bold",
+        13.5,
+        x + width * STAMP_DATE_CX,
+        y + height * (1 - STAMP_DATE_CY) - 13.5 * 0.34,
+        width * STAMP_DATE_W,
+        STAMP_INK,
+        char_space=1.0,
+    )
+
+
+def _draw_continuation_page(c, page, total):
+    if page > 1:
+        c.setFillColor(colors.black)
+        c.setFont("Helvetica-Bold", 10)
+        c.drawRightString(
+            PAGE_W - MARGIN_X, PAGE_H - 45 * mm, f"PAGE: {page} of {total}"
+        )
+
+
 def _draw_footer(c, d):
     base = FOOTER_BASE
     sig_x = MARGIN_X + 4 * mm
     c.setFillColor(colors.black)
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(sig_x + 8 * mm, base + 33 * mm, "Laboratory Manager")
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(sig_x + 8 * mm, base + 24 * mm, "Laboratory Manager")
     if d.signature_path and os.path.exists(d.signature_path):
         c.drawImage(
-            _logo_source(d.signature_path),
+            _plain_image(d.signature_path),
             sig_x + 8 * mm,
-            base + 13 * mm,
-            width=44 * mm,
-            height=17 * mm,
+            base + 10.5 * mm,
+            width=34 * mm,
+            height=12.5 * mm,
             preserveAspectRatio=True,
             mask="auto",
             anchor="sw",
         )
-    else:
-        _draw_signature_fallback(c, sig_x + 11 * mm, base + 13 * mm)
     c.setStrokeColor(colors.black)
     c.setLineWidth(0.8)
     c.setDash(1, 2)
-    c.line(sig_x, base + 12 * mm, sig_x + 62 * mm, base + 12 * mm)
+    c.line(sig_x, base + 10 * mm, sig_x + 56 * mm, base + 10 * mm)
     c.setDash()
 
-    draw_stamp(c, PAGE_W / 2, base + 20 * mm, d.issued_at)
+    if d.stamp_path and os.path.exists(d.stamp_path):
+        draw_stamp(c, d.stamp_path, PAGE_W / 2, base + 2.5 * mm, 42 * mm, d.issued_at)
 
     if d.verify_url:
-        size = 25 * mm
+        size = 22 * mm
         right = PAGE_W - MARGIN_X
         label = "Scan to verify at LGS Portal"
         c.setFont("Helvetica", 8.5)
         label_w = stringWidth(label, "Helvetica", 8.5)
         center = right - label_w / 2
-        _draw_qr(c, d.verify_url, center - size / 2, base + 5 * mm, size)
+        _draw_qr(c, d.verify_url, center - size / 2, base + 4 * mm, size)
         c.setFillColor(colors.black)
         c.drawCentredString(center, base, label)
 
@@ -433,19 +346,19 @@ def _table(block, width):
             cells.append(Paragraph(escape(str(value)), body_bold if bold else body))
         data.append(cells)
 
+    commands = [
+        ("BACKGROUND", (0, 0), (-1, 0), BLUE),
+        ("GRID", (0, 0), (-1, -1), 0.7, colors.HexColor("#333333")),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]
+    for col, start, end in block.spans:
+        commands.append(("SPAN", (col, start + 1), (col, end + 1)))
+
     t = Table(data, colWidths=_col_widths(ncols, width), repeatRows=1)
-    t.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, 0), BLUE),
-                ("GRID", (0, 0), (-1, -1), 0.7, colors.HexColor("#333333")),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("TOPPADDING", (0, 0), (-1, -1), 4.5),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4.5),
-            ]
-        )
-    )
+    t.setStyle(TableStyle(commands))
     return t
 
 
@@ -470,7 +383,7 @@ def _detail_table(rows, width):
 def _story(d, pages_total):
     width = PAGE_W - 2 * MARGIN_X
     purple = "#7A2E8E"
-    story = []
+    story = [NextPageTemplate("later")]
 
     title = _style(
         "title",
@@ -478,10 +391,10 @@ def _story(d, pages_total):
         fontSize=21,
         leading=24,
         alignment=TA_CENTER,
-        textColor=RED,
+        textColor=TITLE_ORANGE,
     )
     story.append(Paragraph("CERTIFICATE OF ANALYSIS", title))
-    story.append(Spacer(1, 2.5 * mm))
+    story.append(Spacer(1, 1.5 * mm))
 
     left = Paragraph(
         f"TO: {escape(d.client_name.upper())}", _style("to", fontSize=12, leading=15)
@@ -489,14 +402,14 @@ def _story(d, pages_total):
     meta_lines = [
         ("REFERENCE NO.:", d.coa_number),
         ("SAMPLE SUBMISSION DATE:", d.submitted_at),
-        ("REPORT ISSUED DATE:", d.issued_at.strftime("%Y-%m-%d %H:%M:%S")),
-        ("PAGES:", str(pages_total)),
+        ("COA ISSUED DATE:", d.issued_at.strftime("%Y-%m-%d %H:%M:%S")),
+        ("PAGE:", f"1 of {pages_total}"),
     ]
     right_html = "<br/>".join(
         (
             f"<b>{a}</b> <font color='{purple}'>{escape(b)}</font>"
-            if a != "PAGES:"
-            else f"<b>{a}</b> {b}"
+            if a != "PAGE:"
+            else f"<b>{a}</b> {escape(b)}"
         )
         for a, b in meta_lines
     )
@@ -528,24 +441,35 @@ def _story(d, pages_total):
         details += list(d.blocks[0].detail_rows)
     story.append(_detail_table(details, width))
 
+    groups = []
     for index, block in enumerate(d.blocks):
+        group = []
         if index > 0:
-            story.append(Spacer(1, 2.5 * mm))
-            story.append(_detail_table(block.detail_rows, width))
-        story.append(Spacer(1, 2 * mm))
-        story.append(Paragraph(block.results_title, heading))
-        story.append(Spacer(1, 1 * mm))
-        story.append(_table(block, width))
+            group.append(Spacer(1, 5 * mm))
+            group.append(_detail_table(block.detail_rows, width))
+        group += [
+            Spacer(1, 2.5 * mm),
+            Paragraph(block.results_title, heading),
+            Spacer(1, 1.5 * mm),
+            _table(block, width),
+        ]
+        groups.append(group)
 
     only_met = bool(d.blocks) and all(b.metallurgical for b in d.blocks)
     text = METALLURGICAL_DISCLAIMER if only_met else MINERAL_DISCLAIMER
-    story.append(Spacer(1, 2.5 * mm))
-    story.append(
+    disclaimer = [
+        Spacer(1, 3 * mm),
         Paragraph(
             f"<b>Disclaimer:</b> <font color='{purple}'>{text}</font>",
-            _style("disc", fontSize=9, leading=11.5),
-        )
-    )
+            _style("disc", fontSize=8.5, leading=10.5),
+        ),
+    ]
+    if groups:
+        groups[-1] += disclaimer
+    else:
+        story += disclaimer
+    for group in groups:
+        story.append(KeepTogether(group))
     return story
 
 
@@ -561,34 +485,45 @@ def _build(d, pages_total):
         title=f"Certificate of Analysis {d.coa_number}",
         author="LGS African Group Company Limited",
     )
-    frame = Frame(
-        MARGIN_X,
-        FRAME_BOTTOM,
-        PAGE_W - 2 * MARGIN_X,
-        PAGE_H - FRAME_TOP - FRAME_BOTTOM,
-        leftPadding=0,
-        rightPadding=0,
-        topPadding=0,
-        bottomPadding=0,
-    )
+
+    def make_frame(top):
+        return Frame(
+            MARGIN_X,
+            FRAME_BOTTOM,
+            PAGE_W - 2 * MARGIN_X,
+            PAGE_H - top - FRAME_BOTTOM,
+            leftPadding=0,
+            rightPadding=0,
+            topPadding=0,
+            bottomPadding=0,
+        )
 
     def on_page(c, _doc):
         _draw_watermark(c, d)
         _draw_letterhead(c, d)
         _draw_footer(c, d)
+        _draw_continuation_page(c, _doc.page, pages_total)
 
-    doc.addPageTemplates([PageTemplate(id="coa", frames=[frame], onPage=on_page)])
+    doc.addPageTemplates(
+        [
+            PageTemplate(id="first", frames=[make_frame(FRAME_TOP)], onPage=on_page),
+            PageTemplate(
+                id="later", frames=[make_frame(LATER_FRAME_TOP)], onPage=on_page
+            ),
+        ]
+    )
     doc.build(_story(d, pages_total))
     return buf.getvalue(), doc.page
 
 
 def render_coa_pdf(d):
-    _, pages = _build(d, 0)
-    data, _ = _build(d, pages)
+    data, pages = _build(d, 1)
+    if pages != 1:
+        data, _ = _build(d, pages)
     return data
 
 
-def render_coa_png(pdf_bytes, scale=2.5):
+def render_coa_png(pdf_bytes, scale=2.0):
     import pypdfium2 as pdfium
     from PIL import Image
 
@@ -607,5 +542,5 @@ def render_coa_png(pdf_bytes, scale=2.5):
             sheet.paste(page, (0, y))
             y += page.height
     out = io.BytesIO()
-    sheet.save(out, format="PNG", optimize=True)
+    sheet.save(out, format="PNG", compress_level=1)
     return out.getvalue()

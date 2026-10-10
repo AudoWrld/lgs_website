@@ -12,7 +12,13 @@ from django.utils import timezone
 from payments.models import Payment
 from samples.models import Sample, Service
 
-from .models import COA, COAGroup, COAGroupSample, COAReportingPreference
+from .models import (
+    COA,
+    COAGroup,
+    COAGroupSample,
+    COAReleaseAuthorization,
+    COAReportingPreference,
+)
 from .pdf import Block, CoaDoc, render_coa_pdf, render_coa_png
 
 logger = logging.getLogger(__name__)
@@ -121,19 +127,40 @@ def _unique(items):
     return seen
 
 
+TEST_KEYS = ("gold", "copper", "silver", "sulphur")
+
+
+def _signature(kind, services):
+    methods = tuple(_unique(s.method_of_analysis for s in services))
+    if kind == MINERAL:
+        flags = tuple(
+            any(getattr(s, f"tests_{key}") for s in services) for key in TEST_KEYS
+        )
+        return (flags, methods)
+    return (methods,)
+
+
 def _group_by_kind(samples):
-    kinds = {}
+    groups = {}
     for sample in samples:
+        per_kind = {}
         for line in sample.sample_services.select_related("service"):
             service = line.service
             kind = service.metallurgical_type
             kind = MINERAL if not kind or kind == Service.NONE else kind
-            entry = kinds.setdefault(kind, {"samples": [], "services": []})
-            if sample not in entry["samples"]:
-                entry["samples"].append(sample)
-            if service not in entry["services"]:
-                entry["services"].append(service)
-    return [(k, kinds[k]) for k in BLOCK_ORDER if k in kinds]
+            bucket = per_kind.setdefault(kind, [])
+            if service not in bucket:
+                bucket.append(service)
+        for kind, services in per_kind.items():
+            key = (kind, _signature(kind, services))
+            entry = groups.setdefault(key, {"kind": kind, "samples": [], "services": []})
+            entry["samples"].append(sample)
+            for service in services:
+                if service not in entry["services"]:
+                    entry["services"].append(service)
+    order = {kind: index for index, kind in enumerate(BLOCK_ORDER)}
+    ranked = sorted(groups.values(), key=lambda e: order.get(e["kind"], len(order)))
+    return [(e["kind"], e) for e in ranked]
 
 
 def _mineral_block(entry):
@@ -244,9 +271,12 @@ def _cyanide_block(kind, entry):
         header.append("Remarks")
 
     out = []
+    spans = []
     for number, (sample, rows) in enumerate(per_sample, start=1):
-        for r in rows:
-            row = [str(number), sample.client_sample_id]
+        start = len(out)
+        for index, r in enumerate(rows):
+            first = index == 0
+            row = [str(number) if first else "", sample.client_sample_id if first else ""]
             if show_parameter:
                 row.append(r["parameter"])
             if optimization:
@@ -260,6 +290,10 @@ def _cyanide_block(kind, entry):
             if show_remarks:
                 row.append(r["remarks"] or DASH)
             out.append(row)
+        end = len(out) - 1
+        if end > start:
+            spans.append((0, start, end))
+            spans.append((1, start, end))
 
     methods = " | ".join(_unique(s.method_of_analysis for s in entry["services"]))
     return Block(
@@ -272,6 +306,7 @@ def _cyanide_block(kind, entry):
         header=header,
         rows=out,
         metallurgical=True,
+        spans=spans,
     )
 
 
@@ -322,6 +357,7 @@ def build_coa_doc(coa, base_url=None):
         ),
         logo_path=_static_path("core/img/lgs-logo.png"),
         signature_path=_static_path("core/img/lgs-signature.png"),
+        stamp_path=_static_path("core/img/lgs-stamp.png"),
     )
 
 
@@ -412,9 +448,6 @@ def generate_coas(submission, user, base_url=None):
         except Exception:
             logger.exception("COA file build failed for %s", coa.coa_number)
     return coas
-
-
-from .models import COAReleaseAuthorization
 
 
 def authorize_release(coa, user, reason):
