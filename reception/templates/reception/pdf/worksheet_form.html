@@ -1,6 +1,7 @@
 {% load static %}
 {% load worksheet_extras %}
 {% load replicate_letter_filter %}
+{% load leach_extras %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -35,8 +36,8 @@
   table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 
   .header-block { text-align: center; margin-bottom: 6px; }
-  .header-logo { text-align: center; margin-bottom: 4px; }
-  .org-name { font-size: 13pt; font-weight: bold; }
+  .header-logo { text-align: center; margin-bottom: 12px; }
+  .org-name { font-size: 13pt; font-weight: bold; margin-top: 8px; }
   .doc-name { font-size: 10pt; font-weight: bold; margin-top: 2px; }
   .doc-sub  { font-size: 8pt; font-weight: bold; margin-top: 5px; }
 
@@ -78,6 +79,7 @@
     word-wrap: break-word;
   }
   .gw-table td.center { text-align: center; }
+  .gw-table td.lab-id { text-align: center; vertical-align: middle; }
   .gw-table tr.blank-row td {
     height: 20px;
     border-left: none;
@@ -89,10 +91,6 @@
   .gw-table tr.crm-row td:nth-child(3) { text-align: center; font-weight: bold; }
   .gw-table tr.crm-row td { border-top: 1px solid #000000; border-bottom: 1px solid #000000; padding-top: 3px; padding-bottom: 3px; }
 
-  /* Denser variant for the parameter-optimization / leaching table, which has
-     more columns than the others and needs smaller type + tighter padding
-     to keep every header and cell (incl. SI Unit) legible without crowding
-     the border. */
   .gw-table.leach-table th,
   .gw-table.leach-table td {
     font-size: 7.3pt;
@@ -225,33 +223,36 @@
     <table class="gw-table" repeat="1">
       <thead>
         <tr>
-          <th style="width:7%;">S/N</th>
-          <th style="width:30%;">Lab Sample ID</th>
-          <th style="width:21%;">20 ppm Gold Standard</th>
-          <th style="width:21%;">Virgin Carbon</th>
-          <th style="width:21%;">Conc-1</th>
+          <th style="width:22%;">Lab Sample ID</th>
+          <th style="width:14%;">Standard Concentration (ppm)</th>
+          <th style="width:17%;">Final Concentration in Sample</th>
+          <th style="width:19%;">Final Concentration in Standard Concentration</th>
+          <th style="width:12%;">Activity (%)</th>
+          <th style="width:16%;">Remarks</th>
         </tr>
       </thead>
       <tbody>
         {% for row in worksheet.rows.all %}
           {% if row.row_type == "BLANK" %}
-            <tr class="blank-row"><td colspan="5">&nbsp;</td></tr>
+            <tr class="blank-row"><td colspan="6">&nbsp;</td></tr>
           {% elif row.row_type == "CRM" %}
             <tr class="crm-row">
-              <td class="center">{{ row.display_number }}</td>
-              <td>CRM</td>
+              <td><b>CRM</b></td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
               <td>&nbsp;</td>
               <td>&nbsp;</td>
               <td>&nbsp;</td>
             </tr>
-            <tr class="blank-row"><td colspan="5">&nbsp;</td></tr>
+            <tr class="blank-row"><td colspan="6">&nbsp;</td></tr>
           {% else %}
             <tr>
-              <td class="center">{{ row.display_number }}</td>
               <td>{{ row.lab_sample_mapping.lab_sample_id|default:"" }}{{ row.replicate_number|replicate_letter }}</td>
               <td>&nbsp;</td>
               <td>&nbsp;</td>
               <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>{{ row.remarks|default:"" }}</td>
             </tr>
           {% endif %}
         {% endfor %}
@@ -264,20 +265,21 @@
         <tr>
           <th style="width:4%;">S/N</th>
           <th style="width:8%;">Container Label</th>
-          <th style="width:14%;">Lab Sample ID</th>
-          <th style="width:13%;">Parameter</th>
+          <th style="width:12%;">Lab Sample ID</th>
+          <th style="width:11%;">Parameter</th>
           <th style="width:7%;">Weight / Volume</th>
           <th style="width:5%;">SI Unit</th>
-          <th style="width:13%;">Au Recovered<br/>12 Hrs</th>
-          <th style="width:13%;">Au Recovered<br/>24 Hrs</th>
-          <th style="width:13%;">Au Recovered<br/>48 Hrs</th>
-          <th style="width:10%;">Remark</th>
+          <th style="width:11%;">Au Recovered<br/>12 Hrs</th>
+          <th style="width:11%;">Au Recovered<br/>24 Hrs</th>
+          <th style="width:11%;">Au Recovered<br/>48 Hrs</th>
+          <th style="width:11%;">Au Recovered<br/>74 Hrs</th>
+          <th style="width:9%;">Remark</th>
         </tr>
       </thead>
       <tbody>
-        {% for row in worksheet.rows.all %}
+        {% for item in worksheet.rows.all|collapse_sample_ids %}{% with row=item.row %}
           {% if row.row_type == "BLANK" %}
-            <tr class="blank-row"><td colspan="10">&nbsp;</td></tr>
+            <tr class="blank-row"><td colspan="11">&nbsp;</td></tr>
           {% elif row.row_type == "CRM" %}
             <tr class="crm-row">
               <td class="center">{{ row.display_number }}</td>
@@ -290,23 +292,25 @@
               <td>&nbsp;</td>
               <td>&nbsp;</td>
               <td>&nbsp;</td>
+              <td>&nbsp;</td>
             </tr>
-            <tr class="blank-row"><td colspan="10">&nbsp;</td></tr>
+            <tr class="blank-row"><td colspan="11">&nbsp;</td></tr>
           {% else %}
             <tr>
               <td class="center">{{ row.display_number }}</td>
               <td>{{ row.container_label|default:"" }}</td>
-              <td>{{ row.lab_sample_mapping.lab_sample_id|default:"" }}</td>
+              {% if item.show %}<td class="lab-id" rowspan="{{ item.span }}">{{ row.lab_sample_mapping.lab_sample_id|default:"" }}</td>{% endif %}
               <td>{{ row.parameter|default:"" }}</td>
               <td>{{ row.weight|default:"" }}</td>
               <td class="si-unit">{{ row.get_si_unit_display|default:"" }}</td>
               <td>&nbsp;</td>
               <td>&nbsp;</td>
               <td>&nbsp;</td>
+              <td>&nbsp;</td>
               <td>{{ row.remarks|default:"" }}</td>
             </tr>
           {% endif %}
-        {% endfor %}
+        {% endwith %}{% endfor %}
       </tbody>
     </table>
     {% endif %}

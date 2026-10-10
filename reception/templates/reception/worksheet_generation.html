@@ -2,6 +2,7 @@
 {% load static %}
 {% load worksheet_extras %}
 {% load replicate_letter_filter %}
+{% load leach_extras %}
 {% block title %}Laboratory Worksheets — LGS Reception{% endblock %}
 {% block page_title %}Laboratory Worksheets{% endblock %}
 
@@ -217,36 +218,39 @@
               {% endwith %}
 
             {% elif worksheet.worksheet_type == "CARBON_ACTIVITY" %}
-              <table class="gw-table">
+              <table class="gw-table carbon-table">
                 <thead>
                   <tr>
-                    <th style="width:7%;">S/N</th>
-                    <th style="width:30%;">Lab Sample ID</th>
-                    <th style="width:21%;">20 ppm Gold Standard</th>
-                    <th style="width:21%;">Virgin Carbon</th>
-                    <th style="width:21%;">Conc-1</th>
+                    <th style="width:22%;">Lab Sample ID</th>
+                    <th style="width:14%;">Standard Concentration (ppm)</th>
+                    <th style="width:17%;">Final Concentration in Sample</th>
+                    <th style="width:19%;">Final Concentration in Standard Concentration</th>
+                    <th style="width:12%;">Activity (%)</th>
+                    <th style="width:16%;">Remarks</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for row in worksheet.rows.all %}
                   {% if row.row_type == "BLANK" %}
-                    <tr class="gw-blank-row"><td colspan="5">&nbsp;</td></tr>
+                    <tr class="gw-blank-row"><td colspan="6">&nbsp;</td></tr>
                   {% elif row.row_type == "CRM" %}
                     <tr class="gw-crm-row">
-                      <td class="c">{{ row.display_number }}</td>
-                      <td>CRM</td>
+                      <td><b>CRM</b></td>
+                      <td></td>
+                      <td></td>
                       <td></td>
                       <td></td>
                       <td></td>
                     </tr>
-                    <tr class="gw-blank-row"><td colspan="5">&nbsp;</td></tr>
+                    <tr class="gw-blank-row"><td colspan="6">&nbsp;</td></tr>
                   {% else %}
                     <tr>
-                      <td class="c">{{ row.display_number }}</td>
                       <td>{{ row.lab_sample_mapping.lab_sample_id }}{{ row.replicate_number|replicate_letter }}</td>
                       <td></td>
                       <td></td>
                       <td></td>
+                      <td></td>
+                      <td>{{ row.remarks|default:"" }}</td>
                     </tr>
                   {% endif %}
                   {% endfor %}
@@ -259,20 +263,21 @@
                   <tr>
                     <th style="width:4%;">S/N</th>
                     <th style="width:8%;">Container Label</th>
-                    <th style="width:14%;">Lab Sample ID</th>
-                    <th style="width:13%;">Parameter</th>
+                    <th style="width:12%;">Lab Sample ID</th>
+                    <th style="width:11%;">Parameter</th>
                     <th style="width:7%;">Weight / Volume</th>
                     <th style="width:5%;">SI Unit</th>
-                    <th style="width:13%;">Au Recovered<br>12 Hrs</th>
-                    <th style="width:13%;">Au Recovered<br>24 Hrs</th>
-                    <th style="width:13%;">Au Recovered<br>48 Hrs</th>
-                    <th style="width:10%;">Remark</th>
+                    <th style="width:11%;">Au Recovered<br>12 Hrs</th>
+                    <th style="width:11%;">Au Recovered<br>24 Hrs</th>
+                    <th style="width:11%;">Au Recovered<br>48 Hrs</th>
+                    <th style="width:11%;">Au Recovered<br>74 Hrs</th>
+                    <th style="width:9%;">Remark</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {% for row in worksheet.rows.all %}
+                  {% for item in worksheet.rows.all|collapse_sample_ids %}{% with row=item.row %}
                   {% if row.row_type == "BLANK" %}
-                    <tr class="gw-blank-row"><td colspan="10">&nbsp;</td></tr>
+                    <tr class="gw-blank-row"><td colspan="11">&nbsp;</td></tr>
                   {% elif row.row_type == "CRM" %}
                     <tr class="gw-crm-row">
                       <td class="c">{{ row.display_number }}</td>
@@ -285,23 +290,25 @@
                       <td></td>
                       <td></td>
                       <td></td>
+                      <td></td>
                     </tr>
-                    <tr class="gw-blank-row"><td colspan="10">&nbsp;</td></tr>
+                    <tr class="gw-blank-row"><td colspan="11">&nbsp;</td></tr>
                   {% else %}
                     <tr>
                       <td class="c">{{ row.display_number }}</td>
                       <td>{{ row.container_label|default:"" }}</td>
-                      <td>{{ row.lab_sample_mapping.lab_sample_id }}</td>
+                      {% if item.show %}<td class="lab-id" rowspan="{{ item.span }}">{{ row.lab_sample_mapping.lab_sample_id }}</td>{% endif %}
                       <td>{{ row.parameter|default:"" }}</td>
                       <td>{{ row.weight|default:"" }}</td>
                       <td class="c">{{ row.get_si_unit_display|default:"" }}</td>
                       <td></td>
                       <td></td>
                       <td></td>
+                      <td></td>
                       <td>{{ row.remarks|default:"" }}</td>
                     </tr>
                   {% endif %}
-                  {% endfor %}
+                  {% endwith %}{% endfor %}
                 </tbody>
               </table>
             {% endif %}

@@ -222,10 +222,6 @@
   border-radius: 0;
 }
 
-/* =====================================================
-   Worksheet sheet — plain, black-bordered, result-slip style
-   ===================================================== */
-
 .gw-sheet {
   flex: none;
   width: 100%;
@@ -238,7 +234,6 @@
   box-shadow: 0 8px 24px rgba(18, 62, 91, 0.07);
 }
 
-/* Header: logo on top, centered */
 .gw-header {
   display: flex;
   flex-direction: column;
@@ -252,11 +247,11 @@
   display: block;
   width: 60px;
   height: auto;
-  margin: 0 auto 0.35rem;
+  margin: 0 auto 0.9rem;
 }
 
 .gw-header h1 {
-  margin: 0;
+  margin: 0.25rem 0 0;
   color: #000000;
   font-family: inherit;
   font-size: 1.25rem;
@@ -282,7 +277,6 @@
   padding: 1.25rem 1.75rem 1.75rem;
 }
 
-/* General header table */
 .gw-sheet .gw-info {
   width: 100%;
   border-collapse: collapse;
@@ -309,7 +303,6 @@
   width: 32%;
 }
 
-/* Worksheet blocks */
 .gw-worksheet {
   margin-top: 2.25rem;
 }
@@ -369,6 +362,11 @@
   text-align: center;
 }
 
+.gw-sheet .gw-table td.lab-id {
+  text-align: center;
+  vertical-align: middle;
+}
+
 .gw-sheet .gw-table tr.gw-blank-row td {
   height: 1.4rem;
   border-left: none;
@@ -390,11 +388,16 @@
   padding-bottom: 4px;
 }
 
-/* Denser variant for the leaching / parameter-optimization table, which
-   carries more columns (Container Label, Parameter, Weight/Volume, SI Unit,
-   three time-point recovery columns, Remark) than the other worksheet
-   tables and needs smaller type + tighter padding to keep every header
-   and cell legible without crowding the border. */
+.gw-sheet .gw-table.carbon-table th {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.gw-sheet .gw-table.carbon-table tr.gw-crm-row td:nth-child(3) {
+  font-weight: 400;
+  text-align: left;
+}
+
 .gw-sheet .gw-table.leach-table th,
 .gw-sheet .gw-table.leach-table td {
   padding: 0.25rem 0.3rem;
