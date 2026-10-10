@@ -73,11 +73,8 @@ class Sample(models.Model):
     TAILINGS = "TAILINGS"
     CARBON = "CARBON"
     PROCESS_SOLUTION = "PROCESS_SOLUTION"
-    WATER = "WATER"
     RC_CHIPS = "RC_CHIPS"
     DRILL_CORE = "DRILL_CORE"
-    CONCENTRATE = "CONCENTRATE"
-    SLAG = "SLAG"
     OTHER = "OTHER"
 
     SAMPLE_TYPE_CHOICES = [
@@ -87,11 +84,8 @@ class Sample(models.Model):
         (TAILINGS, "Tailings"),
         (CARBON, "Carbon"),
         (PROCESS_SOLUTION, "Process Solution"),
-        (WATER, "Water"),
         (RC_CHIPS, "RC Chips"),
         (DRILL_CORE, "Drill Core"),
-        (CONCENTRATE, "Concentrate"),
-        (SLAG, "Slag"),
         (OTHER, "Other"),
     ]
 
@@ -186,14 +180,21 @@ class Sample(models.Model):
         return candidate
 
     def save(self, *args, **kwargs):
+        if self.client_sample_id:
+            self.client_sample_id = self.client_sample_id.strip().upper()
         if not self.slug:
             submission_slug = (
                 self.submission.slug if self.submission_id else "submission"
             )
             self.slug = self.generate_slug(submission_slug, self.submission_id)
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and "client_sample_id" not in update_fields:
+            kwargs["update_fields"] = [*update_fields, "client_sample_id"]
         super().save(*args, **kwargs)
 
     def clean(self):
+        if self.client_sample_id:
+            self.client_sample_id = self.client_sample_id.strip().upper()
         if self.sample_type == self.OTHER and not self.other_sample_type:
             raise ValidationError("Specify the sample type when 'Other' is selected.")
 
