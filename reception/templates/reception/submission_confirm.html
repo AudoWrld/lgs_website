@@ -84,12 +84,12 @@
 
     <div class="cf-actions">
       <a href="{% url 'reception:sample_registration_detail' submission.slug %}" class="btn btn-outline cf-btn">
-        <i class='bx bx-left-arrow-alt'></i> Go Back and Edit
+        <i class='bx bx-left-arrow-alt'></i>Edit
       </a>
       <form method="post" action="{% url 'reception:submission_confirm_submit' submission.pk %}" class="cf-form">
         {% csrf_token %}
         <button type="submit" class="btn btn-primary cf-btn">
-          <i class='bx bx-check'></i> Confirm &amp; Submit
+          <i class='bx bx-check'></i>Submit
         </button>
       </form>
     </div>

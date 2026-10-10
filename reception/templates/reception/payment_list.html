@@ -9,6 +9,163 @@
 <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
 <link rel="stylesheet" href="{% static 'reception/css/reception_dashboard.css' %}">
 <link rel="stylesheet" href="{% static 'reception/css/payment_list.css' %}">
+<style>
+  .ps-rollup {
+    position: fixed;
+    top: 5.5rem;
+    right: 1.25rem;
+    z-index: 50;
+    width: min(22rem, calc(100vw - 2rem));
+    background: #ffffff;
+    border: 1px solid var(--line);
+    border-top: 4px solid #a4342a;
+    box-shadow: 0 12px 32px rgba(14, 27, 35, 0.22);
+    animation: ps-rollup-in 0.35s ease-out both;
+  }
+
+  .ps-rollup[hidden] {
+    display: none;
+  }
+
+  .ps-rollup-partially_paid {
+    border-top-color: #c77700;
+  }
+
+  .ps-rollup-partially_paid .ps-rollup-title {
+    color: #c77700;
+  }
+
+  .ps-rollup-paid {
+    border-top-color: #2e7d4f;
+  }
+
+  .ps-rollup-paid .ps-rollup-title {
+    color: #2e7d4f;
+  }
+
+  .ps-rollup-credit {
+    border-top-color: var(--navy);
+  }
+
+  .ps-rollup-credit .ps-rollup-title {
+    color: var(--navy);
+  }
+
+  .ps-rollup-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.7rem 0.9rem;
+  }
+
+  .ps-rollup-title {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #a4342a;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  .ps-rollup-controls {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .ps-rollup-controls button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--charcoal);
+    font-size: 1.2rem;
+    cursor: pointer;
+  }
+
+  .ps-rollup-controls button:hover {
+    background: #edf0f2;
+  }
+
+  .ps-rollup-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0 0.9rem 0.9rem;
+  }
+
+  .ps-rollup.is-collapsed .ps-rollup-body {
+    display: none;
+  }
+
+  .ps-rollup-body p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  .ps-rollup-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--line);
+    color: var(--navy);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition:
+      background-color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+
+  .ps-rollup-link:hover {
+    background: #fbfaf6;
+    box-shadow: inset 3px 0 0 var(--orange);
+    text-decoration: none;
+  }
+
+  .ps-rollup-link i {
+    font-size: 1.15rem;
+  }
+
+  .ps-rollup-link-end {
+    margin-left: auto;
+    color: #7b858c;
+  }
+
+  .ps-rollup-pending {
+    color: #7b858c;
+    font-size: 0.8rem;
+  }
+
+  @keyframes ps-rollup-in {
+    from {
+      opacity: 0;
+      transform: translateY(-40%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ps-rollup {
+      animation: none;
+    }
+  }
+
+  @media print {
+    .ps-rollup {
+      display: none !important;
+    }
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -71,6 +228,30 @@
     {% endif %}
 
     {% if submission and payment %}
+
+    <aside class="ps-rollup ps-rollup-{{ payment.payment_status|lower }}" id="ps-rollup" data-ref="{{ submission.reference }}" aria-label="Documents for this submission">
+      <div class="ps-rollup-head">
+        <span class="ps-rollup-title"><i class='bx {% if payment.payment_status == "PAID" %}bx-check-circle{% else %}bx-error-circle{% endif %}' aria-hidden="true"></i> {{ payment.get_payment_status_display }} — {{ submission.reference }}</span>
+        <span class="ps-rollup-controls">
+          <button type="button" class="ps-rollup-toggle" aria-expanded="true" aria-label="Minimize documents"><i class='bx bx-minus' aria-hidden="true"></i></button>
+        </span>
+      </div>
+      <div class="ps-rollup-body">
+        <p>Open the documents for this submission.</p>
+        <a href="{% url 'reception:client_submission_form_pdf' submission.reference %}?view=1" target="_blank" rel="noopener" class="ps-rollup-link">
+          <i class='bx bx-file' aria-hidden="true"></i> Client Submission Form
+          <i class='bx bx-link-external ps-rollup-link-end' aria-hidden="true"></i>
+        </a>
+        {% if submission.worksheets.exists %}
+        <a href="{% url 'reception:worksheet_pdf' submission.reference %}" target="_blank" rel="noopener" class="ps-rollup-link">
+          <i class='bx bx-file-blank' aria-hidden="true"></i> Laboratory Worksheet
+          <i class='bx bx-link-external ps-rollup-link-end' aria-hidden="true"></i>
+        </a>
+        {% else %}
+        <span class="ps-rollup-pending">Worksheet not generated yet.</span>
+        {% endif %}
+      </div>
+    </aside>
 
     <div class="dash-panel ps-block">
       <div class="ps-position-head">
@@ -341,6 +522,7 @@
     var detailSerial = 0;
     var listSerial = 0;
     var headers = { "X-Requested-With": "XMLHttpRequest" };
+    var collapsedRollups = {};
 
     function buildUrl(ref, q) {
       var params = new URLSearchParams();
@@ -375,7 +557,35 @@
       return Math.round((parseFloat(String(v || "").replace(/,/g, "")) || 0) * 100);
     }
 
+    function initRollup() {
+      var box = document.getElementById("ps-rollup");
+      if (!box) return;
+      var ref = box.getAttribute("data-ref") || "";
+      var toggle = box.querySelector(".ps-rollup-toggle");
+
+      function setCollapsed(collapsed) {
+        box.classList.toggle("is-collapsed", collapsed);
+        if (toggle) {
+          toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+          toggle.setAttribute("aria-label", collapsed ? "Expand documents" : "Minimize documents");
+          var icon = toggle.querySelector("i");
+          if (icon) icon.className = collapsed ? "bx bx-plus" : "bx bx-minus";
+        }
+        collapsedRollups[ref] = collapsed;
+      }
+
+      setCollapsed(!!collapsedRollups[ref]);
+
+      if (toggle) {
+        toggle.addEventListener("click", function () {
+          setCollapsed(!box.classList.contains("is-collapsed"));
+        });
+      }
+    }
+
     function initDetail() {
+      initRollup();
+
       var f = detail.querySelector(".ps-form");
       if (!f) return;
 
