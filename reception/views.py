@@ -629,6 +629,20 @@ def _log_coa_change(
     )
 
 
+def _generate_worksheets(submission, user):
+    with transaction.atomic():
+        submission.worksheets.all().delete()
+        generate_worksheets_for_submission(submission, user)
+        for sample in submission.samples.all():
+            if sample.analysis_status == Sample.SUBMITTED_TO_LAB:
+                continue
+            if sample.analysis_status not in dict(Sample.ANALYSIS_STATUS_CHOICES):
+                sample.set_analysis_status(
+                    Sample.SUBMITTED_TO_LAB, sync_submission=False
+                )
+        submission.sync_status_from_samples()
+
+
 @reception_required
 def coa_reporting_preference(request, reference):
     submission = _coa_submission(reference)
@@ -675,6 +689,9 @@ def coa_reporting_preference(request, reference):
             return redirect(
                 "reception:sample_registration_detail", slug=submission.slug
             )
+        if not submission.worksheets.exists():
+            _generate_worksheets(submission, request.user)
+            messages.success(request, "Worksheets generated automatically.")
         return redirect("reception:coa_confirmation", reference=reference)
 
     if request.method == "GET" and not changing and preference is not None:
@@ -940,9 +957,11 @@ def coa_confirmation(request, reference):
         preference.save(
             update_fields=["is_finalized", "finalized_at", "finalized_by", "saved_at"]
         )
-        messages.success(request, "Reporting preference saved")
-        worksheet_url = reverse("reception:worksheet_generation")
-        return redirect(f"{worksheet_url}?{urlencode({'ref': submission.reference})}")
+        _generate_worksheets(submission, request.user)
+        messages.success(
+            request, "Reporting preference saved and worksheets generated."
+        )
+        return redirect("reception:coa_confirmation", reference=reference)
     groups = preference.groups.prefetch_related("samples").all()
     return render(
         request,
@@ -1242,16 +1261,7 @@ def worksheet_generation(request):
             reference = submission.reference
             not_found = False
         else:
-            submission.worksheets.all().delete()
-            generate_worksheets_for_submission(submission, request.user)
-            for sample in submission.samples.all():
-                if sample.analysis_status == Sample.SUBMITTED_TO_LAB:
-                    continue
-                if sample.analysis_status not in dict(Sample.ANALYSIS_STATUS_CHOICES):
-                    sample.set_analysis_status(
-                        Sample.SUBMITTED_TO_LAB, sync_submission=False
-                    )
-            submission.sync_status_from_samples()
+            _generate_worksheets(submission, request.user)
             messages.success(
                 request, f"Worksheets generated for {submission.reference}."
             )
@@ -1291,9 +1301,6 @@ def worksheet_generation(request):
         "coa_preference_url": coa_preference_url,
     }
 
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return render(request, "reception/worksheet_generation.html", context)
-
     return render(request, "reception/worksheet_generation.html", context)
 
 
@@ -1320,7 +1327,7 @@ def worksheet_pdf(request, reference):
         "services": services,
         "methods": methods,
         "total_samples": submission.total_samples,
-        "generated_at": timezone.now().strftime("d M Y, H:i"),
+        "generated_at": timezone.now().strftime("%d %b %Y, %H:%M"),
     }
 
     pdf_bytes = render_worksheet_pdf(context)
