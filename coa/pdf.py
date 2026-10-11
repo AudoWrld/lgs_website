@@ -523,24 +523,34 @@ def render_coa_pdf(d):
     return data
 
 
-def render_coa_png(pdf_bytes, scale=1.6):
+def render_coa_png(pdf_bytes, scale=2.0):
     import pypdfium2 as pdfium
-    from PIL import Image
+    from PIL import Image, ImageDraw
+
+    gutter = 28
+    border = 2
 
     pdf = pdfium.PdfDocument(pdf_bytes)
     pages = [
         pdf[i].render(scale=scale).to_pil().convert("RGB") for i in range(len(pdf))
     ]
+
     if len(pages) == 1:
         sheet = pages[0]
     else:
-        sheet = Image.new(
-            "RGB", (pages[0].width, sum(p.height for p in pages)), "white"
-        )
-        y = 0
+        width = pages[0].width + gutter * 2
+        height = sum(p.height for p in pages) + gutter * (len(pages) + 1)
+        sheet = Image.new("RGB", (width, height), "#e6e8eb")
+        draw = ImageDraw.Draw(sheet)
+        y = gutter
         for page in pages:
-            sheet.paste(page, (0, y))
-            y += page.height
+            draw.rectangle(
+                [gutter - border, y - border, gutter + page.width + border - 1, y + page.height + border - 1],
+                fill="#9aa3ad",
+            )
+            sheet.paste(page, (gutter, y))
+            y += page.height + gutter
+
     out = io.BytesIO()
     sheet.save(out, format="PNG", compress_level=1)
     return out.getvalue()
