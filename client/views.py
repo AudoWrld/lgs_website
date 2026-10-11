@@ -1,8 +1,10 @@
+from datetime import date
 from functools import wraps
 from io import BytesIO
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
+from django.db.models.functions import TruncMonth
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -41,13 +43,152 @@ def _client_coas(user):
     ).select_related("submission", "group")
 
 
+def _stage_for(submission):
+    coas = list(submission.coas.all())
+    total = submission.total
+    approved = submission.approved
+    in_qc = submission.in_qc
+
+    if coas and all(c.is_client_visible for c in coas):
+        if approved == total:
+            return 5, "Released", False
+        return 3, "Quality Review", True
+
+    if coas:
+        label = (
+            "Awaiting Payment"
+            if any(c.status == COA.PAYMENT_PENDING for c in coas)
+            else "Certificate Ready"
+        )
+        return 4, label, approved < total
+
+    if total and approved == total:
+        return 4, "Preparing Certificate", False
+    if approved + in_qc > 0:
+        return 3, "Quality Review", False
+    return 2, "In Analysis", False
+
+
+def _submission_items(client):
+    if client is None:
+        return []
+
+    submissions = (
+        Submission.objects.filter(is_submitted=True, client=client)
+        .annotate(
+            total=Count("samples", distinct=True),
+            approved=Count(
+                "samples",
+                filter=Q(samples__analysis_status=Sample.QC_APPROVED),
+                distinct=True,
+            ),
+            in_qc=Count(
+                "samples",
+                filter=Q(
+                    samples__analysis_status__in=[
+                        Sample.SUBMITTED_TO_QC,
+                        Sample.REASSAY_SUBMITTED,
+                    ]
+                ),
+                distinct=True,
+            ),
+        )
+        .prefetch_related("coas")
+        .order_by("-updated_at", "-id")
+    )
+
+    items = []
+    for submission in submissions:
+        number, label, partial = _stage_for(submission)
+        items.append(
+            {
+                "submission": submission,
+                "stage_number": number,
+                "stage_label": label,
+                "partial": partial,
+                "steps": [
+                    {
+                        "name": name,
+                        "done": index < number,
+                        "current": index == number,
+                    }
+                    for index, name in enumerate(STAGES, start=1)
+                ],
+            }
+        )
+    return items
+
+
+def _monthly_chart(coas):
+    today = timezone.localdate()
+    months = []
+    for back in range(5, -1, -1):
+        month = today.month - back
+        year = today.year
+        while month <= 0:
+            month += 12
+            year -= 1
+        months.append(date(year, month, 1))
+
+    rows = (
+        coas.filter(created_at__date__gte=months[0])
+        .annotate(month=TruncMonth("created_at"))
+        .order_by()
+        .values("month")
+        .annotate(total=Count("id"))
+    )
+    counts = {row["month"].date(): row["total"] for row in rows}
+
+    peak = max([counts.get(m, 0) for m in months] + [1])
+    chart = []
+    for m in months:
+        value = counts.get(m, 0)
+        chart.append(
+            {
+                "label": m.strftime("%b"),
+                "count": value,
+                "height": max(round(value / peak * 100), 6) if value else 0,
+            }
+        )
+    return chart
+
+
 @customer_required
 def customer_dashboard(request):
-    counts = _client_coas(request.user).aggregate(
+    client = _client_for(request.user)
+    coas = _client_coas(request.user)
+
+    counts = coas.aggregate(
+        total=Count("id"),
         ready=Count("id", filter=Q(status__in=VISIBLE_STATUSES)),
         pending=Count("id", filter=Q(status=COA.PAYMENT_PENDING)),
     )
-    return render(request, "client/customer_dashboard.html", counts)
+
+    items = _submission_items(client)
+    active = [i for i in items if i["stage_number"] < 5]
+    chart = _monthly_chart(coas)
+
+    context = {
+        "total_certificates": counts["total"],
+        "ready": counts["ready"],
+        "pending": counts["pending"],
+        "submission_count": len(items),
+        "active_count": len(active),
+        "active_submissions": active[:4],
+        "recent_certificates": coas.order_by("-created_at")[:5],
+        "chart": chart,
+        "chart_total": sum(c["count"] for c in chart),
+    }
+    return render(request, "client/customer_dashboard.html", context)
+
+
+@customer_required
+def my_submissions(request):
+    return render(
+        request,
+        "client/my_submissions.html",
+        {"items": _submission_items(_client_for(request.user))},
+    )
 
 
 @customer_required
@@ -131,81 +272,3 @@ def coa_preview(request, coa_id):
     response["Cache-Control"] = "private, no-store"
     response["X-Content-Type-Options"] = "nosniff"
     return response
-
-
-def _stage_for(submission):
-    coas = list(submission.coas.all())
-    total = submission.total
-    approved = submission.approved
-    in_qc = submission.in_qc
-
-    if coas and all(c.is_client_visible for c in coas):
-        if approved == total:
-            return 5, "Released", False
-        return 3, "Quality Review", True
-
-    if coas:
-        label = (
-            "Awaiting Payment"
-            if any(c.status == COA.PAYMENT_PENDING for c in coas)
-            else "Certificate Ready"
-        )
-        return 4, label, approved < total
-
-    if total and approved == total:
-        return 4, "Preparing Certificate", False
-    if approved + in_qc > 0:
-        return 3, "Quality Review", False
-    return 2, "In Analysis", False
-
-
-@customer_required
-def my_submissions(request):
-    client = _client_for(request.user)
-    if client is None:
-        return render(request, "client/my_submissions.html", {"items": []})
-
-    submissions = (
-        Submission.objects.filter(is_submitted=True, client=client)
-        .annotate(
-            total=Count("samples", distinct=True),
-            approved=Count(
-                "samples",
-                filter=Q(samples__analysis_status=Sample.QC_APPROVED),
-                distinct=True,
-            ),
-            in_qc=Count(
-                "samples",
-                filter=Q(
-                    samples__analysis_status__in=[
-                        Sample.SUBMITTED_TO_QC,
-                        Sample.REASSAY_SUBMITTED,
-                    ]
-                ),
-                distinct=True,
-            ),
-        )
-        .prefetch_related("coas")
-        .order_by("-updated_at", "-id")
-    )
-
-    items = []
-    for submission in submissions:
-        number, label, partial = _stage_for(submission)
-        items.append(
-            {
-                "submission": submission,
-                "stage_number": number,
-                "stage_label": label,
-                "partial": partial,
-                "steps": [
-                    {
-                        "name": name,
-                        "done": index < number,
-                        "current": index == number,
-                    }
-                    for index, name in enumerate(STAGES, start=1)
-                ],
-            }
-        )
-    return render(request, "client/my_submissions.html", {"items": items})
