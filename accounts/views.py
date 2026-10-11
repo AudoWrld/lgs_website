@@ -1,29 +1,57 @@
-from django.contrib.auth import authenticate, login, get_user_model
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
-from django.contrib.auth.forms import SetPasswordForm
-from django.contrib.auth import update_session_auth_hash
 from django.contrib import messages
+from django.contrib.auth import (
+    authenticate,
+    get_user_model,
+    login,
+    update_session_auth_hash,
+)
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import SetPasswordForm
+from django.shortcuts import redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from .forms import EmailAuthenticationForm
 
 User = get_user_model()
 
+NEXT_SESSION_KEY = "post_login_next"
+
+
+def _safe_next(request, target):
+    if target and url_has_allowed_host_and_scheme(
+        target,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return target
+    return None
+
 
 def login_view(request):
+    requested = request.POST.get("next") or request.GET.get("next")
+    safe = _safe_next(request, requested)
+
     if request.user.is_authenticated:
-        return redirect("post_login_redirect")
+        if safe:
+            request.session[NEXT_SESSION_KEY] = safe
+        return redirect("accounts:post_login_redirect")
 
     if request.method == "POST":
         form = EmailAuthenticationForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
             login(request, user)
+            if safe:
+                request.session[NEXT_SESSION_KEY] = safe
             return redirect("accounts:post_login_redirect")
     else:
         form = EmailAuthenticationForm(request)
 
-    return render(request, "accounts/login.html", {"form": form})
+    return render(
+        request,
+        "accounts/login.html",
+        {"form": form, "next": safe or ""},
+    )
 
 
 @login_required
@@ -32,6 +60,11 @@ def post_login_redirect(request):
 
     if user.must_change_password:
         return redirect("accounts:force_password_change")
+
+    stored = request.session.pop(NEXT_SESSION_KEY, None)
+    target = _safe_next(request, stored)
+    if target:
+        return redirect(target)
 
     if user.is_customer:
         return redirect("client:customer_dashboard")
