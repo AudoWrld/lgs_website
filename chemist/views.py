@@ -531,8 +531,6 @@ def mineral_analysis_preview(request, slug):
         for field, label in MINERAL_FIELDS:
             setattr(replicate, field, reader.decimal(f"{prefix}_{field}", label))
 
-    _fill_from_first(replicates)
-
     results = {}
     for replicate in replicates:
         try:
