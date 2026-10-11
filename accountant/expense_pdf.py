@@ -248,8 +248,17 @@ def _payments_table(methods, total, styles):
     return table
 
 
+def _clip(text, width, font="Helvetica", size=8):
+    if stringWidth(text, font, size) <= width:
+        return text
+    while text and stringWidth(text + "...", font, size) > width:
+        text = text[:-1]
+    return text.rstrip() + "..."
+
+
 def _records_table(rows, styles):
-    widths = [16 * mm, 46 * mm, 54 * mm, 22 * mm, 24 * mm, 28 * mm]
+    widths = [16 * mm, 42 * mm, 60 * mm, 20 * mm, 24 * mm, 28 * mm]
+    room = [w - 8 for w in widths]
     header = [
         Paragraph(text, styles["head"])
         for text in (
@@ -266,11 +275,15 @@ def _records_table(rows, styles):
         data.append(
             [
                 Paragraph(row["date"].strftime("%d/%m/%y"), styles["cell"]),
-                Paragraph(escape(row["description"]), styles["cell"]),
-                Paragraph(escape(row["category"].upper()), styles["cell"]),
-                Paragraph(escape(row["payment"]), styles["cell"]),
+                Paragraph(escape(_clip(row["description"], room[1])), styles["cell"]),
+                Paragraph(
+                    escape(_clip(row["category"].upper(), room[2])), styles["cell"]
+                ),
+                Paragraph(escape(_clip(row["payment"], room[3])), styles["cell"]),
                 Paragraph(money(row["amount"]), styles["cell_right"]),
-                Paragraph(escape(row["reference"] or "-"), styles["cell"]),
+                Paragraph(
+                    escape(_clip(row["reference"] or "-", room[5])), styles["cell"]
+                ),
             ]
         )
 
