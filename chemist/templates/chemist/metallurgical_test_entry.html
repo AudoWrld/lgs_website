@@ -40,7 +40,7 @@
   <div class="entry-header-main">
     <span class="entry-id-badge"><i class='bx bx-test-tube' aria-hidden="true"></i> {{ lab_id }}</span>
     <h2>{{ entry.get_test_type_display }}</h2>
-    <p>Parameters loaded automatically from Reception registration. No calculation formula applies.</p>
+    <p>Parameters loaded automatically from Reception registration. No calculation formula applies. Only the first parameter row is required.</p>
   </div>
   <div class="entry-header-status">
     {% if sample.analysis_status == "REASSAY_SUBMITTED" %}
@@ -71,6 +71,7 @@
             <th>Gold Recovery 12h</th>
             <th>Gold Recovery 24h</th>
             <th>Gold Recovery 48h</th>
+            <th>Gold Recovery 72h</th>
             <th>Remarks</th>
           </tr>
         </thead>
@@ -91,6 +92,7 @@
             <td><input type="number" step="any" min="0" max="100" name="row{{ row.id }}_recovery_12h" aria-label="Gold recovery 12h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_12h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
             <td><input type="number" step="any" min="0" max="100" name="row{{ row.id }}_recovery_24h" aria-label="Gold recovery 24h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_24h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
             <td><input type="number" step="any" min="0" max="100" name="row{{ row.id }}_recovery_48h" aria-label="Gold recovery 48h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_48h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" max="100" name="row{{ row.id }}_recovery_72h" aria-label="Gold recovery 72h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_72h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
             <td><input type="text" name="row{{ row.id }}_remarks" aria-label="Remarks, {{ row.source_parameter.display_label }}" value="{{ row.remarks }}" {% if read_only %}disabled{% endif %}></td>
           </tr>
           {% endfor %}
@@ -113,7 +115,7 @@
       <button type="submit" name="save_draft" value="1" class="btn btn-secondary">
         <i class='bx bx-save' aria-hidden="true"></i> Save
       </button>
-      <button type="submit" name="submit_qc" value="1" class="btn btn-primary" {% if entry.status != "READY_FOR_SUBMISSION" %}disabled{% endif %}>
+      <button type="submit" name="submit_qc" value="1" class="btn btn-primary">
         <i class='bx bx-check' aria-hidden="true"></i> Submit to QC
       </button>
     </div>

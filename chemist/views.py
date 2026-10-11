@@ -45,11 +45,14 @@ MINERAL_FIELDS = (
     ("sulphur", "S"),
 )
 
+SHARED_FIELDS = ("cu_aas", "cu_df", "ag_aas", "ag_df", "sulphur")
+
 METALLURGICAL_FIELDS = (
     ("weight_volume", "weight_volume", "Weight / Volume"),
     ("gold_recovery_12h", "recovery_12h", "Gold recovery at 12 hours"),
     ("gold_recovery_24h", "recovery_24h", "Gold recovery at 24 hours"),
     ("gold_recovery_48h", "recovery_48h", "Gold recovery at 48 hours"),
+    ("gold_recovery_72h", "recovery_72h", "Gold recovery at 72 hours"),
 )
 
 CARBON_FIELDS = (
@@ -58,9 +61,11 @@ CARBON_FIELDS = (
     (
         "final_concentration_standard",
         "final_standard",
-        "Final concentration of standard",
+        "Final carbon in Standard concentration",
     ),
 )
+
+MINERAL_ROUTE = "chemist:mineral_analysis_entry"
 
 MAX_REPORTED_ERRORS = 10
 PAGE_SIZE = 10
@@ -141,7 +146,7 @@ def _route_name(sample):
         return "chemist:carbon_activity_entry"
     if test_type in CYANIDE_TYPES:
         return "chemist:metallurgical_tests_entry"
-    return "chemist:mineral_analysis_entry"
+    return MINERAL_ROUTE
 
 
 def _misrouted(sample, expected):
@@ -199,6 +204,45 @@ def _metallurgical_worksheet_rows(sample):
     )
 
 
+def _share_first_values(replicates):
+    if len(replicates) < 2:
+        return
+    first = replicates[0]
+    for field in SHARED_FIELDS:
+        value = getattr(first, field)
+        if value is None:
+            continue
+        for replicate in replicates[1:]:
+            if getattr(replicate, field) is None:
+                setattr(replicate, field, value)
+
+
+def _other_service_target(sample):
+    current_is_mineral = _route_name(sample) == MINERAL_ROUTE
+    pending = (
+        _visible_samples()
+        .filter(
+            submission=sample.submission,
+            analysis_status__in=MineralAnalysisEntry.EDITABLE_SAMPLE_STATUSES,
+        )
+        .exclude(pk=sample.pk)
+        .select_related("lab_mapping", "submission")
+        .order_by("id")
+        .distinct()
+    )
+    for candidate in pending:
+        route = _route_name(candidate)
+        if (route == MINERAL_ROUTE) == current_is_mineral:
+            continue
+        if route == MINERAL_ROUTE:
+            rows = worksheet_rows_for_sample(candidate)
+        else:
+            rows = _metallurgical_worksheet_rows(candidate)
+        if rows:
+            return route, candidate
+    return None
+
+
 def _finalize(request, sample, entry, list_route, entry_route):
     if "submit_qc" in request.POST:
         try:
@@ -207,6 +251,11 @@ def _finalize(request, sample, entry, list_route, entry_route):
             messages.error(request, " ".join(exc.messages))
             return redirect(entry_route, slug=sample.slug)
         messages.success(request, f"{lab_sample_id_for(sample)} submitted to QC.")
+        target = _other_service_target(sample)
+        if target is not None:
+            route, candidate = target
+            messages.info(request, f"Continue with {lab_sample_id_for(candidate)}.")
+            return redirect(route, slug=candidate.slug)
         return redirect(list_route, reference=sample.submission.reference)
 
     messages.success(request, "Draft saved.")
@@ -381,7 +430,7 @@ def mineral_analysis_samples(request, reference):
 @chemist_required
 def mineral_analysis_entry(request, slug):
     sample = _get_sample(slug)
-    misrouted = _misrouted(sample, "chemist:mineral_analysis_entry")
+    misrouted = _misrouted(sample, MINERAL_ROUTE)
     if misrouted:
         return misrouted
 
@@ -412,7 +461,7 @@ def mineral_analysis_entry(request, slug):
     if request.method == "POST":
         if read_only:
             messages.error(request, "This entry is locked and can no longer be edited.")
-            return redirect("chemist:mineral_analysis_entry", slug=sample.slug)
+            return redirect(MINERAL_ROUTE, slug=sample.slug)
 
         reader = _PostReader(request.POST)
         for replicate in replicates:
@@ -424,7 +473,11 @@ def mineral_analysis_entry(request, slug):
                     field,
                     reader.decimal(f"{prefix}_{field}", f"Replicate {number} {label}"),
                 )
-            _check(reader, replicate, f"Replicate {number}")
+
+        _share_first_values(replicates)
+
+        for replicate in replicates:
+            _check(reader, replicate, f"Replicate {replicate.replicate_number}")
 
         if reader.errors:
             _report_errors(request, reader.errors)
@@ -440,7 +493,7 @@ def mineral_analysis_entry(request, slug):
             sample,
             entry,
             "chemist:mineral_analysis_samples",
-            "chemist:mineral_analysis_entry",
+            MINERAL_ROUTE,
         )
 
     return render_entry()
@@ -462,19 +515,24 @@ def mineral_analysis_preview(request, slug):
         return JsonResponse({"results": {}})
 
     reader = _PostReader(request.POST)
-    results = {}
-    for replicate in entry.replicates.select_related("entry__sample"):
+    replicates = list(entry.replicates.select_related("entry__sample"))
+    for replicate in replicates:
         number = replicate.replicate_number
         prefix = f"rep{number}"
         for field, label in MINERAL_FIELDS:
             setattr(replicate, field, reader.decimal(f"{prefix}_{field}", label))
+
+    _share_first_values(replicates)
+
+    results = {}
+    for replicate in replicates:
         try:
             replicate.calculate()
         except ArithmeticError:
             replicate.gold_ppm = None
             replicate.copper_ppm = None
             replicate.silver_ppm = None
-        results[str(number)] = {
+        results[str(replicate.replicate_number)] = {
             "gold": _format_result(replicate.gold_ppm),
             "copper": _format_result(replicate.copper_ppm),
             "silver": _format_result(replicate.silver_ppm),

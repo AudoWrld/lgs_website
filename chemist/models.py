@@ -621,7 +621,9 @@ class CRMEntry(models.Model):
 
 
 class MetallurgicalTestEntry(BaseEntry):
-    INCOMPLETE_MESSAGE = "All parameter rows must be completed before submitting to QC."
+    INCOMPLETE_MESSAGE = (
+        "The first parameter row must be completed before submitting to QC."
+    )
 
     SI_UNIT_CHOICES = [
         ("kg", "kg"),
@@ -694,21 +696,14 @@ class MetallurgicalTestEntry(BaseEntry):
         )
 
     def ensure_parameter_rows(self):
-        assigned = (
-            SampleServiceParameter.objects.filter(
-                sample_service__sample=self.sample
-            )
-            .order_by("order", "id")
-        )
+        assigned = SampleServiceParameter.objects.filter(
+            sample_service__sample=self.sample
+        ).order_by("order", "id")
 
-        ws_map = {
-            row.parameter: row for row in self.worksheet_rows if row.parameter
-        }
+        ws_map = {row.parameter: row for row in self.worksheet_rows if row.parameter}
 
         with transaction.atomic():
-            existing = set(
-                self.rows.values_list("source_parameter_id", flat=True)
-            )
+            existing = set(self.rows.values_list("source_parameter_id", flat=True))
             for parameter in assigned:
                 if parameter.id not in existing:
                     MetallurgicalTestRow.objects.create(
@@ -721,28 +716,26 @@ class MetallurgicalTestEntry(BaseEntry):
                     ws_row = ws_map.get(parameter.display_label)
                     if entry_row.worksheet_row_id != getattr(ws_row, "pk", None):
                         entry_row.worksheet_row = ws_row
-                        entry_row.save(
-                            update_fields=["worksheet_row", "updated_at"]
-                        )
+                        entry_row.save(update_fields=["worksheet_row", "updated_at"])
 
     def is_complete(self):
         rows = list(self.rows.all())
         if not rows:
             return False
-        for row in rows:
-            if row.weight_volume is None or row.weight_volume <= 0 or not row.si_unit:
-                return False
-            if (
-                row.gold_recovery_12h is None
-                or row.gold_recovery_24h is None
-                or row.gold_recovery_48h is None
-            ):
-                return False
-        return True
+        if not rows[0].is_filled:
+            return False
+        return all(row.is_filled for row in rows[1:] if row.has_data)
 
 
 class MetallurgicalTestRow(models.Model):
     RESULT_FIELDS = ()
+
+    RECOVERY_FIELDS = (
+        "gold_recovery_12h",
+        "gold_recovery_24h",
+        "gold_recovery_48h",
+        "gold_recovery_72h",
+    )
 
     entry = models.ForeignKey(
         MetallurgicalTestEntry, on_delete=models.CASCADE, related_name="rows"
@@ -765,6 +758,7 @@ class MetallurgicalTestRow(models.Model):
     gold_recovery_12h = _input_field(8, 4, maximum=Decimal("100"))
     gold_recovery_24h = _input_field(8, 4, maximum=Decimal("100"))
     gold_recovery_48h = _input_field(8, 4, maximum=Decimal("100"))
+    gold_recovery_72h = _input_field(8, 4, maximum=Decimal("100"))
     remarks = models.TextField(blank=True)
     qc_included = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -786,6 +780,18 @@ class MetallurgicalTestRow(models.Model):
         if row is None:
             return None
         return row.display_number or row.row_number
+
+    @property
+    def has_data(self):
+        if self.weight_volume is not None or self.si_unit:
+            return True
+        return any(getattr(self, field) is not None for field in self.RECOVERY_FIELDS)
+
+    @property
+    def is_filled(self):
+        if self.weight_volume is None or self.weight_volume <= 0 or not self.si_unit:
+            return False
+        return all(getattr(self, field) is not None for field in self.RECOVERY_FIELDS)
 
 
 class CarbonActivityEntry(BaseEntry):
