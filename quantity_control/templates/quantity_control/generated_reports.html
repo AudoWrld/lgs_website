@@ -67,6 +67,11 @@
                 <i class='bx bxs-file-pdf' aria-hidden="true"></i> PDF
               </a>
               {% endif %}
+              {% if coa.png_file %}
+              <a href="{{ coa.png_file.url }}" target="_blank" rel="noopener" class="btn btn-outline btn-sm">
+                <i class='bx bx-image' aria-hidden="true"></i> PNG
+              </a>
+              {% endif %}
               <a href="{% url 'qc:report_detail' reference=coa.submission.reference %}" class="btn btn-outline btn-sm">
                 <i class='bx bx-show' aria-hidden="true"></i> View
               </a>

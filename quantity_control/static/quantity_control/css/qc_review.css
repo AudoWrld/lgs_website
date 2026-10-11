@@ -1,3 +1,8 @@
+:root {
+  --qc-data: #0b3c91;
+  --qc-data-strong: #0a3fd1;
+}
+
 .qc-header {
   display: flex;
   align-items: flex-start;
@@ -156,6 +161,16 @@
   white-space: nowrap;
 }
 
+form .qc-table tbody td {
+  color: var(--qc-data);
+  font-weight: 600;
+}
+
+form .qc-table tbody td.qc-col-result {
+  color: var(--qc-data-strong);
+  font-weight: 700;
+}
+
 .qc-table input[type="number"],
 .qc-table input[type="text"],
 .qc-table select {
@@ -169,6 +184,21 @@
   background: var(--white);
 }
 
+form .qc-table input[type="number"],
+form .qc-table input[type="text"],
+form .qc-table select {
+  color: var(--qc-data);
+  font-weight: 600;
+}
+
+form .qc-table input[type="number"]:focus,
+form .qc-table input[type="text"]:focus,
+form .qc-table select:focus {
+  border-color: var(--qc-data-strong);
+  outline: 2px solid rgba(10, 63, 209, 0.25);
+  outline-offset: 0;
+}
+
 .qc-table input[type="text"] {
   min-width: 160px;
 }
@@ -178,6 +208,13 @@
   background: #f1ede3;
   color: var(--muted);
   cursor: not-allowed;
+}
+
+form .qc-table input:disabled,
+form .qc-table select:disabled {
+  color: var(--qc-data);
+  -webkit-text-fill-color: var(--qc-data);
+  opacity: 1;
 }
 
 .qc-table input[type="checkbox"] {
