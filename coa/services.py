@@ -232,7 +232,7 @@ def _mineral_block(entry):
 
 def _carbon_block(entry):
     rows = [
-        [str(n), s.client_sample_id, two_dp(carbon_value(s))]
+        [str(n), s.client_sample_id, whole(carbon_value(s))]
         for n, s in enumerate(entry["samples"], start=1)
     ]
     methods = " | ".join(_unique(s.method_of_analysis for s in entry["services"]))
