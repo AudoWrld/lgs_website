@@ -34,6 +34,10 @@ FRAME_BOTTOM = 35 * mm
 LATER_FRAME_TOP = 48 * mm
 FOOTER_BASE = 6 * mm
 
+PX = 0.75
+GAP = 10 * PX
+CELL_PAD = 5
+
 BLUE = colors.HexColor("#0B3C91")
 COMPANY_BLUE = colors.HexColor("#1B3FD6")
 PURPLE = colors.HexColor("#7A2E8E")
@@ -98,8 +102,16 @@ def _style(name, **kw):
 
 
 @lru_cache(maxsize=8)
-def _plain_image(path):
-    return ImageReader(path)
+def _scaled_reader(path, max_width):
+    from PIL import Image
+
+    img = Image.open(path).convert("RGBA")
+    if img.width > max_width:
+        img = img.resize(
+            (max_width, max(1, round(img.height * max_width / img.width))),
+            Image.LANCZOS,
+        )
+    return ImageReader(img)
 
 
 def _trim(img):
@@ -109,12 +121,12 @@ def _trim(img):
 
 @lru_cache(maxsize=4)
 def _logo_rgba(path):
-    from PIL import Image, ImageChops, ImageDraw, ImageFilter
+    from PIL import Image, ImageChops, ImageFilter
 
     img = Image.open(path).convert("RGBA")
-    if img.width > 600:
+    if img.width > 500:
         img = img.resize(
-            (600, max(1, round(img.height * 600 / img.width))), Image.LANCZOS
+            (500, max(1, round(img.height * 500 / img.width))), Image.LANCZOS
         )
     if img.getchannel("A").getextrema()[0] < 250:
         return _trim(img)
@@ -125,25 +137,7 @@ def _logo_rgba(path):
     chroma = ImageChops.subtract(top, low)
     bright = low.point(lambda v: 255 if v > 140 else 0)
     neutral = chroma.point(lambda v: 255 if v < 70 else 0)
-    candidate = ImageChops.multiply(bright, neutral)
-
-    w, h = img.size
-    seeds = [
-        (0, 0),
-        (w - 1, 0),
-        (0, h - 1),
-        (w - 1, h - 1),
-        (w // 2, 0),
-        (w // 2, h - 1),
-        (0, h // 2),
-        (w - 1, h // 2),
-    ]
-    for seed in seeds:
-        if candidate.getpixel(seed) == 255:
-            ImageDraw.floodfill(candidate, seed, 128)
-
-    background = candidate.point(lambda v: 255 if v == 128 else 0)
-    background = background.filter(ImageFilter.MaxFilter(3))
+    background = ImageChops.multiply(bright, neutral).filter(ImageFilter.MaxFilter(3))
     alpha = ImageChops.multiply(img.getchannel("A"), ImageChops.invert(background))
     img.putalpha(alpha)
     return _trim(img)
@@ -162,10 +156,14 @@ def _watermark_tile(path):
     from PIL import Image
 
     logo = _logo_rgba(path)
-    scale = min(42 * mm / logo.width, 23 * mm / logo.height)
-    tile = logo.rotate(20, expand=True, resample=Image.BICUBIC)
-    alpha = tile.getchannel("A").point(lambda v: int(v * 0.045))
-    tile.putalpha(alpha)
+    width = 160
+    small = logo.resize(
+        (width, max(1, round(logo.height * width / logo.width))), Image.BILINEAR
+    )
+    scale = min(42 * mm / small.width, 23 * mm / small.height)
+    tile = small.rotate(20, expand=True, resample=Image.BILINEAR)
+    table = [int(v * 0.045) for v in range(256)]
+    tile.putalpha(tile.getchannel("A").point(table))
     return ImageReader(tile), tile.width * scale, tile.height * scale
 
 
@@ -244,7 +242,7 @@ def _stamp_line(c, text, font, size, cx, y, max_w, color, char_space=0.0):
 
 
 def draw_stamp(c, path, cx, y, width, issued_at):
-    reader = _plain_image(path)
+    reader = _scaled_reader(path, 700)
     iw, ih = reader.getSize()
     height = width * ih / iw
     x = cx - width / 2
@@ -280,7 +278,7 @@ def _draw_footer(c, d):
     c.drawString(sig_x + 8 * mm, base + 24 * mm, "Laboratory Manager")
     if d.signature_path and os.path.exists(d.signature_path):
         c.drawImage(
-            _plain_image(d.signature_path),
+            _scaled_reader(d.signature_path, 500),
             sig_x + 8 * mm,
             base + 10.5 * mm,
             width=34 * mm,
@@ -351,8 +349,10 @@ def _table(block, width):
         ("GRID", (0, 0), (-1, -1), 0.7, colors.HexColor("#333333")),
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING", (0, 0), (-1, -1), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ("TOPPADDING", (0, 0), (-1, -1), CELL_PAD),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), CELL_PAD),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
     ]
     for col, start, end in block.spans:
         commands.append(("SPAN", (col, start + 1), (col, end + 1)))
@@ -371,8 +371,8 @@ def _detail_table(rows, width):
         TableStyle(
             [
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("TOPPADDING", (0, 0), (-1, -1), 0.5),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 0.5),
+                ("TOPPADDING", (0, 0), (-1, -1), 2),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
                 ("LEFTPADDING", (0, 0), (-1, -1), 0),
             ]
         )
@@ -394,7 +394,7 @@ def _story(d, pages_total):
         textColor=TITLE_ORANGE,
     )
     story.append(Paragraph("CERTIFICATE OF ANALYSIS", title))
-    story.append(Spacer(1, 1.5 * mm))
+    story.append(Spacer(1, GAP))
 
     left = Paragraph(
         f"TO: {escape(d.client_name.upper())}", _style("to", fontSize=12, leading=15)
@@ -413,7 +413,7 @@ def _story(d, pages_total):
         )
         for a, b in meta_lines
     )
-    right = Paragraph(right_html, _style("meta", fontSize=10, leading=13, alignment=2))
+    right = Paragraph(right_html, _style("meta", fontSize=10, leading=14, alignment=2))
     meta = Table([[left, right]], colWidths=[width * 0.5, width * 0.5])
     meta.setStyle(
         TableStyle(
@@ -427,11 +427,11 @@ def _story(d, pages_total):
         )
     )
     story.append(meta)
-    story.append(Spacer(1, 2 * mm))
+    story.append(Spacer(1, GAP))
 
     heading = _style("h", fontName="Helvetica-Bold", fontSize=13, leading=15)
     story.append(Paragraph("SAMPLE DETAILS:", heading))
-    story.append(Spacer(1, 0.5 * mm))
+    story.append(Spacer(1, 3))
 
     details = [
         ("Nature of Sample:", d.nature_of_sample),
@@ -445,12 +445,12 @@ def _story(d, pages_total):
     for index, block in enumerate(d.blocks):
         group = []
         if index > 0:
-            group.append(Spacer(1, 5 * mm))
+            group.append(Spacer(1, GAP * 2))
             group.append(_detail_table(block.detail_rows, width))
         group += [
-            Spacer(1, 2.5 * mm),
+            Spacer(1, GAP),
             Paragraph(block.results_title, heading),
-            Spacer(1, 1.5 * mm),
+            Spacer(1, 5),
             _table(block, width),
         ]
         groups.append(group)
@@ -458,7 +458,7 @@ def _story(d, pages_total):
     only_met = bool(d.blocks) and all(b.metallurgical for b in d.blocks)
     text = METALLURGICAL_DISCLAIMER if only_met else MINERAL_DISCLAIMER
     disclaimer = [
-        Spacer(1, 3 * mm),
+        Spacer(1, GAP),
         Paragraph(
             f"<b>Disclaimer:</b> <font color='{purple}'>{text}</font>",
             _style("disc", fontSize=8.5, leading=10.5),
@@ -523,7 +523,7 @@ def render_coa_pdf(d):
     return data
 
 
-def render_coa_png(pdf_bytes, scale=2.0):
+def render_coa_png(pdf_bytes, scale=1.6):
     import pypdfium2 as pdfium
     from PIL import Image
 

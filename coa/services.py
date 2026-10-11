@@ -1,4 +1,5 @@
 import logging
+import threading
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from urllib.parse import quote
 
@@ -6,7 +7,8 @@ from django.conf import settings
 from django.contrib.staticfiles import finders
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.files.base import ContentFile
-from django.db import transaction
+from django.db import connections, transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from payments.models import Payment
@@ -144,7 +146,7 @@ def _group_by_kind(samples):
     groups = {}
     for sample in samples:
         per_kind = {}
-        for line in sample.sample_services.select_related("service"):
+        for line in sample.sample_services.all():
             service = line.service
             kind = service.metallurgical_type
             kind = MINERAL if not kind or kind == Service.NONE else kind
@@ -153,7 +155,9 @@ def _group_by_kind(samples):
                 bucket.append(service)
         for kind, services in per_kind.items():
             key = (kind, _signature(kind, services))
-            entry = groups.setdefault(key, {"kind": kind, "samples": [], "services": []})
+            entry = groups.setdefault(
+                key, {"kind": kind, "samples": [], "services": []}
+            )
             entry["samples"].append(sample)
             for service in services:
                 if service not in entry["services"]:
@@ -276,7 +280,10 @@ def _cyanide_block(kind, entry):
         start = len(out)
         for index, r in enumerate(rows):
             first = index == 0
-            row = [str(number) if first else "", sample.client_sample_id if first else ""]
+            row = [
+                str(number) if first else "",
+                sample.client_sample_id if first else "",
+            ]
             if show_parameter:
                 row.append(r["parameter"])
             if optimization:
@@ -324,7 +331,16 @@ def _verify_base(base_url=None):
 
 
 def build_coa_doc(coa, base_url=None):
-    samples = list(coa.group.samples.order_by("id")) if coa.group_id else []
+    samples = (
+        list(
+            coa.group.samples.filter(analysis_status=Sample.QC_APPROVED)
+            .select_related("qc_review")
+            .prefetch_related("sample_services__service")
+            .order_by("id")
+        )
+        if coa.group_id
+        else []
+    )
     submission = coa.submission
     submitted = (
         timezone.localtime(submission.submitted_at) if submission.submitted_at else None
@@ -365,6 +381,10 @@ def attach_files(coa, base_url=None):
     pdf = render_coa_pdf(build_coa_doc(coa, base_url=base_url))
     png = render_coa_png(pdf)
     stem = coa.coa_number.replace("/", "-")
+    if coa.pdf_file:
+        coa.pdf_file.delete(save=False)
+    if coa.png_file:
+        coa.png_file.delete(save=False)
     coa.pdf_file.save(f"{stem}.pdf", ContentFile(pdf), save=False)
     coa.png_file.save(f"{stem}.png", ContentFile(png), save=False)
     coa.save(update_fields=["pdf_file", "png_file", "updated_at"])
@@ -390,64 +410,172 @@ def release_if_paid(submission):
     )
 
 
-def generate_coas(submission, user, base_url=None):
-    with transaction.atomic():
-        pref = COAReportingPreference.objects.select_for_update().get(
-            submission=submission
+def sample_has_coa(sample):
+    return COA.objects.filter(
+        Q(group__samples=sample)
+        | Q(submission_id=sample.submission_id, group__isnull=True)
+    ).exists()
+
+
+def _ensure_groups(pref, samples, has_coas):
+    kind = pref.preference_type
+
+    if kind == COAReportingPreference.CUSTOM_GROUP:
+        if not pref.all_samples_assigned():
+            raise ValidationError(
+                "Every sample must be assigned to a group before a COA can be generated."
+            )
+        return
+
+    if not has_coas:
+        pref.groups.all().delete()
+
+    assigned = set(
+        COAGroupSample.objects.filter(group__preference=pref).values_list(
+            "sample_id", flat=True
         )
+    )
+    missing = [
+        (index, sample)
+        for index, sample in enumerate(samples, start=1)
+        if sample.id not in assigned
+    ]
+    if not missing:
+        return
 
-        if not pref.is_finalized:
-            raise ValidationError(
-                "The COA reporting preference has not been finalized."
-            )
-        if submission.coas.exists():
-            raise ValidationError(
-                "COAs have already been generated for this reference."
-            )
+    if kind == COAReportingPreference.INDIVIDUAL:
+        taken = set(pref.groups.values_list("group_number", flat=True))
+        for index, sample in missing:
+            number = index if index not in taken else max(taken | {0}) + 1
+            taken.add(number)
+            group = COAGroup.objects.create(preference=pref, group_number=number)
+            COAGroupSample.objects.create(group=group, sample=sample)
+        return
 
-        samples = list(submission.samples.order_by("id"))
-        if not samples or any(s.analysis_status != Sample.QC_APPROVED for s in samples):
-            raise ValidationError(
-                "All samples must be QC approved before generating COAs."
-            )
+    group = pref.groups.order_by("group_number").first()
+    if group is None:
+        group = COAGroup.objects.create(preference=pref, group_number=1)
+    COAGroupSample.objects.bulk_create(
+        COAGroupSample(group=group, sample=sample) for _, sample in missing
+    )
 
-        if pref.preference_type == COAReportingPreference.INDIVIDUAL:
-            buckets = [[s] for s in samples]
-        elif pref.preference_type == COAReportingPreference.COMBINED:
-            buckets = [samples]
-        else:
-            buckets = None
 
-        if buckets is not None:
-            pref.groups.all().delete()
-            for number, bucket in enumerate(buckets, start=1):
-                group = COAGroup.objects.create(preference=pref, group_number=number)
-                COAGroupSample.objects.bulk_create(
-                    COAGroupSample(group=group, sample=s) for s in bucket
-                )
-        elif not pref.all_samples_assigned():
-            raise ValidationError("Every sample must be assigned to a group.")
-
-        groups = list(pref.groups.order_by("group_number"))
-        paid = payment_cleared(submission)
-        coas = [
-            COA.objects.create(
-                submission=submission,
-                group=group,
-                coa_number=next_coa_number(submission, group.group_number, len(groups)),
-                status=COA.READY_FOR_RELEASE if paid else COA.PAYMENT_PENDING,
-                released_at=timezone.now() if paid else None,
-                approved_by=user,
-            )
-            for group in groups
-        ]
-
+def _build_files_now(coa_ids, base_url):
+    coas = COA.objects.filter(pk__in=coa_ids).select_related(
+        "submission", "submission__client", "group"
+    )
     for coa in coas:
         try:
             attach_files(coa, base_url=base_url)
         except Exception:
             logger.exception("COA file build failed for %s", coa.coa_number)
-    return coas
+
+
+def _build_files_thread(coa_ids, base_url):
+    try:
+        _build_files_now(coa_ids, base_url)
+    finally:
+        connections.close_all()
+
+
+def _schedule_file_build(coa_ids, base_url):
+    if not coa_ids:
+        return
+    if getattr(settings, "COA_BUILD_IN_BACKGROUND", True):
+
+        def start():
+            threading.Thread(
+                target=_build_files_thread,
+                args=(list(coa_ids), base_url),
+                daemon=True,
+            ).start()
+
+        transaction.on_commit(start)
+    else:
+        _build_files_now(coa_ids, base_url)
+
+
+def sync_coas(submission, user, base_url=None, sample=None):
+    touched_ids = []
+
+    with transaction.atomic():
+        try:
+            pref = COAReportingPreference.objects.select_for_update().get(
+                submission=submission
+            )
+        except COAReportingPreference.DoesNotExist:
+            raise ValidationError(
+                "No COA reporting preference has been set for this reference, "
+                "so no COA was generated."
+            )
+
+        if not pref.is_finalized:
+            raise ValidationError(
+                "The COA reporting preference has not been finalized yet, "
+                "so no COA was generated."
+            )
+
+        samples = list(submission.samples.order_by("id"))
+        if not samples:
+            return []
+
+        _ensure_groups(pref, samples, submission.coas.exists())
+
+        all_groups = list(
+            pref.groups.order_by("group_number").prefetch_related("samples")
+        )
+
+        if pref.preference_type == COAReportingPreference.INDIVIDUAL:
+            total = len(samples)
+        elif pref.preference_type == COAReportingPreference.COMBINED:
+            total = 1
+        else:
+            total = len(all_groups)
+
+        groups = all_groups
+        if sample is not None:
+            groups = [
+                g for g in all_groups if any(s.id == sample.id for s in g.samples.all())
+            ]
+
+        existing = {
+            c.group_id: c
+            for c in submission.coas.filter(group_id__in=[g.id for g in groups])
+        }
+        paid = payment_cleared(submission)
+        now = timezone.now()
+
+        for group in groups:
+            approved = [
+                s
+                for s in group.samples.all()
+                if s.analysis_status == Sample.QC_APPROVED
+            ]
+            if not approved:
+                continue
+
+            coa = existing.get(group.id)
+            if coa is None:
+                coa = COA.objects.create(
+                    submission=submission,
+                    group=group,
+                    coa_number=next_coa_number(submission, group.group_number, total),
+                    status=COA.READY_FOR_RELEASE if paid else COA.PAYMENT_PENDING,
+                    released_at=now if paid else None,
+                    approved_by=user,
+                )
+            else:
+                COA.objects.filter(pk=coa.pk).update(created_at=now, approved_by=user)
+            touched_ids.append(coa.pk)
+
+        if touched_ids:
+            _schedule_file_build(touched_ids, base_url)
+
+    return list(COA.objects.filter(pk__in=touched_ids).order_by("coa_number"))
+
+
+def generate_coas(submission, user, base_url=None):
+    return sync_coas(submission, user, base_url=base_url)
 
 
 def authorize_release(coa, user, reason):

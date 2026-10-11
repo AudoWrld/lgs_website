@@ -9,7 +9,7 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Count, Exists, F, OuterRef, Q
+from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -17,8 +17,8 @@ from django.utils import timezone
 from PIL import Image, ImageFilter
 
 from accounts.decorators import qc_required
-from coa.models import COA, COAReportingPreference
-from coa.services import attach_files, generate_coas
+from coa.models import COA
+from coa.services import attach_files, sample_has_coa, sync_coas
 from samples.models import Sample, Service
 from submissions.models import Submission
 
@@ -45,8 +45,6 @@ OVERDUE_HOURS = getattr(settings, "QC_OVERDUE_HOURS", 4)
 COA_NUMBER_FIELD = "coa_number"
 
 REVIEW_STATUSES = (Sample.SUBMITTED_TO_QC, Sample.REASSAY_SUBMITTED)
-
-PREFERENCE_LABELS = dict(COAReportingPreference.PREFERENCE_CHOICES)
 
 RECOVERY_FIELDS = (
     ("gold_recovery_12h", "recovery_12h", "Gold Recovery 12h", "show_recovery_12h"),
@@ -137,10 +135,7 @@ def _load_entry(sample):
 def _report_locked(sample):
     if getattr(sample, "submission_id", None) is None:
         return False
-    return COA.objects.filter(
-        Q(group__samples=sample)
-        | Q(submission_id=sample.submission_id, group__isnull=True)
-    ).exists()
+    return sample_has_coa(sample)
 
 
 def _is_editable(sample, entry):
@@ -441,6 +436,42 @@ def _flash_errors(request, errors):
         messages.error(request, error)
 
 
+def _auto_generate_coas(request, submission, sample):
+    try:
+        coas = sync_coas(
+            submission,
+            request.user,
+            base_url=request.build_absolute_uri("/"),
+            sample=sample,
+        )
+    except ValidationError as exc:
+        for message in exc.messages:
+            messages.warning(request, message)
+        return
+    except Exception:
+        logger.exception("Automatic COA generation failed for %s", submission.reference)
+        messages.warning(
+            request,
+            "Sample approved, but the COA could not be generated automatically.",
+        )
+        return
+
+    if not coas:
+        return
+
+    numbers = ", ".join(c.coa_number for c in coas)
+    messages.success(request, f"COA ready: {numbers}.")
+
+    if not getattr(settings, "COA_BUILD_IN_BACKGROUND", True) and any(
+        not c.pdf_file or not c.png_file for c in coas
+    ):
+        messages.warning(
+            request,
+            "COA created but some files failed to build. "
+            "Use “Rebuild files” on the report page.",
+        )
+
+
 def _handle_post(request, sample, kind, entry):
     action = request.POST.get("action")
     back = redirect("qc:sample_review", slug=sample.slug)
@@ -475,46 +506,45 @@ def _handle_post(request, sample, kind, entry):
             messages.error(request, "This sample is not awaiting QC review.")
             return back
 
-        if action == "approve":
-            if request.POST.get("edit_form") == "1":
-                if not _is_editable(locked, entry):
-                    messages.error(request, "This sample can no longer be edited.")
-                    return back
-                edit = _apply_edits(request, locked, kind, entry, qc_review, user)
-                if edit.errors:
-                    _flash_errors(request, edit.errors)
-                    return back
-                _commit_edits(edit, qc_review, user)
-
-            problems = _approval_errors(kind, entry, qc_review)
-            if problems:
-                _flash_errors(request, problems)
-                return back
-
-            locked.set_analysis_status(Sample.QC_APPROVED)
+        if action == "return_reassay":
+            locked.set_analysis_status(Sample.REASSAY_REQUIRED)
             QCDecision.objects.create(
                 sample=locked,
-                action=QCDecision.APPROVED,
+                action=QCDecision.RETURNED,
                 entry_revision=entry.revision if entry else None,
                 decided_by=user,
             )
-            messages.success(request, f"{lab_sample_id_for(sample)} approved.")
+            messages.success(
+                request, f"{lab_sample_id_for(sample)} returned for reassay."
+            )
             return redirect("qc:pending_review")
 
-        reason = (request.POST.get("reason") or "").strip()
-        if not reason:
-            messages.error(request, "Enter a reason for returning for reassay.")
+        if request.POST.get("edit_form") == "1":
+            if not _is_editable(locked, entry):
+                messages.error(request, "This sample can no longer be edited.")
+                return back
+            edit = _apply_edits(request, locked, kind, entry, qc_review, user)
+            if edit.errors:
+                _flash_errors(request, edit.errors)
+                return back
+            _commit_edits(edit, qc_review, user)
+
+        problems = _approval_errors(kind, entry, qc_review)
+        if problems:
+            _flash_errors(request, problems)
             return back
-        locked.set_analysis_status(Sample.REASSAY_REQUIRED)
+
+        locked.set_analysis_status(Sample.QC_APPROVED)
         QCDecision.objects.create(
             sample=locked,
-            action=QCDecision.RETURNED,
-            reason=reason,
+            action=QCDecision.APPROVED,
             entry_revision=entry.revision if entry else None,
             decided_by=user,
         )
-        messages.success(request, f"{lab_sample_id_for(sample)} returned for reassay.")
-        return redirect("qc:pending_review")
+
+    messages.success(request, f"{lab_sample_id_for(sample)} approved.")
+    _auto_generate_coas(request, sample.submission, sample)
+    return redirect("qc:pending_review")
 
 
 @qc_required
@@ -617,92 +647,9 @@ def approved_reports(request):
     )
 
 
-def _expected_coa_count(row):
-    if row.pref_type == COAReportingPreference.INDIVIDUAL:
-        return row.total
-    if row.pref_type == COAReportingPreference.COMBINED:
-        return 1
-    if row.pref_type == COAReportingPreference.CUSTOM_GROUP:
-        return row.group_count
-    return 0
-
-
-def _ready_submissions(reference=""):
-    submissions = (
-        Submission.objects.filter(is_submitted=True)
-        .annotate(
-            total=Count("samples", distinct=True),
-            approved=Count(
-                "samples",
-                filter=Q(samples__analysis_status=Sample.QC_APPROVED),
-                distinct=True,
-            ),
-            pref_type=F("coa_preference__preference_type"),
-            pref_final=F("coa_preference__is_finalized"),
-            group_count=Count("coa_preference__groups", distinct=True),
-        )
-        .filter(total__gt=0, total=F("approved"))
-        .filter(~Exists(COA.objects.filter(submission=OuterRef("pk"))))
-        .select_related("client")
-        .order_by("-updated_at", "-id")
-    )
-    if reference:
-        submissions = submissions.filter(reference__icontains=reference)
-    return submissions
-
-
 @qc_required
 def generate_report(request):
-    if request.method == "POST":
-        submission = get_object_or_404(
-            Submission, pk=request.POST.get("submission_id"), is_submitted=True
-        )
-        try:
-            coas = generate_coas(
-                submission, request.user, base_url=request.build_absolute_uri("/")
-            )
-        except ValidationError as exc:
-            for message in exc.messages:
-                messages.error(request, message)
-            return redirect("qc:generate_report")
-
-        missing = [c for c in coas if not c.pdf_file or not c.png_file]
-        if missing:
-            messages.warning(
-                request,
-                "COAs were created but some files failed to build. "
-                "Use “Rebuild files” on the report page.",
-            )
-        else:
-            messages.success(
-                request,
-                f"{len(coas)} COA{'s' if len(coas) != 1 else ''} generated "
-                f"for {submission.reference}.",
-            )
-        return redirect("qc:report_detail", reference=submission.reference)
-
-    reference = request.GET.get("reference", "").strip()
-    submissions = _ready_submissions(reference)
-    page_obj, querystring = _paginate(request, submissions)
-
-    items = [
-        {
-            "submission": s,
-            "total": s.total,
-            "preference": PREFERENCE_LABELS.get(s.pref_type, ""),
-            "expected": _expected_coa_count(s),
-            "can_generate": bool(s.pref_final),
-        }
-        for s in page_obj.object_list
-    ]
-    context = {
-        "reference": reference,
-        "items": items,
-        "page_obj": page_obj,
-        "querystring": querystring,
-        "total_count": submissions.count(),
-    }
-    return render(request, "quantity_control/generate_report.html", context)
+    return redirect("qc:generated_reports")
 
 
 @qc_required
@@ -908,8 +855,7 @@ def report_detail(request, reference):
         "entries": entries,
         "has_missing_files": any(not e["files_ready"] for e in entries),
         "payment_pending": any(not e["released"] for e in entries),
-        "all_ready": bool(entries)
-        and all(e["released"] for e in entries),
+        "all_ready": bool(entries) and all(e["released"] for e in entries),
     }
     return render(request, "quantity_control/report_detail.html", context)
 
