@@ -3,6 +3,7 @@ from functools import wraps
 from io import BytesIO
 
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db.models import Count, Q
 from django.db.models.functions import TruncMonth
 from django.http import FileResponse, Http404, HttpResponse
@@ -16,6 +17,7 @@ from submissions.models import Submission
 
 STAGES = ["Received", "In Analysis", "Quality Review", "Certificate", "Released"]
 VISIBLE_STATUSES = [COA.READY_FOR_RELEASE, COA.RELEASED]
+SUBMISSIONS_PER_PAGE = 10
 
 
 def customer_required(view):
@@ -184,10 +186,13 @@ def customer_dashboard(request):
 
 @customer_required
 def my_submissions(request):
+    items = _submission_items(_client_for(request.user))
+    paginator = Paginator(items, SUBMISSIONS_PER_PAGE)
+    page_obj = paginator.get_page(request.GET.get("page"))
     return render(
         request,
         "client/my_submissions.html",
-        {"items": _submission_items(_client_for(request.user))},
+        {"items": page_obj, "page_obj": page_obj},
     )
 
 
