@@ -1,40 +1,82 @@
-
 {% extends 'client/base_client.html' %}
+{% load static %}
 
 {% block title %}{{ coa.coa_number }} — LGS Client Portal{% endblock %}
 {% block page_title %}Certificate of Analysis{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'client/css/dashboard.css' %}" />
+<link rel="stylesheet" href="{% static 'client/css/certificate.css' %}" />
+{% endblock %}
+
 {% block content %}
-<div class="card">
-  <div class="card-body">
-    <h2>{{ coa.coa_number }}</h2>
-    <p>Reference {{ coa.submission.reference }} · {{ coa.get_status_display }}</p>
+{% include 'client/_icons.html' %}
 
-    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin:1rem 0;">
-      <a href="{% url 'client:ready_for_release' %}" class="btn btn-outline btn-sm">
-        <i class='bx bx-arrow-back' aria-hidden="true"></i> Back
-      </a>
-      {% if coa.pdf_file %}
-      <a href="{% url 'client:coa_file' coa.id 'pdf' %}?download=1" class="btn btn-primary btn-sm">
-        <i class='bx bxs-file-pdf' aria-hidden="true"></i> Download PDF
-      </a>
-      {% endif %}
-      {% if coa.png_file %}
-      <a href="{% url 'client:coa_file' coa.id 'png' %}?download=1" class="btn btn-primary btn-sm">
-        <i class='bx bx-image' aria-hidden="true"></i> Download PNG
-      </a>
-      {% endif %}
-    </div>
-
+{% if coa.is_client_visible %}
+<section class="cert-head">
+  <div class="cert-head-main">
+    <span class="cert-eyebrow"><svg class="dash-icon" aria-hidden="true"><use href="#i-file"></use></svg> Certificate of Analysis</span>
+    <h2 class="cert-title">{{ coa.coa_number }}</h2>
+    <span class="dash-badge dash-badge-success">{{ coa.get_status_display }}</span>
+  </div>
+  <div class="cert-actions">
+    <a href="{% url 'client:ready_for_release' %}" class="cert-btn cert-btn--ghost">
+      <svg class="dash-icon" aria-hidden="true"><use href="#i-back"></use></svg> Back
+    </a>
+    {% if coa.pdf_file %}
+    <a href="{% url 'client:coa_file' coa.id 'pdf' %}?download=1" class="cert-btn cert-btn--primary">
+      <svg class="dash-icon" aria-hidden="true"><use href="#i-download"></use></svg> Download PDF
+    </a>
+    {% endif %}
     {% if coa.png_file %}
-    <img
-      src="{% url 'client:coa_file' coa.id 'png' %}"
-      alt="Certificate {{ coa.coa_number }}"
-      style="max-width:100%;height:auto;border:1px solid #ccd3da;"
-    />
-    {% else %}
-    <p>The certificate files are still being prepared. Please check back shortly.</p>
+    <a href="{% url 'client:coa_file' coa.id 'png' %}?download=1" class="cert-btn cert-btn--ghost">
+      <svg class="dash-icon" aria-hidden="true"><use href="#i-image"></use></svg> Download PNG
+    </a>
     {% endif %}
   </div>
-</div>
+</section>
+
+<section class="cert-meta" aria-label="Certificate details">
+  <div class="cert-meta-cell">
+    <span class="cert-meta-label">Reference</span>
+    <span class="cert-meta-value">{{ coa.submission.reference }}</span>
+  </div>
+  <div class="cert-meta-cell">
+    <span class="cert-meta-label">Issued</span>
+    <span class="cert-meta-value">{{ coa.created_at|date:"d M Y, H:i" }}</span>
+  </div>
+  <div class="cert-meta-cell">
+    <span class="cert-meta-label">Released</span>
+    <span class="cert-meta-value">{% if coa.released_at %}{{ coa.released_at|date:"d M Y, H:i" }}{% else %}—{% endif %}</span>
+  </div>
+</section>
+
+<section class="dash-panel" aria-labelledby="cert-preview-heading">
+  <div class="dash-panel-head">
+    <h3 id="cert-preview-heading"><svg class="dash-icon" aria-hidden="true"><use href="#i-image"></use></svg> Certificate Preview</h3>
+    {% if coa.png_file %}<a href="{% url 'client:coa_file' coa.id 'png' %}" target="_blank" rel="noopener" class="dash-link">Open full size</a>{% endif %}
+  </div>
+  {% if coa.png_file %}
+  <div class="cert-frame">
+    <a href="{% url 'client:coa_file' coa.id 'png' %}" target="_blank" rel="noopener">
+      <img src="{% url 'client:coa_file' coa.id 'png' %}" alt="Certificate {{ coa.coa_number }}" />
+    </a>
+  </div>
+  {% else %}
+  <p class="dash-empty">The certificate files are still being prepared. Please check back shortly.</p>
+  {% endif %}
+</section>
+
+{% else %}
+<section class="dash-panel">
+  <div class="cert-locked">
+    <span class="cert-locked-icon"><svg class="dash-icon" aria-hidden="true"><use href="#i-lock"></use></svg></span>
+    <h3>Certificate not available yet</h3>
+    <p>This certificate has not been released. It will be available here once it is ready for release.</p>
+    <a href="{% url 'client:pending_release' %}" class="cert-btn cert-btn--navy">
+      <svg class="dash-icon" aria-hidden="true"><use href="#i-back"></use></svg> Back to Pending Release
+    </a>
+  </div>
+</section>
+{% endif %}
 {% endblock %}
