@@ -45,6 +45,17 @@ MINERAL_FIELDS = (
     ("sulphur", "S"),
 )
 
+SHARED_FIELDS = (
+    "weight",
+    "au_aas",
+    "au_df",
+    "cu_aas",
+    "cu_df",
+    "ag_aas",
+    "ag_df",
+    "sulphur",
+)
+
 METALLURGICAL_FIELDS = (
     ("weight_volume", "weight_volume", "Weight / Volume"),
     ("gold_recovery_12h", "recovery_12h", "Gold recovery at 12 hours"),
@@ -202,12 +213,17 @@ def _metallurgical_worksheet_rows(sample):
     )
 
 
-def _link_first_values(replicates):
-    if not replicates:
+def _fill_from_first(replicates):
+    if len(replicates) < 2:
         return
     first = replicates[0]
-    for replicate in replicates[1:]:
-        replicate.shared_source = first
+    for field in SHARED_FIELDS:
+        value = getattr(first, field)
+        if value is None:
+            continue
+        for replicate in replicates[1:]:
+            if getattr(replicate, field) is None:
+                setattr(replicate, field, value)
 
 
 def _other_service_target(sample):
@@ -467,7 +483,7 @@ def mineral_analysis_entry(request, slug):
                     reader.decimal(f"{prefix}_{field}", f"Replicate {number} {label}"),
                 )
 
-        _link_first_values(replicates)
+        _fill_from_first(replicates)
 
         for replicate in replicates:
             _check(reader, replicate, f"Replicate {replicate.replicate_number}")
@@ -515,7 +531,7 @@ def mineral_analysis_preview(request, slug):
         for field, label in MINERAL_FIELDS:
             setattr(replicate, field, reader.decimal(f"{prefix}_{field}", label))
 
-    _link_first_values(replicates)
+    _fill_from_first(replicates)
 
     results = {}
     for replicate in replicates:
@@ -680,6 +696,10 @@ def metallurgical_test_entry(request, slug):
                     reader.decimal(f"{prefix}_{key}", f"{label} {field_label}"),
                 )
             row.si_unit = reader.text(f"{prefix}_si_unit")
+            if row.si_unit and row.si_unit not in row.allowed_units:
+                reader.errors.append(
+                    f"{label} SI unit must be one of: {', '.join(row.allowed_units)}."
+                )
             row.remarks = reader.text(f"{prefix}_remarks")
             _check(reader, row, label)
 

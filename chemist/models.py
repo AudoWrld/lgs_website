@@ -13,7 +13,20 @@ from worksheet.models import Worksheet, WorksheetRow
 CYANIDE_TYPES = (Service.CYANIDE_CONVENTIONAL, Service.CYANIDE_OPTIMIZATION)
 METALLURGICAL_TYPES = CYANIDE_TYPES + (Service.CARBON_ACTIVITY,)
 ZERO = Decimal("0")
-SHARED_FIELDS = ("au_aas", "au_df", "cu_aas", "cu_df", "ag_aas", "ag_df", "sulphur")
+
+ALL_UNITS = ("kg", "g", "mL", "L")
+SOLID_UNITS = ("kg", "g")
+LIQUID_UNITS = ("L", "mL")
+SOLID_KEYWORDS = ("lime", "cao", "ore", "solid", "sample", "mass", "weight")
+LIQUID_KEYWORDS = (
+    "cyanide",
+    "nacn",
+    "solution",
+    "liquor",
+    "water",
+    "volume",
+    "reagent",
+)
 
 
 def _quantize(value, places="0.0001"):
@@ -291,7 +304,7 @@ class BaseEntry(models.Model):
 
 class MineralAnalysisEntry(BaseEntry):
     INCOMPLETE_MESSAGE = (
-        "All required replicate fields must be completed before submitting to QC."
+        "The first replicate row must be completed before submitting to QC."
     )
 
     sample = models.ForeignKey(
@@ -377,18 +390,18 @@ class MineralAnalysisEntry(BaseEntry):
             ):
                 return False
             if elements["gold"] and (
-                replicate.value("au_aas") is None or replicate.value("au_df") is None
+                replicate.au_aas is None or replicate.au_df is None
             ):
                 return False
             if elements["copper"] and (
-                replicate.value("cu_aas") is None or replicate.value("cu_df") is None
+                replicate.cu_aas is None or replicate.cu_df is None
             ):
                 return False
             if elements["silver"] and (
-                replicate.value("ag_aas") is None or replicate.value("ag_df") is None
+                replicate.ag_aas is None or replicate.ag_df is None
             ):
                 return False
-            if elements["sulphur"] and replicate.value("sulphur") is None:
+            if elements["sulphur"] and replicate.sulphur is None:
                 return False
 
         return True
@@ -396,8 +409,6 @@ class MineralAnalysisEntry(BaseEntry):
 
 class MineralAnalysisReplicate(models.Model):
     RESULT_FIELDS = ("gold_ppm", "copper_ppm", "silver_ppm")
-
-    shared_source = None
 
     entry = models.ForeignKey(
         MineralAnalysisEntry, on_delete=models.CASCADE, related_name="replicates"
@@ -450,24 +461,6 @@ class MineralAnalysisReplicate(models.Model):
             return str(self.replicate_number)
         return worksheet_label(self.worksheet_row, self.replicate_number)
 
-    def _first(self):
-        if self.shared_source is not None:
-            return self.shared_source
-        if not hasattr(self, "_first_cache"):
-            first = self.entry.replicates.order_by("replicate_number").first()
-            self._first_cache = (
-                first if first is not None and first.pk != self.pk else None
-            )
-        return self._first_cache
-
-    def value(self, field):
-        current = getattr(self, field)
-        if current is None and field in SHARED_FIELDS:
-            first = self._first()
-            if first is not None:
-                return getattr(first, field)
-        return current
-
     def calculate(self):
         self.gold_ppm = None
         self.copper_ppm = None
@@ -485,42 +478,37 @@ class MineralAnalysisReplicate(models.Model):
         weight = self.weight
         if weight is None or weight <= 0:
             return
-        au_aas, au_df = self.value("au_aas"), self.value("au_df")
-        cu_aas, cu_df = self.value("cu_aas"), self.value("cu_df")
-        ag_aas, ag_df = self.value("ag_aas"), self.value("ag_df")
-        if au_aas is not None and au_df is not None:
+        if self.au_aas is not None and self.au_df is not None:
             self.gold_ppm = _quantize(
                 ((Decimal("250") - (Decimal("0.35") * weight)) / weight)
-                * au_aas
-                * au_df
+                * self.au_aas
+                * self.au_df
                 * Decimal("0.08")
             )
-        if cu_aas is not None and cu_df is not None:
-            self.copper_ppm = _quantize((Decimal("250") / weight) * cu_aas * cu_df)
-        if ag_aas is not None and ag_df is not None:
-            self.silver_ppm = _quantize((Decimal("250") / weight) * ag_aas * ag_df)
+        if self.cu_aas is not None and self.cu_df is not None:
+            self.copper_ppm = _quantize(
+                (Decimal("250") / weight) * self.cu_aas * self.cu_df
+            )
+        if self.ag_aas is not None and self.ag_df is not None:
+            self.silver_ppm = _quantize(
+                (Decimal("250") / weight) * self.ag_aas * self.ag_df
+            )
 
     def _calculate_carbon(self):
-        au_aas, au_df = self.value("au_aas"), self.value("au_df")
-        cu_aas, cu_df = self.value("cu_aas"), self.value("cu_df")
-        ag_aas, ag_df = self.value("ag_aas"), self.value("ag_df")
-        if au_aas is not None and au_df is not None:
-            self.gold_ppm = _quantize(Decimal("50") * au_aas * au_df)
-        if cu_aas is not None and cu_df is not None:
-            self.copper_ppm = _quantize(Decimal("50") * cu_aas * cu_df)
-        if ag_aas is not None and ag_df is not None:
-            self.silver_ppm = _quantize(Decimal("50") * ag_aas * ag_df)
+        if self.au_aas is not None and self.au_df is not None:
+            self.gold_ppm = _quantize(Decimal("50") * self.au_aas * self.au_df)
+        if self.cu_aas is not None and self.cu_df is not None:
+            self.copper_ppm = _quantize(Decimal("50") * self.cu_aas * self.cu_df)
+        if self.ag_aas is not None and self.ag_df is not None:
+            self.silver_ppm = _quantize(Decimal("50") * self.ag_aas * self.ag_df)
 
     def _calculate_process_solution(self):
-        au_aas, au_df = self.value("au_aas"), self.value("au_df")
-        cu_aas, cu_df = self.value("cu_aas"), self.value("cu_df")
-        ag_aas, ag_df = self.value("ag_aas"), self.value("ag_df")
-        if au_aas is not None and au_df is not None:
-            self.gold_ppm = _quantize(au_aas * au_df)
-        if cu_aas is not None and cu_df is not None:
-            self.copper_ppm = _quantize(cu_aas * cu_df)
-        if ag_aas is not None and ag_df is not None:
-            self.silver_ppm = _quantize(ag_aas * ag_df)
+        if self.au_aas is not None and self.au_df is not None:
+            self.gold_ppm = _quantize(self.au_aas * self.au_df)
+        if self.cu_aas is not None and self.cu_df is not None:
+            self.copper_ppm = _quantize(self.cu_aas * self.cu_df)
+        if self.ag_aas is not None and self.ag_df is not None:
+            self.silver_ppm = _quantize(self.ag_aas * self.ag_df)
 
     def save(self, *args, **kwargs):
         self.calculate()
@@ -806,6 +794,15 @@ class MetallurgicalTestRow(models.Model):
         if row is None:
             return None
         return row.display_number or row.row_number
+
+    @property
+    def allowed_units(self):
+        label = (self.source_parameter.display_label or "").lower()
+        if any(keyword in label for keyword in SOLID_KEYWORDS):
+            return SOLID_UNITS
+        if any(keyword in label for keyword in LIQUID_KEYWORDS):
+            return LIQUID_UNITS
+        return ALL_UNITS
 
     @property
     def has_data(self):

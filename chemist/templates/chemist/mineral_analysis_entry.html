@@ -42,7 +42,7 @@
   <div class="entry-header-main">
     <span class="entry-id-badge"><i class='bx bx-flask' aria-hidden="true"></i> {{ lab_id }}</span>
     <h2>Mineral Analysis Data Entry</h2>
-    <p>{{ replicates|length }} replicate row{{ replicates|length|pluralize }} generated automatically. Au, Cu, Ag and S are required in the first row only; they are optional in the other rows.</p>
+    <p>{{ replicates|length }} replicate row{{ replicates|length|pluralize }} generated automatically. Fill the first row only; on Save or Submit, empty rows below are filled with the first row's values.</p>
   </div>
   <div class="entry-header-status">
     {% if sample.analysis_status == "REASSAY_SUBMITTED" %}
@@ -91,7 +91,7 @@
             <td class="entry-sn">{{ replicate.serial_number }}</td>
             <td class="entry-lab-id">{{ replicate.label }}</td>
             {% if entry.show_weight_column %}
-            <td><input type="number" step="any" min="0.0001" name="rep{{ replicate.replicate_number }}_weight" aria-label="Weight, {{ replicate.label }}" value="{{ replicate.weight|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0.0001" {% if not forloop.first %}placeholder="Optional"{% endif %} name="rep{{ replicate.replicate_number }}_weight" aria-label="Weight, {{ replicate.label }}" value="{{ replicate.weight|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
             {% endif %}
             {% if elements.gold %}
             <td><input type="number" step="any" min="0" {% if not forloop.first %}placeholder="Optional"{% endif %} name="rep{{ replicate.replicate_number }}_au_aas" aria-label="Au AAS, {{ replicate.label }}" value="{{ replicate.au_aas|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>

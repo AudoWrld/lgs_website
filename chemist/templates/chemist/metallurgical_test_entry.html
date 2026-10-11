@@ -79,21 +79,20 @@
           {% for row in rows %}
           <tr>
             <td class="entry-param-label">{{ row.source_parameter.display_label }}</td>
-            <td><input type="number" step="any" min="0.0001" name="row{{ row.id }}_weight_volume" aria-label="Weight / Volume, {{ row.source_parameter.display_label }}" value="{{ row.weight_volume|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0.0001" {% if not forloop.first %}placeholder="Optional"{% endif %} name="row{{ row.id }}_weight_volume" aria-label="Weight / Volume, {{ row.source_parameter.display_label }}" value="{{ row.weight_volume|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
             <td>
               <select name="row{{ row.id }}_si_unit" aria-label="SI unit, {{ row.source_parameter.display_label }}" {% if read_only %}disabled{% endif %}>
-                <option value="">—</option>
-                <option value="kg" {% if row.si_unit == "kg" %}selected{% endif %}>kg</option>
-                <option value="g" {% if row.si_unit == "g" %}selected{% endif %}>g</option>
-                <option value="mL" {% if row.si_unit == "mL" %}selected{% endif %}>mL</option>
-                <option value="L" {% if row.si_unit == "L" %}selected{% endif %}>L</option>
+                <option value="">{% if forloop.first %}—{% else %}Optional{% endif %}</option>
+                {% for unit in row.allowed_units %}
+                <option value="{{ unit }}" {% if row.si_unit == unit %}selected{% endif %}>{{ unit }}</option>
+                {% endfor %}
               </select>
             </td>
-            <td><input type="number" step="any" min="0" max="100" name="row{{ row.id }}_recovery_12h" aria-label="Gold recovery 12h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_12h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
-            <td><input type="number" step="any" min="0" max="100" name="row{{ row.id }}_recovery_24h" aria-label="Gold recovery 24h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_24h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
-            <td><input type="number" step="any" min="0" max="100" name="row{{ row.id }}_recovery_48h" aria-label="Gold recovery 48h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_48h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
-            <td><input type="number" step="any" min="0" max="100" name="row{{ row.id }}_recovery_72h" aria-label="Gold recovery 72h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_72h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
-            <td><input type="text" name="row{{ row.id }}_remarks" aria-label="Remarks, {{ row.source_parameter.display_label }}" value="{{ row.remarks }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" max="100" {% if not forloop.first %}placeholder="Optional"{% endif %} name="row{{ row.id }}_recovery_12h" aria-label="Gold recovery 12h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_12h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" max="100" {% if not forloop.first %}placeholder="Optional"{% endif %} name="row{{ row.id }}_recovery_24h" aria-label="Gold recovery 24h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_24h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" max="100" {% if not forloop.first %}placeholder="Optional"{% endif %} name="row{{ row.id }}_recovery_48h" aria-label="Gold recovery 48h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_48h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" max="100" {% if not forloop.first %}placeholder="Optional"{% endif %} name="row{{ row.id }}_recovery_72h" aria-label="Gold recovery 72h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_72h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="text" {% if not forloop.first %}placeholder="Optional"{% endif %} name="row{{ row.id }}_remarks" aria-label="Remarks, {{ row.source_parameter.display_label }}" value="{{ row.remarks }}" {% if read_only %}disabled{% endif %}></td>
           </tr>
           {% endfor %}
         </tbody>
