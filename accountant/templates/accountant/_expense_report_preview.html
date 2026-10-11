@@ -1,0 +1,63 @@
+{% load l10n %}
+<div class="rp">
+  <div class="rp-stats">
+    <div class="rp-stat">
+      <span class="rp-label">Period</span>
+      <strong>{{ start|date:"d M Y" }} – {{ end|date:"d M Y" }}</strong>
+    </div>
+    <div class="rp-stat">
+      <span class="rp-label">Records</span>
+      <strong>{{ data.count }}</strong>
+    </div>
+    <div class="rp-stat">
+      <span class="rp-label">Total Expenditure</span>
+      <strong>TZS {{ data.total|floatformat:"2g" }}</strong>
+    </div>
+  </div>
+
+  {% if data.count %}
+  <h3 class="rp-heading">By category</h3>
+  <ul class="rp-cats">
+    {% for c in data.categories %}
+    <li>
+      <div class="rp-cat-row">
+        <span>{{ c.label }}</span>
+        <span>TZS {{ c.amount|floatformat:"2g" }} <em>({{ c.percent }}%)</em></span>
+      </div>
+      <div class="rp-bar"><span style="width: {{ c.percent|unlocalize }}%"></span></div>
+    </li>
+    {% endfor %}
+  </ul>
+
+  <h3 class="rp-heading">Payments</h3>
+  <ul class="rp-methods">
+    {% for m in data.methods %}
+    <li><span>{{ m.label }}</span><strong>{{ m.amount|floatformat:"2g" }}</strong></li>
+    {% endfor %}
+  </ul>
+
+  <h3 class="rp-heading">Latest records</h3>
+  <div class="rp-table-wrap">
+    <table class="rp-table">
+      <thead>
+        <tr><th>Date</th><th>Description</th><th>Category</th><th class="rp-num">Amount</th></tr>
+      </thead>
+      <tbody>
+        {% for row in preview_rows %}
+        <tr>
+          <td>{{ row.date|date:"d/m/y" }}</td>
+          <td class="rp-desc">{{ row.description }}</td>
+          <td>{{ row.category }}</td>
+          <td class="rp-num">{{ row.amount|floatformat:"2g" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="rp-note">
+    {% if remaining %}Showing {{ preview_rows|length }} of {{ data.count }} records. {% endif %}The PDF includes every record in this period.
+  </p>
+  {% else %}
+  <p class="rp-empty">No submitted expenses were found for this period.</p>
+  {% endif %}
+</div>

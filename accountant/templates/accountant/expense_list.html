@@ -5,6 +5,7 @@
 {% block page_title %}Expenses{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" />
 <link rel="stylesheet" href="{% static 'accountant/css/expenses.css' %}" />
 {% endblock %}
 
@@ -18,6 +19,17 @@
     <span class="ex-stat-label">Expense Records</span>
     <span class="ex-stat-value">{{ total_count }}</span>
   </div>
+  <button type="button" class="ex-stat ex-stat-export" data-report-open aria-haspopup="dialog">
+    <svg class="ex-pdf-icon" viewBox="0 0 44 44" aria-hidden="true">
+      <path d="M10 2h18l10 10v28a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" fill="#d32f2f"></path>
+      <path d="M28 2v8a2 2 0 0 0 2 2h8z" fill="#ef9a9a"></path>
+      <text x="23" y="33" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" fill="#ffffff">PDF</text>
+    </svg>
+    <span class="ex-stat-export-text">
+      <span class="ex-stat-label">Expense Report</span>
+      <span class="ex-stat-value">Export PDF</span>
+    </span>
+  </button>
 </div>
 
 {% if my_drafts %}
@@ -112,4 +124,45 @@
   <p class="ex-empty">No expenses found.</p>
   {% endif %}
 </section>
+
+<dialog
+  id="ex-report-modal"
+  class="ex-modal"
+  aria-labelledby="ex-report-title"
+  data-preview-url="{% url 'accountant:expense_report_preview' %}"
+  data-pdf-url="{% url 'accountant:expense_report_pdf' %}"
+>
+  <div class="ex-modal-head">
+    <h2 id="ex-report-title">Export Expense Report</h2>
+    <button type="button" class="ex-modal-x" data-report-close aria-label="Close">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    </button>
+  </div>
+
+  <div class="ex-modal-dates">
+    <div class="ex-group">
+      <label for="ex-report-from">From</label>
+      <input type="text" id="ex-report-from" placeholder="Select start date" autocomplete="off" readonly />
+    </div>
+    <div class="ex-group">
+      <label for="ex-report-to">To</label>
+      <input type="text" id="ex-report-to" placeholder="Select end date" autocomplete="off" readonly />
+    </div>
+  </div>
+
+  <div class="ex-preview" id="ex-report-preview" aria-live="polite">
+    <p class="rp-note">Choose a date range to see a preview.</p>
+  </div>
+
+  <div class="ex-modal-foot">
+    <button type="button" class="btn btn-outline" data-report-close>Cancel</button>
+    <a id="ex-report-pdf" class="btn btn-primary" target="_blank" rel="noopener" aria-disabled="true">
+      <svg class="ex-btn-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+      Print PDF
+    </a>
+  </div>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+<script src="{% static 'accountant/js/expense_report.js' %}"></script>
 {% endblock %}

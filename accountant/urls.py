@@ -2,6 +2,7 @@ from django.urls import path
 from django.views.generic import RedirectView
 
 from . import views
+from . import expense_report
 
 app_name = "accountant"
 
@@ -46,4 +47,14 @@ urlpatterns = [
         name="release_authorize",
     ),
     path("reports/", views.reports, name="reports"),
+    path(
+        "expenses/report/preview/",
+        expense_report.expense_report_preview,
+        name="expense_report_preview",
+    ),
+    path(
+        "expenses/report/pdf/",
+        expense_report.expense_report_pdf,
+        name="expense_report_pdf",
+    ),
 ]
