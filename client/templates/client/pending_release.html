@@ -1,37 +1,44 @@
 {% extends 'client/base_client.html' %}
+{% load static %}
 
 {% block title %}Pending Release — LGS Client Portal{% endblock %}
 {% block page_title %}Pending Release{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'client/css/dashboard.css' %}" />
+<link rel="stylesheet" href="{% static 'client/css/lists.css' %}" />
+{% endblock %}
+
 {% block content %}
-<div class="card">
+{% include 'client/_icons.html' %}
+
+<section class="dash-panel" aria-labelledby="list-heading">
+  <div class="dash-panel-head">
+    <h3 id="list-heading"><svg class="dash-icon" aria-hidden="true"><use href="#i-clock"></use></svg> Awaiting Payment</h3>
+    <span>{{ page_obj.paginator.count }} total</span>
+  </div>
+
   {% if items %}
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>COA Number</th>
-          <th>Reference</th>
-          <th>Issued</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for coa in items %}
-        <tr>
-          <td><strong>{{ coa.coa_number }}</strong></td>
-          <td>{{ coa.submission.reference }}</td>
-          <td>{{ coa.created_at|date:"d M Y, H:i" }}</td>
-          <td>Payment required to release</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+  <ul class="list">
+    {% for coa in items %}
+    <li class="list-item list-item--warning">
+      <div class="list-main">
+        <h4 class="list-title">{{ coa.coa_number }}</h4>
+        <div class="list-meta">
+          <span><svg class="dash-icon" aria-hidden="true"><use href="#i-flask"></use></svg>{{ coa.submission.reference }}</span>
+          <span><svg class="dash-icon" aria-hidden="true"><use href="#i-clock"></use></svg>Issued {{ coa.created_at|date:"d M Y, H:i" }}</span>
+        </div>
+      </div>
+      <div class="list-side">
+        <span class="dash-badge dash-badge-warning">Payment required to release</span>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
   {% else %}
-  <div class="empty-state">
-    <p>You have no certificates awaiting payment.</p>
-  </div>
+  <p class="dash-empty">You have no certificates awaiting payment.</p>
   {% endif %}
-</div>
+</section>
+
+{% include 'client/_pagination.html' %}
 {% endblock %}

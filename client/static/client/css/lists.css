@@ -1,0 +1,311 @@
+.list,
+.sub-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+  border-left: 3px solid transparent;
+  transition: background-color 0.15s ease;
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.list-item:hover {
+  background: #faf8f3;
+  border-left-color: var(--orange);
+}
+
+.list-item--warning {
+  border-left-color: var(--orange);
+}
+
+.list-main {
+  min-width: 0;
+}
+
+.list-title {
+  margin: 0 0 0.3rem;
+  color: var(--navy);
+  font-family: var(--font-head);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.list-meta,
+.sub-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  color: #6b7680;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.list-meta span,
+.sub-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.list-meta .dash-icon,
+.sub-meta .dash-icon {
+  color: var(--orange);
+  font-size: 0.95rem;
+}
+
+.list-side {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.list-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 36px;
+  padding: 0 0.95rem;
+  border: 1px solid var(--navy);
+  background: var(--navy);
+  color: var(--white);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.list-btn .dash-icon {
+  font-size: 1rem;
+}
+
+.list-btn:hover,
+.list-btn:focus {
+  background: #1a5a82;
+  border-color: #1a5a82;
+  color: var(--white);
+  text-decoration: none;
+}
+
+.list-btn:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
+.sub-item {
+  padding: 1.15rem 1.25rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+  border-left: 3px solid transparent;
+  transition: background-color 0.15s ease;
+}
+
+.sub-item:last-child {
+  border-bottom: none;
+}
+
+.sub-item:hover {
+  background: #faf8f3;
+  border-left-color: var(--orange);
+}
+
+.sub-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.9rem;
+}
+
+.sub-ref {
+  margin: 0 0 0.3rem;
+  color: var(--navy);
+  font-family: var(--font-head);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.sub-track {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.sub-step {
+  min-width: 0;
+}
+
+.sub-step-bar {
+  display: block;
+  height: 6px;
+  background: #e4dfd3;
+}
+
+.sub-step-name {
+  display: block;
+  margin-top: 0.4rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #9aa3a9;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.sub-step.done .sub-step-bar {
+  background: #1e6b3a;
+}
+
+.sub-step.done .sub-step-name {
+  color: #1e6b3a;
+}
+
+.sub-step.current .sub-step-bar {
+  background: var(--orange);
+}
+
+.sub-step.current .sub-step-name {
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.sub-track.is-complete .sub-step.current .sub-step-bar {
+  background: #1e6b3a;
+}
+
+.sub-track.is-complete .sub-step.current .sub-step-name {
+  color: #1e6b3a;
+}
+
+.sub-note {
+  margin: 0.85rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--orange);
+  background: #fffaf1;
+  color: #7a5a1a;
+  font-size: 0.8125rem;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 0.75rem 1.25rem;
+  border: 1px solid var(--line);
+  background: var(--off-white);
+}
+
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-width: 5.5rem;
+  height: 38px;
+  padding: 0 0.9rem;
+  border: 1px solid var(--navy);
+  background: var(--white);
+  color: var(--navy);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.pagination-btn:hover {
+  background: rgba(18, 62, 91, 0.06);
+  box-shadow: inset 0 -2px 0 var(--orange);
+  text-decoration: none;
+}
+
+.pagination-btn:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
+.pagination-btn svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pagination-spacer {
+  min-width: 5.5rem;
+}
+
+.pagination-info {
+  flex: 1;
+  color: #6b7680;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 600px) {
+  .sub-item {
+    padding: 1rem;
+  }
+
+  .sub-step-name {
+    font-size: 0.6rem;
+  }
+
+  .list-item {
+    padding: 1rem;
+  }
+
+  .list-side {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 480px) {
+  .pagination {
+    padding: 0.65rem 0.75rem;
+  }
+
+  .pagination-btn,
+  .pagination-spacer {
+    min-width: 4.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .list-item,
+  .sub-item,
+  .list-btn {
+    transition: none;
+  }
+}
+
+@media print {
+  .pagination {
+    display: none;
+  }
+}

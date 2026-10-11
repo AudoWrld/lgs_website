@@ -1,43 +1,47 @@
 {% extends 'client/base_client.html' %}
+{% load static %}
 
 {% block title %}Ready for Release — LGS Client Portal{% endblock %}
 {% block page_title %}Ready for Release{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'client/css/dashboard.css' %}" />
+<link rel="stylesheet" href="{% static 'client/css/lists.css' %}" />
+{% endblock %}
+
 {% block content %}
-<div class="card">
+{% include 'client/_icons.html' %}
+
+<section class="dash-panel" aria-labelledby="list-heading">
+  <div class="dash-panel-head">
+    <h3 id="list-heading"><svg class="dash-icon" aria-hidden="true"><use href="#i-check"></use></svg> Certificates Ready</h3>
+    <span>{{ page_obj.paginator.count }} total</span>
+  </div>
+
   {% if items %}
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>COA Number</th>
-          <th>Reference</th>
-          <th>Status</th>
-          <th>Issued</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for coa in items %}
-        <tr>
-          <td><strong>{{ coa.coa_number }}</strong></td>
-          <td>{{ coa.submission.reference }}</td>
-          <td>{{ coa.get_status_display }}</td>
-          <td>{{ coa.created_at|date:"d M Y, H:i" }}</td>
-          <td>
-            <a href="{% url 'client:coa_detail' coa.id %}" class="btn btn-primary btn-sm">
-              <i class='bx bx-show' aria-hidden="true"></i> View Certificate
-            </a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+  <ul class="list">
+    {% for coa in items %}
+    <li class="list-item">
+      <div class="list-main">
+        <h4 class="list-title">{{ coa.coa_number }}</h4>
+        <div class="list-meta">
+          <span><svg class="dash-icon" aria-hidden="true"><use href="#i-flask"></use></svg>{{ coa.submission.reference }}</span>
+          <span><svg class="dash-icon" aria-hidden="true"><use href="#i-clock"></use></svg>Issued {{ coa.created_at|date:"d M Y, H:i" }}</span>
+        </div>
+      </div>
+      <div class="list-side">
+        <span class="dash-badge dash-badge-success">{{ coa.get_status_display }}</span>
+        <a href="{% url 'client:coa_detail' coa.id %}" class="list-btn">
+          <svg class="dash-icon" aria-hidden="true"><use href="#i-eye"></use></svg> View Certificate
+        </a>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
   {% else %}
-  <div class="empty-state">
-    <p>No certificates are ready for release yet.</p>
-  </div>
+  <p class="dash-empty">No certificates are ready for release yet.</p>
   {% endif %}
-</div>
+</section>
+
+{% include 'client/_pagination.html' %}
 {% endblock %}

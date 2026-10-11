@@ -1,0 +1,19 @@
+{% if page_obj.has_other_pages %}
+<nav class="pagination" aria-label="Pagination">
+  {% if page_obj.has_previous %}
+  <a class="pagination-btn" href="?page={{ page_obj.previous_page_number }}" rel="prev">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg> Previous
+  </a>
+  {% else %}
+  <span class="pagination-spacer"></span>
+  {% endif %}
+  <span class="pagination-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}
+  <a class="pagination-btn" href="?page={{ page_obj.next_page_number }}" rel="next">
+    Next <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+  </a>
+  {% else %}
+  <span class="pagination-spacer"></span>
+  {% endif %}
+</nav>
+{% endif %}

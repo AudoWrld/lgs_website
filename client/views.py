@@ -17,7 +17,7 @@ from submissions.models import Submission
 
 STAGES = ["Received", "In Analysis", "Quality Review", "Certificate", "Released"]
 VISIBLE_STATUSES = [COA.READY_FOR_RELEASE, COA.RELEASED]
-SUBMISSIONS_PER_PAGE = 10
+PER_PAGE = 10
 
 
 def customer_required(view):
@@ -29,6 +29,10 @@ def customer_required(view):
         return view(request, *args, **kwargs)
 
     return wrapper
+
+
+def _paginate(request, rows):
+    return Paginator(rows, PER_PAGE).get_page(request.GET.get("page"))
 
 
 def _client_for(user):
@@ -186,9 +190,7 @@ def customer_dashboard(request):
 
 @customer_required
 def my_submissions(request):
-    items = _submission_items(_client_for(request.user))
-    paginator = Paginator(items, SUBMISSIONS_PER_PAGE)
-    page_obj = paginator.get_page(request.GET.get("page"))
+    page_obj = _paginate(request, _submission_items(_client_for(request.user)))
     return render(
         request,
         "client/my_submissions.html",
@@ -203,7 +205,12 @@ def ready_for_release(request):
         .filter(status__in=VISIBLE_STATUSES)
         .order_by("-created_at")
     )
-    return render(request, "client/ready_for_release.html", {"items": coas})
+    page_obj = _paginate(request, coas)
+    return render(
+        request,
+        "client/ready_for_release.html",
+        {"items": page_obj, "page_obj": page_obj},
+    )
 
 
 @customer_required
@@ -213,7 +220,12 @@ def pending_release(request):
         .filter(status=COA.PAYMENT_PENDING)
         .order_by("-created_at")
     )
-    return render(request, "client/pending_release.html", {"items": coas})
+    page_obj = _paginate(request, coas)
+    return render(
+        request,
+        "client/pending_release.html",
+        {"items": page_obj, "page_obj": page_obj},
+    )
 
 
 @customer_required
