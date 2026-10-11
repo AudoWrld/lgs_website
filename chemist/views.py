@@ -45,8 +45,6 @@ MINERAL_FIELDS = (
     ("sulphur", "S"),
 )
 
-SHARED_FIELDS = ("cu_aas", "cu_df", "ag_aas", "ag_df", "sulphur")
-
 METALLURGICAL_FIELDS = (
     ("weight_volume", "weight_volume", "Weight / Volume"),
     ("gold_recovery_12h", "recovery_12h", "Gold recovery at 12 hours"),
@@ -204,17 +202,12 @@ def _metallurgical_worksheet_rows(sample):
     )
 
 
-def _share_first_values(replicates):
-    if len(replicates) < 2:
+def _link_first_values(replicates):
+    if not replicates:
         return
     first = replicates[0]
-    for field in SHARED_FIELDS:
-        value = getattr(first, field)
-        if value is None:
-            continue
-        for replicate in replicates[1:]:
-            if getattr(replicate, field) is None:
-                setattr(replicate, field, value)
+    for replicate in replicates[1:]:
+        replicate.shared_source = first
 
 
 def _other_service_target(sample):
@@ -474,7 +467,7 @@ def mineral_analysis_entry(request, slug):
                     reader.decimal(f"{prefix}_{field}", f"Replicate {number} {label}"),
                 )
 
-        _share_first_values(replicates)
+        _link_first_values(replicates)
 
         for replicate in replicates:
             _check(reader, replicate, f"Replicate {replicate.replicate_number}")
@@ -522,7 +515,7 @@ def mineral_analysis_preview(request, slug):
         for field, label in MINERAL_FIELDS:
             setattr(replicate, field, reader.decimal(f"{prefix}_{field}", label))
 
-    _share_first_values(replicates)
+    _link_first_values(replicates)
 
     results = {}
     for replicate in replicates:

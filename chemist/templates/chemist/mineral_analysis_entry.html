@@ -42,7 +42,7 @@
   <div class="entry-header-main">
     <span class="entry-id-badge"><i class='bx bx-flask' aria-hidden="true"></i> {{ lab_id }}</span>
     <h2>Mineral Analysis Data Entry</h2>
-    <p>{{ replicates|length }} replicate row{{ replicates|length|pluralize }} generated automatically. Cu, Ag and S need only be filled in the first row; the other rows take the first row's value.</p>
+    <p>{{ replicates|length }} replicate row{{ replicates|length|pluralize }} generated automatically. Au, Cu, Ag and S are required in the first row only; they are optional in the other rows.</p>
   </div>
   <div class="entry-header-status">
     {% if sample.analysis_status == "REASSAY_SUBMITTED" %}
@@ -94,22 +94,22 @@
             <td><input type="number" step="any" min="0.0001" name="rep{{ replicate.replicate_number }}_weight" aria-label="Weight, {{ replicate.label }}" value="{{ replicate.weight|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
             {% endif %}
             {% if elements.gold %}
-            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_au_aas" aria-label="Au AAS, {{ replicate.label }}" value="{{ replicate.au_aas|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
-            <td><input type="number" step="any" min="0" name="rep{{ replicate.replicate_number }}_au_df" aria-label="Au DF, {{ replicate.label }}" value="{{ replicate.au_df|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" {% if not forloop.first %}placeholder="Optional"{% endif %} name="rep{{ replicate.replicate_number }}_au_aas" aria-label="Au AAS, {{ replicate.label }}" value="{{ replicate.au_aas|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" {% if not forloop.first %}placeholder="Optional"{% endif %} name="rep{{ replicate.replicate_number }}_au_df" aria-label="Au DF, {{ replicate.label }}" value="{{ replicate.au_df|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
             <td class="entry-col-result" data-result="gold" data-rep="{{ replicate.replicate_number }}">{% if replicate.gold_ppm is not None %}{{ replicate.gold_ppm|floatformat:4 }}{% else %}—{% endif %}</td>
             {% endif %}
             {% if elements.copper %}
-            <td><input type="number" step="any" min="0" data-shared="cu_aas" {% if not forloop.first %}placeholder="Same as first"{% endif %} name="rep{{ replicate.replicate_number }}_cu_aas" aria-label="Cu AAS, {{ replicate.label }}" value="{{ replicate.cu_aas|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
-            <td><input type="number" step="any" min="0" data-shared="cu_df" {% if not forloop.first %}placeholder="Same as first"{% endif %} name="rep{{ replicate.replicate_number }}_cu_df" aria-label="Cu DF, {{ replicate.label }}" value="{{ replicate.cu_df|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" {% if not forloop.first %}placeholder="Optional"{% endif %} name="rep{{ replicate.replicate_number }}_cu_aas" aria-label="Cu AAS, {{ replicate.label }}" value="{{ replicate.cu_aas|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" {% if not forloop.first %}placeholder="Optional"{% endif %} name="rep{{ replicate.replicate_number }}_cu_df" aria-label="Cu DF, {{ replicate.label }}" value="{{ replicate.cu_df|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
             <td class="entry-col-result" data-result="copper" data-rep="{{ replicate.replicate_number }}">{% if replicate.copper_ppm is not None %}{{ replicate.copper_ppm|floatformat:4 }}{% else %}—{% endif %}</td>
             {% endif %}
             {% if elements.silver %}
-            <td><input type="number" step="any" min="0" data-shared="ag_aas" {% if not forloop.first %}placeholder="Same as first"{% endif %} name="rep{{ replicate.replicate_number }}_ag_aas" aria-label="Ag AAS, {{ replicate.label }}" value="{{ replicate.ag_aas|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
-            <td><input type="number" step="any" min="0" data-shared="ag_df" {% if not forloop.first %}placeholder="Same as first"{% endif %} name="rep{{ replicate.replicate_number }}_ag_df" aria-label="Ag DF, {{ replicate.label }}" value="{{ replicate.ag_df|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" {% if not forloop.first %}placeholder="Optional"{% endif %} name="rep{{ replicate.replicate_number }}_ag_aas" aria-label="Ag AAS, {{ replicate.label }}" value="{{ replicate.ag_aas|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" {% if not forloop.first %}placeholder="Optional"{% endif %} name="rep{{ replicate.replicate_number }}_ag_df" aria-label="Ag DF, {{ replicate.label }}" value="{{ replicate.ag_df|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
             <td class="entry-col-result" data-result="silver" data-rep="{{ replicate.replicate_number }}">{% if replicate.silver_ppm is not None %}{{ replicate.silver_ppm|floatformat:4 }}{% else %}—{% endif %}</td>
             {% endif %}
             {% if elements.sulphur %}
-            <td><input type="number" step="any" min="0" data-shared="sulphur" {% if not forloop.first %}placeholder="Same as first"{% endif %} name="rep{{ replicate.replicate_number }}_sulphur" aria-label="Sulphur, {{ replicate.label }}" value="{{ replicate.sulphur|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" {% if not forloop.first %}placeholder="Optional"{% endif %} name="rep{{ replicate.replicate_number }}_sulphur" aria-label="Sulphur, {{ replicate.label }}" value="{{ replicate.sulphur|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
             {% endif %}
           </tr>
           {% endfor %}
@@ -148,27 +148,6 @@
           event.preventDefault();
           window.history.back();
         }
-      });
-    });
-  })();
-</script>
-<script>
-  (function () {
-    var form = document.querySelector("form[data-preview-url]");
-    if (!form) return;
-
-    ["cu_aas", "cu_df", "ag_aas", "ag_df", "sulphur"].forEach(function (field) {
-      var inputs = form.querySelectorAll('input[data-shared="' + field + '"]');
-      if (inputs.length < 2) return;
-      var first = inputs[0];
-      var previous = first.value;
-      first.addEventListener("input", function () {
-        for (var i = 1; i < inputs.length; i++) {
-          if (inputs[i].value === "" || inputs[i].value === previous) {
-            inputs[i].value = first.value;
-          }
-        }
-        previous = first.value;
       });
     });
   })();

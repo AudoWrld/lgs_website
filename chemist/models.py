@@ -13,6 +13,7 @@ from worksheet.models import Worksheet, WorksheetRow
 CYANIDE_TYPES = (Service.CYANIDE_CONVENTIONAL, Service.CYANIDE_OPTIMIZATION)
 METALLURGICAL_TYPES = CYANIDE_TYPES + (Service.CARBON_ACTIVITY,)
 ZERO = Decimal("0")
+SHARED_FIELDS = ("au_aas", "au_df", "cu_aas", "cu_df", "ag_aas", "ag_df", "sulphur")
 
 
 def _quantize(value, places="0.0001"):
@@ -376,18 +377,18 @@ class MineralAnalysisEntry(BaseEntry):
             ):
                 return False
             if elements["gold"] and (
-                replicate.au_aas is None or replicate.au_df is None
+                replicate.value("au_aas") is None or replicate.value("au_df") is None
             ):
                 return False
             if elements["copper"] and (
-                replicate.cu_aas is None or replicate.cu_df is None
+                replicate.value("cu_aas") is None or replicate.value("cu_df") is None
             ):
                 return False
             if elements["silver"] and (
-                replicate.ag_aas is None or replicate.ag_df is None
+                replicate.value("ag_aas") is None or replicate.value("ag_df") is None
             ):
                 return False
-            if elements["sulphur"] and replicate.sulphur is None:
+            if elements["sulphur"] and replicate.value("sulphur") is None:
                 return False
 
         return True
@@ -395,6 +396,8 @@ class MineralAnalysisEntry(BaseEntry):
 
 class MineralAnalysisReplicate(models.Model):
     RESULT_FIELDS = ("gold_ppm", "copper_ppm", "silver_ppm")
+
+    shared_source = None
 
     entry = models.ForeignKey(
         MineralAnalysisEntry, on_delete=models.CASCADE, related_name="replicates"
@@ -447,6 +450,24 @@ class MineralAnalysisReplicate(models.Model):
             return str(self.replicate_number)
         return worksheet_label(self.worksheet_row, self.replicate_number)
 
+    def _first(self):
+        if self.shared_source is not None:
+            return self.shared_source
+        if not hasattr(self, "_first_cache"):
+            first = self.entry.replicates.order_by("replicate_number").first()
+            self._first_cache = (
+                first if first is not None and first.pk != self.pk else None
+            )
+        return self._first_cache
+
+    def value(self, field):
+        current = getattr(self, field)
+        if current is None and field in SHARED_FIELDS:
+            first = self._first()
+            if first is not None:
+                return getattr(first, field)
+        return current
+
     def calculate(self):
         self.gold_ppm = None
         self.copper_ppm = None
@@ -464,37 +485,42 @@ class MineralAnalysisReplicate(models.Model):
         weight = self.weight
         if weight is None or weight <= 0:
             return
-        if self.au_aas is not None and self.au_df is not None:
+        au_aas, au_df = self.value("au_aas"), self.value("au_df")
+        cu_aas, cu_df = self.value("cu_aas"), self.value("cu_df")
+        ag_aas, ag_df = self.value("ag_aas"), self.value("ag_df")
+        if au_aas is not None and au_df is not None:
             self.gold_ppm = _quantize(
                 ((Decimal("250") - (Decimal("0.35") * weight)) / weight)
-                * self.au_aas
-                * self.au_df
+                * au_aas
+                * au_df
                 * Decimal("0.08")
             )
-        if self.cu_aas is not None and self.cu_df is not None:
-            self.copper_ppm = _quantize(
-                (Decimal("250") / weight) * self.cu_aas * self.cu_df
-            )
-        if self.ag_aas is not None and self.ag_df is not None:
-            self.silver_ppm = _quantize(
-                (Decimal("250") / weight) * self.ag_aas * self.ag_df
-            )
+        if cu_aas is not None and cu_df is not None:
+            self.copper_ppm = _quantize((Decimal("250") / weight) * cu_aas * cu_df)
+        if ag_aas is not None and ag_df is not None:
+            self.silver_ppm = _quantize((Decimal("250") / weight) * ag_aas * ag_df)
 
     def _calculate_carbon(self):
-        if self.au_aas is not None and self.au_df is not None:
-            self.gold_ppm = _quantize(Decimal("50") * self.au_aas * self.au_df)
-        if self.cu_aas is not None and self.cu_df is not None:
-            self.copper_ppm = _quantize(Decimal("50") * self.cu_aas * self.cu_df)
-        if self.ag_aas is not None and self.ag_df is not None:
-            self.silver_ppm = _quantize(Decimal("50") * self.ag_aas * self.ag_df)
+        au_aas, au_df = self.value("au_aas"), self.value("au_df")
+        cu_aas, cu_df = self.value("cu_aas"), self.value("cu_df")
+        ag_aas, ag_df = self.value("ag_aas"), self.value("ag_df")
+        if au_aas is not None and au_df is not None:
+            self.gold_ppm = _quantize(Decimal("50") * au_aas * au_df)
+        if cu_aas is not None and cu_df is not None:
+            self.copper_ppm = _quantize(Decimal("50") * cu_aas * cu_df)
+        if ag_aas is not None and ag_df is not None:
+            self.silver_ppm = _quantize(Decimal("50") * ag_aas * ag_df)
 
     def _calculate_process_solution(self):
-        if self.au_aas is not None and self.au_df is not None:
-            self.gold_ppm = _quantize(self.au_aas * self.au_df)
-        if self.cu_aas is not None and self.cu_df is not None:
-            self.copper_ppm = _quantize(self.cu_aas * self.cu_df)
-        if self.ag_aas is not None and self.ag_df is not None:
-            self.silver_ppm = _quantize(self.ag_aas * self.ag_df)
+        au_aas, au_df = self.value("au_aas"), self.value("au_df")
+        cu_aas, cu_df = self.value("cu_aas"), self.value("cu_df")
+        ag_aas, ag_df = self.value("ag_aas"), self.value("ag_df")
+        if au_aas is not None and au_df is not None:
+            self.gold_ppm = _quantize(au_aas * au_df)
+        if cu_aas is not None and cu_df is not None:
+            self.copper_ppm = _quantize(cu_aas * cu_df)
+        if ag_aas is not None and ag_df is not None:
+            self.silver_ppm = _quantize(ag_aas * ag_df)
 
     def save(self, *args, **kwargs):
         self.calculate()
