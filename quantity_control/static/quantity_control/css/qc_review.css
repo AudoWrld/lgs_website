@@ -1,6 +1,5 @@
 :root {
-  --qc-data: #0b3c91;
-  --qc-data-strong: #0a3fd1;
+  --qc-result: #0a3fd1;
 }
 
 .qc-header {
@@ -161,16 +160,6 @@
   white-space: nowrap;
 }
 
-form .qc-table tbody td {
-  color: var(--qc-data);
-  font-weight: 600;
-}
-
-form .qc-table tbody td.qc-col-result {
-  color: var(--qc-data-strong);
-  font-weight: 700;
-}
-
 .qc-table input[type="number"],
 .qc-table input[type="text"],
 .qc-table select {
@@ -184,21 +173,6 @@ form .qc-table tbody td.qc-col-result {
   background: var(--white);
 }
 
-form .qc-table input[type="number"],
-form .qc-table input[type="text"],
-form .qc-table select {
-  color: var(--qc-data);
-  font-weight: 600;
-}
-
-form .qc-table input[type="number"]:focus,
-form .qc-table input[type="text"]:focus,
-form .qc-table select:focus {
-  border-color: var(--qc-data-strong);
-  outline: 2px solid rgba(10, 63, 209, 0.25);
-  outline-offset: 0;
-}
-
 .qc-table input[type="text"] {
   min-width: 160px;
 }
@@ -210,17 +184,44 @@ form .qc-table select:focus {
   cursor: not-allowed;
 }
 
-form .qc-table input:disabled,
-form .qc-table select:disabled {
-  color: var(--qc-data);
-  -webkit-text-fill-color: var(--qc-data);
-  opacity: 1;
-}
-
 .qc-table input[type="checkbox"] {
   width: 16px;
   height: 16px;
   accent-color: var(--navy);
+}
+
+.qc-table td.qc-col-result {
+  background: #faf8f3;
+  color: var(--qc-result);
+  font-family: var(--font-head);
+  font-weight: 700;
+  text-align: center;
+}
+
+.qc-table input[name^="qc_"],
+.qc-table input[name$="_recovery_12h"],
+.qc-table input[name$="_recovery_24h"],
+.qc-table input[name$="_recovery_48h"] {
+  color: var(--qc-result);
+  font-weight: 700;
+}
+
+.qc-table input[name^="qc_"]:focus,
+.qc-table input[name$="_recovery_12h"]:focus,
+.qc-table input[name$="_recovery_24h"]:focus,
+.qc-table input[name$="_recovery_48h"]:focus {
+  border-color: var(--qc-result);
+  outline: 2px solid rgba(10, 63, 209, 0.25);
+  outline-offset: 0;
+}
+
+.qc-table input[name^="qc_"]:disabled,
+.qc-table input[name$="_recovery_12h"]:disabled,
+.qc-table input[name$="_recovery_24h"]:disabled,
+.qc-table input[name$="_recovery_48h"]:disabled {
+  color: var(--qc-result);
+  -webkit-text-fill-color: var(--qc-result);
+  opacity: 1;
 }
 
 .qc-recovery-toggles {
@@ -237,14 +238,6 @@ form .qc-table select:disabled {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-}
-
-.qc-table td.qc-col-result {
-  background: #faf8f3;
-  color: var(--navy);
-  font-family: var(--font-head);
-  font-weight: 700;
-  text-align: center;
 }
 
 .qc-final-row td {
