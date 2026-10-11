@@ -1,0 +1,40 @@
+
+{% extends 'client/base_client.html' %}
+
+{% block title %}{{ coa.coa_number }} — LGS Client Portal{% endblock %}
+{% block page_title %}Certificate of Analysis{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <h2>{{ coa.coa_number }}</h2>
+    <p>Reference {{ coa.submission.reference }} · {{ coa.get_status_display }}</p>
+
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin:1rem 0;">
+      <a href="{% url 'client:ready_for_release' %}" class="btn btn-outline btn-sm">
+        <i class='bx bx-arrow-back' aria-hidden="true"></i> Back
+      </a>
+      {% if coa.pdf_file %}
+      <a href="{% url 'client:coa_file' coa.id 'pdf' %}?download=1" class="btn btn-primary btn-sm">
+        <i class='bx bxs-file-pdf' aria-hidden="true"></i> Download PDF
+      </a>
+      {% endif %}
+      {% if coa.png_file %}
+      <a href="{% url 'client:coa_file' coa.id 'png' %}?download=1" class="btn btn-primary btn-sm">
+        <i class='bx bx-image' aria-hidden="true"></i> Download PNG
+      </a>
+      {% endif %}
+    </div>
+
+    {% if coa.png_file %}
+    <img
+      src="{% url 'client:coa_file' coa.id 'png' %}"
+      alt="Certificate {{ coa.coa_number }}"
+      style="max-width:100%;height:auto;border:1px solid #ccd3da;"
+    />
+    {% else %}
+    <p>The certificate files are still being prepared. Please check back shortly.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

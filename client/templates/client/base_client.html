@@ -6,9 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#123e5b" />
     <meta name="robots" content="noindex, nofollow" />
-    <title>
-      {% block title %}My Results — LGS Client Portal{% endblock %}
-    </title>
+    <title>{% block title %}My Results — LGS Client Portal{% endblock %}</title>
 
     <link
       rel="icon"
@@ -35,11 +33,11 @@
       rel="stylesheet"
     />
 
+    <link rel="stylesheet" href="{% static 'client/css/base_client.css' %}" />
     <link
       rel="stylesheet"
-      href="{% static 'client/css/base_client.css' %}"
+      href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css"
     />
-    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
 
     {% block extra_css %}{% endblock %}
   </head>
@@ -91,8 +89,8 @@
           <span class="app-nav-label">Results</span>
           <ul>
             <li>
-              
-                <a href="{% url 'client:customer_dashboard' %}"
+              <a
+                href="{% url 'client:customer_dashboard' %}"
                 class="{% nav_active 'customer_dashboard' %}"
               >
                 <svg
@@ -105,10 +103,83 @@
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <path
+                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                  ></path>
                   <polyline points="14 2 14 8 20 8"></polyline>
                 </svg>
                 My Results
+              </a>
+            </li>
+            <li>
+              <a
+                href="{% url 'client:my_submissions' %}"
+                class="{% nav_active 'my_submissions' %}"
+              >
+                <svg
+                  class="icon"
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line x1="8" y1="6" x2="21" y2="6"></line>
+                  <line x1="8" y1="12" x2="21" y2="12"></line>
+                  <line x1="8" y1="18" x2="21" y2="18"></line>
+                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+                My Submissions
+              </a>
+            </li>
+          </ul>
+
+          <span class="app-nav-label">Certificates</span>
+          <ul>
+            <li>
+              <a
+                href="{% url 'client:ready_for_release' %}"
+                class="{% nav_active 'ready_for_release' %}"
+              >
+                <svg
+                  class="icon"
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                Ready for Release
+              </a>
+            </li>
+            <li>
+              <a
+                href="{% url 'client:pending_release' %}"
+                class="{% nav_active 'pending_release' %}"
+              >
+                <svg
+                  class="icon"
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                Pending Release
               </a>
             </li>
           </ul>

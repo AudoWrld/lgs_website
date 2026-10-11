@@ -1,0 +1,37 @@
+{% extends 'client/base_client.html' %}
+
+{% block title %}Pending Release — LGS Client Portal{% endblock %}
+{% block page_title %}Pending Release{% endblock %}
+
+{% block content %}
+<div class="card">
+  {% if items %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>COA Number</th>
+          <th>Reference</th>
+          <th>Issued</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for coa in items %}
+        <tr>
+          <td><strong>{{ coa.coa_number }}</strong></td>
+          <td>{{ coa.submission.reference }}</td>
+          <td>{{ coa.created_at|date:"d M Y, H:i" }}</td>
+          <td>Payment required to release</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <p>You have no certificates awaiting payment.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

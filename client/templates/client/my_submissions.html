@@ -1,0 +1,40 @@
+{% extends 'client/base_client.html' %}
+
+{% block title %}My Submissions — LGS Client Portal{% endblock %}
+{% block page_title %}My Submissions{% endblock %}
+
+{% block extra_css %}
+<style>
+  .stage-card { padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+  .stage-head { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .stage-track { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+  .stage-step { flex: 1; min-width: 110px; padding: 0.55rem 0.7rem; border: 1px solid #ccd3da; background: #fff; color: #6b7680; font-size: 0.8rem; font-weight: 600; text-align: center; }
+  .stage-step.done { background: #e8f4ec; border-color: #1e6b3a; color: #1e6b3a; }
+  .stage-step.current { background: #123e5b; border-color: #123e5b; color: #fff; }
+  .stage-note { margin-top: 0.75rem; font-size: 0.85rem; color: #6b7680; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% for item in items %}
+<div class="card stage-card">
+  <div class="stage-head">
+    <div>
+      <strong>{{ item.submission.reference }}</strong>
+      <div class="stage-note">{{ item.submission.total }} sample{{ item.submission.total|pluralize }} · {{ item.stage_label }}</div>
+    </div>
+    <div class="stage-note">Updated {{ item.submission.updated_at|date:"d M Y, H:i" }}</div>
+  </div>
+  <div class="stage-track">
+    {% for step in item.steps %}
+    <div class="stage-step{% if step.done %} done{% endif %}{% if step.current %} current{% endif %}">{{ step.name }}</div>
+    {% endfor %}
+  </div>
+  {% if item.partial %}
+  <p class="stage-note">Some certificates are already available. The rest are still in progress.</p>
+  {% endif %}
+</div>
+{% empty %}
+<div class="card"><div class="empty-state"><p>You have no submissions yet.</p></div></div>
+{% endfor %}
+{% endblock %}

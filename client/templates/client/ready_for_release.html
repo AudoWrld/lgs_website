@@ -1,0 +1,43 @@
+{% extends 'client/base_client.html' %}
+
+{% block title %}Ready for Release — LGS Client Portal{% endblock %}
+{% block page_title %}Ready for Release{% endblock %}
+
+{% block content %}
+<div class="card">
+  {% if items %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>COA Number</th>
+          <th>Reference</th>
+          <th>Status</th>
+          <th>Issued</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for coa in items %}
+        <tr>
+          <td><strong>{{ coa.coa_number }}</strong></td>
+          <td>{{ coa.submission.reference }}</td>
+          <td>{{ coa.get_status_display }}</td>
+          <td>{{ coa.created_at|date:"d M Y, H:i" }}</td>
+          <td>
+            <a href="{% url 'client:coa_detail' coa.id %}" class="btn btn-primary btn-sm">
+              <i class='bx bx-show' aria-hidden="true"></i> View Certificate
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <p>No certificates are ready for release yet.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
