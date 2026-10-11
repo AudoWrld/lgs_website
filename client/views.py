@@ -1,3 +1,4 @@
+from functools import wraps
 from io import BytesIO
 
 from django.contrib.auth.decorators import login_required
@@ -6,42 +7,60 @@ from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from PIL import Image, ImageFilter
-from django.db.models import Count, Prefetch, Q
 
+from coa.models import COA
 from samples.models import Sample
 from submissions.models import Submission
 
 STAGES = ["Received", "In Analysis", "Quality Review", "Certificate", "Released"]
-from coa.models import COA
+VISIBLE_STATUSES = [COA.READY_FOR_RELEASE, COA.RELEASED]
+
+
+def customer_required(view):
+    @wraps(view)
+    @login_required
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_customer:
+            return redirect("accounts:post_login_redirect")
+        return view(request, *args, **kwargs)
+
+    return wrapper
+
+
+def _client_for(user):
+    return getattr(user, "client_profile", None)
 
 
 def _client_coas(user):
+    client = _client_for(user)
+    if client is None:
+        return COA.objects.none()
     return COA.objects.filter(
         submission__is_submitted=True,
-        submission__client__user=user,
+        submission__client=client,
     ).select_related("submission", "group")
 
 
-@login_required
+@customer_required
 def customer_dashboard(request):
     counts = _client_coas(request.user).aggregate(
-        ready=Count("id", filter=Q(status__in=[COA.READY_FOR_RELEASE, COA.RELEASED])),
+        ready=Count("id", filter=Q(status__in=VISIBLE_STATUSES)),
         pending=Count("id", filter=Q(status=COA.PAYMENT_PENDING)),
     )
     return render(request, "client/customer_dashboard.html", counts)
 
 
-@login_required
+@customer_required
 def ready_for_release(request):
     coas = (
         _client_coas(request.user)
-        .filter(status__in=[COA.READY_FOR_RELEASE, COA.RELEASED])
+        .filter(status__in=VISIBLE_STATUSES)
         .order_by("-created_at")
     )
     return render(request, "client/ready_for_release.html", {"items": coas})
 
 
-@login_required
+@customer_required
 def pending_release(request):
     coas = (
         _client_coas(request.user)
@@ -51,7 +70,7 @@ def pending_release(request):
     return render(request, "client/pending_release.html", {"items": coas})
 
 
-@login_required
+@customer_required
 def coa_detail(request, coa_id):
     coa = get_object_or_404(_client_coas(request.user), pk=coa_id)
     if not coa.is_client_visible:
@@ -69,7 +88,7 @@ def coa_detail(request, coa_id):
     return render(request, "client/coa_detail.html", {"coa": coa})
 
 
-@login_required
+@customer_required
 def coa_file(request, coa_id, kind):
     if kind not in ("pdf", "png"):
         raise Http404
@@ -93,7 +112,7 @@ def coa_file(request, coa_id, kind):
     return response
 
 
-@login_required
+@customer_required
 def coa_preview(request, coa_id):
     coa = get_object_or_404(_client_coas(request.user), pk=coa_id)
     if not coa.png_file:
@@ -119,7 +138,6 @@ def _stage_for(submission):
     total = submission.total
     approved = submission.approved
     in_qc = submission.in_qc
-    partial = False
 
     if coas and all(c.is_client_visible for c in coas):
         if approved == total:
@@ -141,10 +159,14 @@ def _stage_for(submission):
     return 2, "In Analysis", False
 
 
-@login_required
+@customer_required
 def my_submissions(request):
+    client = _client_for(request.user)
+    if client is None:
+        return render(request, "client/my_submissions.html", {"items": []})
+
     submissions = (
-        Submission.objects.filter(is_submitted=True, client__user=request.user)
+        Submission.objects.filter(is_submitted=True, client=client)
         .annotate(
             total=Count("samples", distinct=True),
             approved=Count(

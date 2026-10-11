@@ -15,10 +15,11 @@ def verify_coa(request, token):
     if not request.user.is_authenticated:
         return redirect_to_login(request.get_full_path())
 
-    if COA.objects.filter(pk=coa.pk, submission__client__user=request.user).exists():
+    client = getattr(request.user, "client_profile", None)
+    if client is not None and coa.submission.client_id == client.pk:
         return redirect("client:coa_detail", coa_id=coa.pk)
 
-    if request.user.is_staff:
+    if request.user.is_qc or request.user.is_administrator or request.user.is_superuser:
         return redirect("qc:report_detail", reference=coa.submission.reference)
 
     messages.error(request, "This certificate does not belong to your account.")
