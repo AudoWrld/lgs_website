@@ -1,3 +1,14 @@
+.dash-icon {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .dash-hero {
   position: relative;
   display: flex;
@@ -46,7 +57,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.dash-hero-meta i {
+.dash-hero-meta .dash-icon {
   color: var(--orange);
   font-size: 1rem;
 }
@@ -102,7 +113,7 @@
     border-color 0.15s ease;
 }
 
-.dash-hero-btn i {
+.dash-hero-btn .dash-icon {
   font-size: 1.2rem;
 }
 
@@ -192,7 +203,7 @@ a.dash-stat-card:hover {
   color: var(--navy);
 }
 
-.dash-stat-icon i {
+.dash-stat-icon .dash-icon {
   font-size: 1.4rem;
 }
 
@@ -269,10 +280,11 @@ a.dash-stat-card:hover {
   font-weight: 600;
 }
 
-.dash-panel-head h3 i {
+.dash-panel-head h3 .dash-icon {
   margin-right: 0.4rem;
   color: var(--orange);
-  vertical-align: -2px;
+  font-size: 1.05rem;
+  vertical-align: -3px;
 }
 
 .dash-panel-head > span {
@@ -286,64 +298,101 @@ a.dash-stat-card:hover {
   color: var(--navy);
 }
 
-.dash-chart {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 0.75rem;
-  padding: 1.25rem 1.25rem 1rem;
+.dash-graph {
+  position: relative;
+  height: 240px;
+  margin: 1rem 1.25rem 1.25rem;
 }
 
-.dash-chart-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.35rem;
-  min-width: 0;
-}
-
-.dash-chart-count {
-  min-height: 1.1rem;
-  color: var(--navy);
-  font-family: var(--font-head);
-  font-size: 0.8125rem;
-  font-weight: 700;
-}
-
-.dash-chart-track {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
+.dash-graph svg {
+  display: block;
   width: 100%;
-  height: 130px;
-  background: #f6f3ec;
+  height: 100%;
 }
 
-.dash-chart-bar {
-  width: 62%;
-  background: var(--navy);
-  border-top: 3px solid var(--orange);
-  transition: background-color 0.15s ease;
-}
-
-.dash-chart-bar.is-empty {
+.dash-graph-tip {
+  position: absolute;
+  z-index: 2;
   display: none;
-}
-
-.dash-chart-col:hover .dash-chart-bar {
-  background: #1a5a82;
-}
-
-.dash-chart-label {
-  color: #6b7680;
+  padding: 0.4rem 0.65rem;
+  border-radius: 4px;
+  background: var(--navy);
+  color: var(--white);
   font-size: 0.75rem;
   font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
 }
 
 .dash-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 0.75rem;
   padding: 1.25rem;
+}
+
+.dash-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  height: 42px;
+  padding: 0 1rem;
+  border: 1px solid transparent;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.dash-action .dash-icon {
+  font-size: 1.1rem;
+}
+
+.dash-action:hover,
+.dash-action:focus {
+  text-decoration: none;
+}
+
+.dash-action:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
+.dash-action--primary {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: var(--white);
+}
+
+.dash-action--primary:hover {
+  background: #1a5a82;
+  border-color: #1a5a82;
+}
+
+.dash-action--secondary {
+  background: var(--orange);
+  border-color: var(--orange);
+  color: var(--navy);
+}
+
+.dash-action--secondary:hover {
+  background: #f7ac4f;
+  border-color: #f7ac4f;
+}
+
+.dash-action--outline {
+  background: var(--white);
+  border-color: var(--navy);
+  color: var(--navy);
+}
+
+.dash-action--outline:hover {
+  background: rgba(18, 62, 91, 0.07);
 }
 
 .dash-list {
@@ -462,6 +511,10 @@ a.dash-stat-card:hover {
     grid-template-columns: 1fr;
     gap: 0.35rem;
   }
+
+  .dash-graph {
+    height: 200px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -476,7 +529,7 @@ a.dash-stat-card:hover {
 
 @media (prefers-reduced-motion: reduce) {
   .dash-hero-btn,
-  .dash-chart-bar {
+  .dash-action {
     transition: none;
   }
 }

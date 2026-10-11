@@ -248,7 +248,7 @@
 
           <div class="app-topbar-user">
             <span class="app-topbar-name"
-              >{{ user.get_full_name|default:user.email }}</span
+              >{{ user.client_profile.client_name|default:user.get_full_name|default:user.email }}</span
             >
             <span class="app-topbar-role">Client</span>
             <div class="app-topbar-avatar" aria-hidden="true">
