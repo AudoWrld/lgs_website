@@ -1,0 +1,38 @@
+<div class="fm-stats">
+  <div class="fm-stat">
+    <span class="fm-label">Payments Collected</span>
+    <strong>TZS {{ data.payments_total|floatformat:"2g" }}</strong>
+  </div>
+  <div class="fm-stat">
+    <span class="fm-label">Expenses</span>
+    <strong>TZS {{ data.expenses_total|floatformat:"2g" }}</strong>
+  </div>
+  <div class="fm-stat{% if data.net_total < 0 %} fm-stat-negative{% endif %}">
+    <span class="fm-label">Net Income</span>
+    <strong>TZS {{ data.net_total|floatformat:"2g" }}</strong>
+  </div>
+</div>
+<p class="fm-note">
+  {{ start|date:"d M Y" }} to {{ end|date:"d M Y" }} &middot;
+  {{ data.payment_count }} payment{{ data.payment_count|pluralize }} &middot;
+  {{ data.expense_count }} expense record{{ data.expense_count|pluralize }}
+</p>
+
+<h3 class="fm-heading">Collections by Channel</h3>
+<ul class="fm-methods">
+  {% for channel in data.channels %}
+  <li><span>{{ channel.label }}</span><strong>{{ channel.amount|floatformat:"2g" }}</strong></li>
+  {% endfor %}
+</ul>
+
+<h3 class="fm-heading">Balances as of today</h3>
+<div class="fm-stats fm-stats-two">
+  <div class="fm-stat{% if data.outstanding_debt %} fm-stat-warning{% endif %}">
+    <span class="fm-label">Outstanding Debt</span>
+    <strong>TZS {{ data.outstanding_debt|floatformat:"2g" }}</strong>
+  </div>
+  <div class="fm-stat">
+    <span class="fm-label">Credit Outstanding</span>
+    <strong>TZS {{ data.credit_outstanding|floatformat:"2g" }}</strong>
+  </div>
+</div>

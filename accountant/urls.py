@@ -3,6 +3,7 @@ from django.views.generic import RedirectView
 
 from . import views
 from . import expense_report
+from .financial_views import financial_report_pdf, financial_report_preview
 
 app_name = "accountant"
 
@@ -57,4 +58,10 @@ urlpatterns = [
         expense_report.expense_report_pdf,
         name="expense_report_pdf",
     ),
+    path(
+        "reports/financial/preview/",
+        financial_report_preview,
+        name="financial_report_preview",
+    ),
+    path("reports/financial/pdf/", financial_report_pdf, name="financial_report_pdf"),
 ]

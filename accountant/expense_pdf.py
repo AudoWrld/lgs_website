@@ -105,7 +105,9 @@ class NumberedCanvas(canvas.Canvas):
 
         self.setFillColor(CHARCOAL)
         self.setFont("Helvetica-Bold", 17)
-        self.drawCentredString(A4[0] / 2, top - 43 * mm, "EXPENSE REPORT")
+        self.drawCentredString(
+            A4[0] / 2, top - 43 * mm, meta.get("title", "EXPENSE REPORT")
+        )
 
     def _draw_footer(self, total):
         meta = self._meta
