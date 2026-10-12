@@ -6,6 +6,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'accountant/css/expense_form.css' %}" />
+<link rel="stylesheet" href="{% static 'accountant/css/expense_dialog.css' %}" />
 {% endblock %}
 
 {% block content %}
@@ -22,10 +23,21 @@
 
       <div class="ef-actions">
         <button type="submit" name="action" value="save" class="btn btn-secondary"><i class="bx bx-save" aria-hidden="true"></i>Save Changes</button>
-        <button type="submit" name="action" value="submit" class="btn btn-primary" id="ef-submit-btn"><i class="bx bx-check-circle" aria-hidden="true"></i>Submit Expense</button>
+        <button type="submit" name="action" value="submit" class="btn btn-primary" id="ef-submit-btn" data-confirm-submit><i class="bx bx-check-circle" aria-hidden="true"></i>Submit Expense</button>
         <a class="btn btn-outline" href="{% url 'accountant:expense_list' %}">Back</a>
       </div>
     </form>
+
+    <dialog id="ef-submit-dialog" class="ef-dialog" aria-labelledby="ef-dialog-title" aria-describedby="ef-dialog-text">
+      <div class="ef-dialog-body">
+        <h3 id="ef-dialog-title">Submit this expense?</h3>
+        <p id="ef-dialog-text">Once submitted, this expense cannot be edited. It will then be counted in your expense records.</p>
+      </div>
+      <div class="ef-dialog-actions">
+        <button type="button" class="btn btn-outline" data-dialog-cancel>Keep Editing</button>
+        <button type="button" class="btn btn-primary" data-dialog-confirm>Yes, Submit</button>
+      </div>
+    </dialog>
   </section>
 
   <div class="ef-side">
@@ -35,15 +47,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-  (function () {
-    var button = document.getElementById("ef-submit-btn");
-    if (!button) return;
-    button.addEventListener("click", function (event) {
-      if (!window.confirm("Submit this expense? It cannot be edited after submission.")) {
-        event.preventDefault();
-      }
-    });
-  })();
-</script>
+<script src="{% static 'accountant/js/expense_dialog.js' %}" defer></script>
 {% endblock %}
