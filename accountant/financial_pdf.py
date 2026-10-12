@@ -15,7 +15,6 @@ from .expense_pdf import (
     heading,
     money,
     records_style,
-    signature_block,
 )
 
 TITLE = "FINANCIAL REPORT"
@@ -114,7 +113,9 @@ def render_financial_pdf(
             )
         )
     else:
-        story.append(Paragraph("No collections in this period.", styles["muted"]))
+        story.append(
+            Paragraph("No collections in this period.", styles["muted"])
+        )
 
     story.extend(_section("Payments Collected", styles))
     if data["payments"]:
@@ -214,8 +215,6 @@ def render_financial_pdf(
         )
     else:
         story.append(Paragraph("No outstanding debt.", styles["muted"]))
-
-    story.append(signature_block(styles, printed))
 
     return build_pdf(
         story, meta, f"Financial Report {start:%d %b %Y} to {end:%d %b %Y}"

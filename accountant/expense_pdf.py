@@ -12,7 +12,6 @@ from reportlab.pdfgen import canvas
 from reportlab.platypus import (
     BaseDocTemplate,
     Frame,
-    KeepTogether,
     NextPageTemplate,
     PageTemplate,
     Paragraph,
@@ -272,37 +271,6 @@ def amount_table(
     return table
 
 
-def signature_block(styles, printed):
-    column = CONTENT_WIDTH / 2
-
-    def cell(role):
-        return [
-            Paragraph("Signed:", styles["label"]),
-            Spacer(1, 12 * mm),
-            Paragraph(role, styles["label"]),
-        ]
-
-    table = Table([[cell("Prepared by"), cell("Approved by")]], colWidths=[column] * 2)
-    table.setStyle(
-        TableStyle(
-            [
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-            ]
-        )
-    )
-    return KeepTogether(
-        [
-            Spacer(1, 16 * mm),
-            table,
-            Spacer(1, 6 * mm),
-            Paragraph(
-                f"<b>Date Issued:</b> {printed:%d %B}, {printed:%Y}", styles["base"]
-            ),
-        ]
-    )
-
-
 def _clip(text, width, font="Times-Roman", size=9.5):
     if stringWidth(text, font, size) <= width:
         return text
@@ -458,7 +426,5 @@ def render_expense_pdf(
         story.append(
             Paragraph("No expenses were recorded for this period.", styles["muted"])
         )
-
-    story.append(signature_block(styles, printed))
 
     return build_pdf(story, meta, f"Expense Report {start:%d %b %Y} to {end:%d %b %Y}")
