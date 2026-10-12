@@ -44,4 +44,12 @@
       {% endif %}
     </div>
   </div>
+
+  <div class="rc-field{% if form.document_number.errors %} has-error{% endif %}" id="document-number-field" data-cash-value="CASH" style="grid-column: 1 / -1;"{% if form.payment_method.value == "CASH" or not form.payment_method.value %} hidden{% endif %}>
+    <label for="{{ form.document_number.id_for_label }}">{{ form.document_number.label }}<span class="rc-required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+    {{ form.document_number }}
+    {% if form.document_number.errors %}
+      <p class="rc-field-error" id="{{ form.document_number.id_for_label }}-error" role="alert">{{ form.document_number.errors.0 }}</p>
+    {% endif %}
+  </div>
 </div>
