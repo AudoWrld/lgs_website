@@ -11,8 +11,9 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
-from django.http import FileResponse, Http404, HttpResponse
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from PIL import Image, ImageFilter
 
@@ -37,60 +38,6 @@ from .models import QCDecision, QCEditLog, QCReview
 
 logger = logging.getLogger(__name__)
 
-KIND_ORDER = ("metallurgical", "carbon", "mineral")
-KIND_LABELS = {
-    "metallurgical": "Cyanide leaching",
-    "carbon": "Carbon activity",
-    "mineral": "Mineral analysis",
-}
-
-
-def _all_entries(sample):
-    return {
-        "metallurgical": MetallurgicalTestEntry.objects.filter(sample=sample)
-        .order_by("-revision")
-        .first(),
-        "carbon": CarbonActivityEntry.objects.filter(sample=sample)
-        .order_by("-revision")
-        .first(),
-        "mineral": MineralAnalysisEntry.objects.filter(sample=sample)
-        .order_by("-revision")
-        .first(),
-    }
-
-
-def _kinds_for(sample):
-    entries = _all_entries(sample)
-    return [kind for kind in KIND_ORDER if entries[kind] is not None]
-
-
-def _select_entry(sample, requested=None):
-    entries = _all_entries(sample)
-    if requested in entries and entries[requested] is not None:
-        return requested, entries[requested]
-    for kind in KIND_ORDER:
-        if entries[kind] is not None:
-            return kind, entries[kind]
-    return _load_entry(sample)
-
-
-def _review_items(samples):
-    items = []
-    for sample in samples:
-        lab_id = lab_sample_id_for(sample)
-        for kind in _kinds_for(sample) or [None]:
-            items.append(
-                {
-                    "sample": sample,
-                    "lab_id": lab_id,
-                    "submission": sample.submission,
-                    "kind": kind or "",
-                    "kind_label": KIND_LABELS.get(kind, ""),
-                }
-            )
-    return items
-
-
 PAGE_SIZE = 12
 DECIMAL_PLACES = Decimal("0.0001")
 MAX_VALUE = Decimal("99999999")
@@ -99,6 +46,13 @@ OVERDUE_HOURS = getattr(settings, "QC_OVERDUE_HOURS", 4)
 COA_NUMBER_FIELD = "coa_number"
 
 REVIEW_STATUSES = (Sample.SUBMITTED_TO_QC, Sample.REASSAY_SUBMITTED)
+
+KIND_ORDER = ("metallurgical", "carbon", "mineral")
+KIND_LABELS = {
+    "metallurgical": "Cyanide leaching",
+    "carbon": "Carbon activity",
+    "mineral": "Mineral analysis",
+}
 
 RECOVERY_FIELDS = (
     ("gold_recovery_12h", "recovery_12h", "Gold Recovery 12h", "show_recovery_12h"),
@@ -138,6 +92,59 @@ def _sample_items(samples):
     ]
 
 
+def _latest(model, sample):
+    return model.objects.filter(sample=sample).order_by("-revision").first()
+
+
+def _all_entries(sample):
+    return {
+        "metallurgical": _latest(MetallurgicalTestEntry, sample),
+        "carbon": _latest(CarbonActivityEntry, sample),
+        "mineral": _latest(MineralAnalysisEntry, sample),
+    }
+
+
+def _kinds_for(sample):
+    entries = _all_entries(sample)
+    return [kind for kind in KIND_ORDER if entries[kind] is not None]
+
+
+def _load_entry(sample):
+    test_type = get_metallurgical_type(sample)
+    if test_type == Service.CARBON_ACTIVITY:
+        return "carbon", _latest(CarbonActivityEntry, sample)
+    if test_type in (Service.CYANIDE_CONVENTIONAL, Service.CYANIDE_OPTIMIZATION):
+        return "metallurgical", _latest(MetallurgicalTestEntry, sample)
+    return "mineral", _latest(MineralAnalysisEntry, sample)
+
+
+def _select_entry(sample, requested=None):
+    entries = _all_entries(sample)
+    if requested in entries and entries[requested] is not None:
+        return requested, entries[requested]
+    for kind in KIND_ORDER:
+        if entries[kind] is not None:
+            return kind, entries[kind]
+    return _load_entry(sample)
+
+
+def _review_items(samples):
+    items = []
+    for sample in samples:
+        lab_id = lab_sample_id_for(sample)
+        for kind in _kinds_for(sample) or [None]:
+            items.append(
+                {
+                    "sample": sample,
+                    "lab_id": lab_id,
+                    "submission": sample.submission,
+                    "kind": kind or "",
+                    "kind_label": KIND_LABELS.get(kind, ""),
+                }
+            )
+    return items
+
+
 def _fmt(value):
     if value is None:
         return ""
@@ -164,30 +171,10 @@ def _parse_decimal(raw, label, errors):
     return value.quantize(DECIMAL_PLACES)
 
 
-def _load_entry(sample):
-    test_type = get_metallurgical_type(sample)
-    if test_type == Service.CARBON_ACTIVITY:
-        entry = (
-            CarbonActivityEntry.objects.filter(sample=sample)
-            .order_by("-revision")
-            .first()
-        )
-        return "carbon", entry
-    if test_type in (Service.CYANIDE_CONVENTIONAL, Service.CYANIDE_OPTIMIZATION):
-        entry = (
-            MetallurgicalTestEntry.objects.filter(sample=sample)
-            .order_by("-revision")
-            .first()
-        )
-        return "metallurgical", entry
-    entry = (
-        MineralAnalysisEntry.objects.filter(sample=sample).order_by("-revision").first()
-    )
-    return "mineral", entry
-
-
 def _report_locked(sample):
     if getattr(sample, "submission_id", None) is None:
+        return False
+    if sample.analysis_status != Sample.QC_APPROVED:
         return False
     return sample_has_coa(sample)
 
@@ -200,7 +187,7 @@ def _is_editable(sample, entry):
     )
 
 
-def _apply_qc_defaults(qc_review, kind, entry):
+def _apply_qc_defaults(qc_review, entries):
     qc_review.gold_test_1 = None
     qc_review.gold_test_2 = None
     qc_review.gold_replicate_1_id = None
@@ -211,12 +198,10 @@ def _apply_qc_defaults(qc_review, kind, entry):
     qc_review.carbon_activity_final = None
     qc_review.metallurgical_original = None
 
-    if entry is None:
-        return
-
-    if kind == "mineral":
-        elements = entry.registered_elements
-        replicates = list(entry.replicates.all())
+    mineral = entries["mineral"]
+    if mineral is not None:
+        elements = mineral.registered_elements
+        replicates = list(mineral.replicates.all())
         if elements["gold"]:
             golds = [(r.id, r.gold_ppm) for r in replicates if r.gold_ppm is not None]
             if len(golds) >= 1:
@@ -232,15 +217,18 @@ def _apply_qc_defaults(qc_review, kind, entry):
         if elements["sulphur"]:
             values = [r.sulphur for r in replicates if r.sulphur is not None]
             qc_review.sulphur_final = values[0] if values else None
-    elif kind == "carbon":
-        qc_review.carbon_activity_final = entry.final_carbon_activity_percent
+
+    carbon = entries["carbon"]
+    if carbon is not None:
+        qc_review.carbon_activity_final = carbon.final_carbon_activity_percent
 
 
-def _get_qc_review(sample, kind, entry):
+def _get_qc_review(sample, kind=None, entry=None):
     qc_review, _ = QCReview.objects.get_or_create(sample=sample)
-    revision = entry.revision if entry is not None else None
+    entries = _all_entries(sample)
+    revision = sum(e.revision for e in entries.values() if e is not None) or None
     if qc_review.defaults_revision != revision:
-        _apply_qc_defaults(qc_review, kind, entry)
+        _apply_qc_defaults(qc_review, entries)
         qc_review.defaults_revision = revision
         qc_review.save()
     return qc_review
@@ -449,39 +437,45 @@ def _approval_errors(kind, entry, qc_review):
     if entry is None:
         return ["No submitted data was found for this sample."]
     errors = []
+    prefix = f"{KIND_LABELS.get(kind, kind)}: "
 
     if kind == "mineral":
         elements = entry.registered_elements
         if elements.get("gold"):
             if qc_review.gold_test_1 is None:
-                errors.append("Gold Test 1 (ppm) is required.")
+                errors.append(f"{prefix}Gold Test 1 (ppm) is required.")
             if qc_review.gold_test_2 is None:
-                errors.append("Gold Test 2 (ppm) is required.")
+                errors.append(f"{prefix}Gold Test 2 (ppm) is required.")
         for element, field_name, _key, label in SINGLE_FIELDS:
             if elements.get(element) and getattr(qc_review, field_name) is None:
-                errors.append(f"{label} is required.")
+                errors.append(f"{prefix}{label} is required.")
     elif kind == "carbon":
         if qc_review.carbon_activity_final is None:
-            errors.append("Carbon Activity (%) is required.")
+            errors.append(f"{prefix}Carbon Activity (%) is required.")
     elif kind == "metallurgical":
-        shown = [
-            (row_field, label)
-            for row_field, _key, label, flag in RECOVERY_FIELDS
-            if getattr(qc_review, flag)
-        ]
-        if not shown:
-            errors.append("Select at least one recovery period to show on the COA.")
         rows = [
             r for r in entry.rows.select_related("source_parameter") if r.qc_included
         ]
         if not rows:
-            errors.append("Include at least one parameter on the COA.")
+            errors.append(f"{prefix}Include at least one parameter on the COA.")
         for row in rows:
-            for row_field, label in shown:
-                if getattr(row, row_field) is None:
-                    errors.append(
-                        f"{row.source_parameter.display_label}: {label} is required."
-                    )
+            label = row.source_parameter.display_label
+            if row.weight_volume is None or row.weight_volume <= 0:
+                errors.append(f"{prefix}{label}: Weight / Volume is required.")
+            if not row.si_unit:
+                errors.append(f"{prefix}{label}: SI Unit is required.")
+    return errors
+
+
+def _all_approval_errors(sample, qc_review):
+    entries = _all_entries(sample)
+    present = {kind: entry for kind, entry in entries.items() if entry is not None}
+    if not present:
+        return ["No submitted data was found for this sample."]
+    errors = []
+    for kind in KIND_ORDER:
+        if kind in present:
+            errors += _approval_errors(kind, present[kind], qc_review)
     return errors
 
 
@@ -514,21 +508,28 @@ def _auto_generate_coas(request, submission, sample):
         return
 
     numbers = ", ".join(c.coa_number for c in coas)
-    messages.success(request, f"COA ready: {numbers}.")
+    messages.success(request, f"COA created or updated: {numbers}.")
 
     if not getattr(settings, "COA_BUILD_IN_BACKGROUND", True) and any(
         not c.pdf_file or not c.png_file for c in coas
     ):
         messages.warning(
             request,
-            "COA created but some files failed to build. "
+            "COA saved but some files failed to build. "
             "Use “Rebuild files” on the report page.",
         )
 
 
+def _review_redirect(sample, kind):
+    url = reverse("qc:sample_review", kwargs={"slug": sample.slug})
+    if kind:
+        url = f"{url}?kind={kind}"
+    return HttpResponseRedirect(url)
+
+
 def _handle_post(request, sample, kind, entry):
     action = request.POST.get("action")
-    back = redirect("qc:sample_review", slug=sample.slug)
+    back = _review_redirect(sample, kind)
     user = request.user if request.user.is_authenticated else None
 
     if action not in ("save_edits", "approve", "return_reassay"):
@@ -583,7 +584,7 @@ def _handle_post(request, sample, kind, entry):
                 return back
             _commit_edits(edit, qc_review, user)
 
-        problems = _approval_errors(kind, entry, qc_review)
+        problems = _all_approval_errors(locked, qc_review)
         if problems:
             _flash_errors(request, problems)
             return back
@@ -694,14 +695,20 @@ def pending_review(request):
 @qc_required
 def reassay_review(request):
     return _status_list(
-        request, "quantity_control/reassay_review.html", (Sample.REASSAY_SUBMITTED,)
+        request,
+        "quantity_control/reassay_review.html",
+        (Sample.REASSAY_SUBMITTED,),
+        expand=True,
     )
 
 
 @qc_required
 def approved_reports(request):
     return _status_list(
-        request, "quantity_control/approved_reports.html", (Sample.QC_APPROVED,)
+        request,
+        "quantity_control/approved_reports.html",
+        (Sample.QC_APPROVED,),
+        expand=True,
     )
 
 
@@ -807,14 +814,11 @@ def sample_review(request, slug):
         .all()
     )
 
-    kinds_list = [
-        {"key": k, "label": KIND_LABELS[k]} for k in _kinds_for(sample)
-    ]
-
     context = {
         "sample": sample,
         "lab_id": lab_sample_id_for(sample),
         "kind": kind,
+        "kinds": [{"key": k, "label": KIND_LABELS[k]} for k in _kinds_for(sample)],
         "entry": entry,
         "services": services,
         "reviewable": reviewable,
@@ -826,7 +830,6 @@ def sample_review(request, slug):
         "is_reassay": sample.analysis_status
         in (Sample.REASSAY_REQUIRED, Sample.REASSAY_SUBMITTED)
         or (entry.is_reassay if entry else False),
-        "kinds": kinds_list,
     }
 
     if kind == "mineral" and entry is not None:

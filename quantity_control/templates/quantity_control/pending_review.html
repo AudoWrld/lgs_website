@@ -21,6 +21,15 @@
   .qc-table td {
     vertical-align: middle;
   }
+
+  .list-card .table tbody tr.qc-gap td,
+  .list-card .table tbody tr.qc-gap:hover td {
+    height: 1.25rem;
+    padding: 0;
+    background: var(--off-white);
+    border-left: none;
+    border-right: none;
+  }
 </style>
 {% endblock %}
 
@@ -62,6 +71,11 @@
       <tbody>
         {% for item in items %}
         {% with sample=item.sample %}
+        {% ifchanged sample.submission.reference %}
+          {% if not forloop.first %}
+          <tr class="qc-gap" aria-hidden="true"><td colspan="6"></td></tr>
+          {% endif %}
+        {% endifchanged %}
         <tr>
           <td>
             <div class="qc-id">
