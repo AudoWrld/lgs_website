@@ -206,13 +206,14 @@ def _mineral_block(entry):
     rows = []
     for number, sample in enumerate(entry["samples"], start=1):
         values = mineral_values(sample)
+        fmt = whole if sample.sample_type == Sample.CARBON else two_dp
         row = [str(number), sample.client_sample_id]
         if wants["gold"]:
-            row += [two_dp(values["gold_1"]), two_dp(values["gold_2"])]
+            row += [fmt(values["gold_1"]), fmt(values["gold_2"])]
         if wants["copper"]:
-            row.append(two_dp(values["copper"]))
+            row.append(fmt(values["copper"]))
         if wants["silver"]:
-            row.append(two_dp(values["silver"]))
+            row.append(fmt(values["silver"]))
         if show_sulphur:
             row.append(
                 DASH

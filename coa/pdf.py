@@ -47,7 +47,7 @@ STAMP_DATE_CX = 0.508
 STAMP_DATE_CY = 0.539
 STAMP_DATE_W = 0.455
 
-COMPANY_NAME = "LGS AFRICAN GROUP COMPANY LIMITED"
+COMPANY_NAME = "LGS MINERAL ASSAY LABORATORY"
 ADDRESS_LINES = [
     "Karumwa \u2013 Sweya, Kahama Road, Njia Panda ya Mahagi, Nyang'hwale, Geita",
     "P.O. Box 1214, Mwanza, Tanzania",
@@ -545,7 +545,12 @@ def render_coa_png(pdf_bytes, scale=2.0):
         y = gutter
         for page in pages:
             draw.rectangle(
-                [gutter - border, y - border, gutter + page.width + border - 1, y + page.height + border - 1],
+                [
+                    gutter - border,
+                    y - border,
+                    gutter + page.width + border - 1,
+                    y + page.height + border - 1,
+                ],
                 fill="#9aa3ad",
             )
             sheet.paste(page, (gutter, y))
