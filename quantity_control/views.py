@@ -882,3 +882,22 @@ def report_coa_preview(request, coa_id):
     response["Cache-Control"] = "private, no-store"
     response["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+@qc_required
+def report_coa_file(request, pk, kind):
+    coa = get_object_or_404(COA, pk=pk)
+    if kind == "pdf":
+        field, content_type = coa.pdf_file, "application/pdf"
+    elif kind == "png":
+        field, content_type = coa.png_file, "image/png"
+    else:
+        raise Http404
+    if not field:
+        raise Http404
+    return FileResponse(
+        field.open("rb"),
+        content_type=content_type,
+        as_attachment=request.GET.get("download") == "1",
+        filename=f"{coa.coa_number.replace('/', '-')}.{kind}",
+    )

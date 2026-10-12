@@ -20,4 +20,5 @@ urlpatterns = [
     path(
         "generated-reports/<path:reference>/", views.report_detail, name="report_detail"
     ),
+    path("reports/coa/<int:pk>/<str:kind>/", views.report_coa_file, name="report_coa_file"),
 ]

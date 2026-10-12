@@ -77,7 +77,18 @@
   <div class="rc-coa-preview-empty">COA preview is not available.</div>
   {% endif %}
 
-  {% if not entry.released %}
+  {% if entry.released %}
+  <div class="rc-coa-actions">
+    {% if entry.coa.pdf_file %}
+    <a href="{% url 'qc:report_coa_file' entry.coa.pk 'pdf' %}" target="_blank" rel="noopener" class="btn btn-outline" title="Open and print PDF"><i class="bx bx-printer" aria-hidden="true"></i> Print PDF</a>
+    <a href="{% url 'qc:report_coa_file' entry.coa.pk 'pdf' %}?download=1" class="btn btn-primary" title="Download PDF"><i class="bx bx-download" aria-hidden="true"></i> Download PDF</a>
+    {% endif %}
+    {% if entry.coa.png_file %}
+    <a href="{% url 'qc:report_coa_file' entry.coa.pk 'png' %}" target="_blank" rel="noopener" class="btn btn-outline" title="Open and print PNG"><i class="bx bx-image" aria-hidden="true"></i> Print PNG</a>
+    <a href="{% url 'qc:report_coa_file' entry.coa.pk 'png' %}?download=1" class="btn btn-outline" title="Download PNG"><i class="bx bx-download" aria-hidden="true"></i> Download PNG</a>
+    {% endif %}
+  </div>
+  {% else %}
   <p class="rc-coa-pending-note"><i class="bx bx-lock-alt" aria-hidden="true"></i> Locked until payment for this reference is complete.</p>
   {% endif %}
 </article>
