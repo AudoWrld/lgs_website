@@ -47,9 +47,13 @@ STAMP_DATE_CX = 0.508
 STAMP_DATE_CY = 0.539
 STAMP_DATE_W = 0.455
 
-COMPANY_NAME = "KARUMWA"
+COMPANY_NAME = "LGS MINERAL ASSAY LABORATORY"
 COMPANY_NAME_SIZE = 34 * PX
-COMPANY_NAME_SPACING = 5
+COMPANY_NAME_SPACING = 1.5
+COMPANY_NAME_MIN_SIZE = 10
+COMPANY_NAME_WIDTH_RATIO = 1.12
+ADDRESS_FONT = "Helvetica"
+ADDRESS_SIZE = 8.5
 ADDRESS_LINES = [
     "Karumwa \u2013 Sweya, Kahama Road, Njia Panda ya Mahagi, Nyang'hwale, Geita",
     "P.O. Box 1214, Mwanza, Tanzania",
@@ -200,11 +204,28 @@ def _draw_watermark(c, d):
     c.doForm("watermark")
 
 
-def _draw_company_name(c, right, y):
+def _address_width():
+    return max(stringWidth(line, ADDRESS_FONT, ADDRESS_SIZE) for line in ADDRESS_LINES)
+
+
+def _company_name_fit():
     font = "Helvetica-Bold"
+    target = _address_width() * COMPANY_NAME_WIDTH_RATIO
     size = COMPANY_NAME_SIZE
     spacing = COMPANY_NAME_SPACING
+    while size > COMPANY_NAME_MIN_SIZE:
+        width = stringWidth(COMPANY_NAME, font, size) + spacing * (
+            len(COMPANY_NAME) - 1
+        )
+        if width <= target:
+            break
+        size -= 0.25
     width = stringWidth(COMPANY_NAME, font, size) + spacing * (len(COMPANY_NAME) - 1)
+    return font, size, spacing, width
+
+
+def _draw_company_name(c, right, y):
+    font, size, spacing, width = _company_name_fit()
     c.saveState()
     t = c.beginText()
     t.setFont(font, size)
@@ -231,7 +252,7 @@ def _draw_letterhead(c, d):
         )
     _draw_company_name(c, right, PAGE_H - 17 * mm)
     c.setFillColor(PURPLE)
-    c.setFont("Helvetica", 8.5)
+    c.setFont(ADDRESS_FONT, ADDRESS_SIZE)
     y = PAGE_H - 23.5 * mm
     for line in ADDRESS_LINES:
         c.drawRightString(right, y, line)
