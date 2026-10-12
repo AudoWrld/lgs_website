@@ -1,161 +1,70 @@
+import logging
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation
+from io import BytesIO
+from types import SimpleNamespace
 
+from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Count, Max, Q
 from django.db.models.functions import TruncDate
-from django.http import JsonResponse
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.views.decorators.http import require_POST
+from PIL import Image, ImageFilter
 
-from accounts.decorators import chemist_required
+from accounts.decorators import qc_required
+from coa.models import COA
+from coa.services import attach_files, sample_has_coa, sync_coas
 from samples.models import Sample, Service
 from submissions.models import Submission
-from worksheet.models import Worksheet, WorksheetRow
 
-from .models import (
-    CYANIDE_TYPES,
-    METALLURGICAL_TYPES,
-    CarbonActivityEntry,
+from chemist.models import (
     CRMEntry,
+    CarbonActivityEntry,
     MetallurgicalTestEntry,
     MineralAnalysisEntry,
-    _quantize,
-    format_lab_sample_id,
     get_metallurgical_type,
     lab_sample_id_for,
-    latest_carbon_worksheet,
-    latest_mineral_worksheet,
-    mineral_worksheets,
-    worksheet_elements,
     worksheet_rows_for_sample,
 )
+from worksheet.models import WorksheetRow
 
-MINERAL_FIELDS = (
-    ("weight", "Weight"),
-    ("au_aas", "Au AAS"),
-    ("au_df", "Au DF"),
-    ("cu_aas", "Cu AAS"),
-    ("cu_df", "Cu DF"),
-    ("ag_aas", "Ag AAS"),
-    ("ag_df", "Ag DF"),
-    ("sulphur", "S"),
-)
+from .models import QCDecision, QCEditLog, QCReview
 
-SHARED_FIELDS = (
-    "weight",
-    "au_aas",
-    "au_df",
-    "cu_aas",
-    "cu_df",
-    "ag_aas",
-    "ag_df",
-    "sulphur",
-)
+logger = logging.getLogger(__name__)
 
-METALLURGICAL_FIELDS = (
-    ("weight_volume", "weight_volume", "Weight / Volume"),
-    ("gold_recovery_12h", "recovery_12h", "Gold recovery at 12 hours"),
-    ("gold_recovery_24h", "recovery_24h", "Gold recovery at 24 hours"),
-    ("gold_recovery_48h", "recovery_48h", "Gold recovery at 48 hours"),
-    ("gold_recovery_72h", "recovery_72h", "Gold recovery at 72 hours"),
-)
+PAGE_SIZE = 12
+DECIMAL_PLACES = Decimal("0.0001")
+MAX_VALUE = Decimal("99999999")
 
-CARBON_FIELDS = (
-    ("standard_concentration", "standard", "Standard concentration"),
-    ("final_concentration_sample", "final_sample", "Final concentration in sample"),
-    (
-        "final_concentration_standard",
-        "final_standard",
-        "Final carbon in Standard concentration",
-    ),
-)
+OVERDUE_HOURS = getattr(settings, "QC_OVERDUE_HOURS", 4)
+COA_NUMBER_FIELD = "coa_number"
 
-MINERAL_ROUTE = "chemist:mineral_analysis_entry"
-CYANIDE_ROUTE = "chemist:metallurgical_tests_entry"
-CARBON_ROUTE = "chemist:carbon_activity_entry"
+REVIEW_STATUSES = (Sample.SUBMITTED_TO_QC, Sample.REASSAY_SUBMITTED)
 
-MINERAL_LIST_ROUTE = "chemist:mineral_analysis_samples"
-METALLURGICAL_LIST_ROUTE = "chemist:metallurgical_tests_samples"
-
-ROUTE_LABELS = {
-    MINERAL_ROUTE: "Mineral analysis",
-    CYANIDE_ROUTE: "Cyanide leaching",
-    CARBON_ROUTE: "Carbon activity",
+KIND_ORDER = ("metallurgical", "carbon", "mineral")
+KIND_LABELS = {
+    "metallurgical": "Cyanide leaching",
+    "carbon": "Carbon activity",
+    "mineral": "Mineral analysis",
 }
 
-SECTION_LISTS = {
-    MINERAL_ROUTE: MINERAL_LIST_ROUTE,
-    CYANIDE_ROUTE: METALLURGICAL_LIST_ROUTE,
-    CARBON_ROUTE: METALLURGICAL_LIST_ROUTE,
-}
+RECOVERY_FIELDS = (
+    ("gold_recovery_12h", "recovery_12h", "Gold Recovery 12h", "show_recovery_12h"),
+    ("gold_recovery_24h", "recovery_24h", "Gold Recovery 24h", "show_recovery_24h"),
+    ("gold_recovery_48h", "recovery_48h", "Gold Recovery 48h", "show_recovery_48h"),
+)
 
-SECTION_LABELS = {
-    MINERAL_LIST_ROUTE: "mineral analysis",
-    METALLURGICAL_LIST_ROUTE: "metallurgical tests",
-}
-
-ENTRY_MODELS = {
-    MINERAL_ROUTE: MineralAnalysisEntry,
-    CYANIDE_ROUTE: MetallurgicalTestEntry,
-    CARBON_ROUTE: CarbonActivityEntry,
-}
-
-MAX_REPORTED_ERRORS = 10
-PAGE_SIZE = 10
-
-
-class _PostReader:
-    def __init__(self, data):
-        self.data = data
-        self.errors = []
-
-    def decimal(self, key, label):
-        raw = (self.data.get(key) or "").strip()
-        if not raw:
-            return None
-        try:
-            value = Decimal(raw)
-        except InvalidOperation:
-            self.errors.append(f"{label} must be a valid number.")
-            return None
-        if not value.is_finite():
-            self.errors.append(f"{label} must be a valid number.")
-            return None
-        return value
-
-    def text(self, key):
-        return (self.data.get(key) or "").strip()
-
-
-def _check(reader, instance, label):
-    try:
-        instance.clean_fields(
-            exclude=[
-                "entry",
-                "source_parameter",
-                "worksheet_row",
-                *instance.RESULT_FIELDS,
-            ]
-        )
-    except ValidationError as exc:
-        for field, field_errors in exc.message_dict.items():
-            name = str(instance._meta.get_field(field).verbose_name).capitalize()
-            for message in field_errors:
-                reader.errors.append(f"{label} {name}: {message}")
-
-
-def _report_errors(request, errors):
-    for error in errors[:MAX_REPORTED_ERRORS]:
-        messages.error(request, error)
-    remaining = len(errors) - MAX_REPORTED_ERRORS
-    if remaining > 0:
-        messages.error(request, f"{remaining} more error(s) not shown.")
+SINGLE_FIELDS = (
+    ("copper", "copper_final", "qc_copper_final", "Copper (ppm)"),
+    ("silver", "silver_final", "qc_silver_final", "Silver (ppm)"),
+    ("sulphur", "sulphur_final", "qc_sulphur_final", "Sulphur (%)"),
+)
 
 
 def _paginate(request, queryset):
@@ -165,259 +74,554 @@ def _paginate(request, queryset):
     return page, params.urlencode()
 
 
-def _visible_samples():
-    return Sample.objects.filter(submission__is_submitted=True)
+def _with_lab_id(queryset):
+    return [
+        SimpleNamespace(sample=sample, lab_id=lab_sample_id_for(sample))
+        for sample in queryset
+    ]
 
 
-def _get_sample(slug):
-    return get_object_or_404(_visible_samples(), slug=slug)
+def _sample_items(samples):
+    return [
+        {
+            "sample": sample,
+            "lab_id": lab_sample_id_for(sample),
+            "submission": sample.submission,
+        }
+        for sample in samples
+    ]
 
 
-def _find_submission(reference):
-    return Submission.objects.filter(
-        reference__iexact=reference, is_submitted=True
-    ).first()
-
-
-def _route_name(sample):
-    test_type = get_metallurgical_type(sample)
-    if test_type == Service.CARBON_ACTIVITY:
-        return CARBON_ROUTE
-    if test_type in CYANIDE_TYPES:
-        return CYANIDE_ROUTE
-    return MINERAL_ROUTE
-
-
-def _kinds(sample):
-    kinds = set()
-    for line in sample.sample_services.select_related("service"):
-        kind = line.service.metallurgical_type
-        kinds.add(kind if kind else Service.NONE)
-    return kinds
-
-
-def _routes(sample):
-    kinds = _kinds(sample)
-    routes = []
-    if Service.NONE in kinds:
-        routes.append(MINERAL_ROUTE)
-    if any(kind in CYANIDE_TYPES for kind in kinds):
-        routes.append(CYANIDE_ROUTE)
-    if Service.CARBON_ACTIVITY in kinds:
-        routes.append(CARBON_ROUTE)
-    if not routes:
-        routes.append(_route_name(sample))
-    return routes
-
-
-def _cyanide_type(sample):
-    kinds = _kinds(sample)
-    for test_type in (Service.CYANIDE_CONVENTIONAL, Service.CYANIDE_OPTIMIZATION):
-        if test_type in kinds:
-            return test_type
-    return get_metallurgical_type(sample)
-
-
-def _misrouted(sample, expected):
-    routes = _routes(sample)
-    if expected in routes:
-        return None
-    return redirect(routes[0], slug=sample.slug)
-
-
-def _is_read_only(sample, entry):
-    return (
-        entry.status == entry.SUBMITTED_TO_QC
-        or sample.analysis_status not in entry.EDITABLE_SAMPLE_STATUSES
-    )
-
-
-def _latest_entry(model, sample):
+def _latest(model, sample):
     return model.objects.filter(sample=sample).order_by("-revision").first()
 
 
-def _open_entry(model, sample, user):
-    entry = model.current_for(sample, user)
-    if entry is None:
-        entry = _latest_entry(model, sample)
-    return entry
+def _all_entries(sample):
+    return {
+        "metallurgical": _latest(MetallurgicalTestEntry, sample),
+        "carbon": _latest(CarbonActivityEntry, sample),
+        "mineral": _latest(MineralAnalysisEntry, sample),
+    }
 
 
-def _no_entry(request, list_route, sample):
-    messages.error(request, "This sample is not available for data entry.")
-    return redirect(list_route, reference=sample.submission.reference)
+def _kinds_for(sample):
+    entries = _all_entries(sample)
+    return [kind for kind in KIND_ORDER if entries[kind] is not None]
 
 
-def _no_worksheet(request):
-    messages.error(
-        request,
-        "The worksheet for this sample has not been generated. Data entry is unavailable.",
-    )
-    return redirect("chemist:chemist_dashboard")
-
-
-def _metallurgical_worksheet_rows(sample, test_type=None):
-    if test_type is None:
-        test_type = get_metallurgical_type(sample)
+def _load_entry(sample):
+    test_type = get_metallurgical_type(sample)
     if test_type == Service.CARBON_ACTIVITY:
-        worksheet = latest_carbon_worksheet(sample.submission)
-    else:
-        worksheet_type = {
-            Service.CYANIDE_CONVENTIONAL: Worksheet.CONVENTIONAL_CYANIDE_LEACHING,
-            Service.CYANIDE_OPTIMIZATION: Worksheet.PARAMETER_OPTIMIZATION,
-        }.get(test_type)
-        if worksheet_type is None:
-            return []
-        worksheet = (
-            Worksheet.objects.filter(
-                submission=sample.submission, worksheet_type=worksheet_type
+        return "carbon", _latest(CarbonActivityEntry, sample)
+    if test_type in (Service.CYANIDE_CONVENTIONAL, Service.CYANIDE_OPTIMIZATION):
+        return "metallurgical", _latest(MetallurgicalTestEntry, sample)
+    return "mineral", _latest(MineralAnalysisEntry, sample)
+
+
+def _select_entry(sample, requested=None):
+    entries = _all_entries(sample)
+    if requested in entries and entries[requested] is not None:
+        return requested, entries[requested]
+    for kind in KIND_ORDER:
+        if entries[kind] is not None:
+            return kind, entries[kind]
+    return _load_entry(sample)
+
+
+def _review_items(samples):
+    items = []
+    for sample in samples:
+        lab_id = lab_sample_id_for(sample)
+        entries = _all_entries(sample)
+        kinds = [kind for kind in KIND_ORDER if entries[kind] is not None]
+        for kind in kinds or [None]:
+            entry = entries.get(kind) if kind else None
+            items.append(
+                {
+                    "sample": sample,
+                    "lab_id": lab_id,
+                    "submission": sample.submission,
+                    "kind": kind or "",
+                    "kind_label": KIND_LABELS.get(kind, ""),
+                    "is_reassay": bool(entry and entry.is_reassay),
+                }
             )
-            .order_by("-generated_at", "-id")
-            .first()
-        )
-    if worksheet is None:
-        return []
-    return list(
-        worksheet.rows.filter(
-            lab_sample_mapping__sample=sample,
-            row_type__in=(WorksheetRow.SAMPLE_ROW, WorksheetRow.REPLICATE_ROW),
-        ).order_by("row_number")
+    return items
+
+
+def _fmt(value):
+    if value is None:
+        return ""
+    if isinstance(value, Decimal):
+        return format(value.normalize(), "f")
+    return str(value)
+
+
+def _parse_decimal(raw, label, errors):
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    try:
+        value = Decimal(raw)
+    except InvalidOperation:
+        errors.append(f"{label}: enter a valid number.")
+        return None
+    if not value.is_finite() or value < 0:
+        errors.append(f"{label}: enter a valid non-negative number.")
+        return None
+    if value > MAX_VALUE:
+        errors.append(f"{label}: value is too large.")
+        return None
+    return value.quantize(DECIMAL_PLACES)
+
+
+def _report_locked(sample):
+    if getattr(sample, "submission_id", None) is None:
+        return False
+    if sample.analysis_status != Sample.QC_APPROVED:
+        return False
+    return sample_has_coa(sample)
+
+
+def _is_editable(sample, entry):
+    return (
+        entry is not None
+        and sample.analysis_status in (Sample.SUBMITTED_TO_QC, Sample.REASSAY_SUBMITTED)
+        and not _report_locked(sample)
     )
 
 
-def _rows_for_route(sample, route):
-    if route == MINERAL_ROUTE:
-        return worksheet_rows_for_sample(sample)
-    if route == CARBON_ROUTE:
-        return _metallurgical_worksheet_rows(sample, Service.CARBON_ACTIVITY)
-    return _metallurgical_worksheet_rows(sample, _cyanide_type(sample))
+def _apply_qc_defaults(qc_review, entries):
+    qc_review.gold_test_1 = None
+    qc_review.gold_test_2 = None
+    qc_review.gold_replicate_1_id = None
+    qc_review.gold_replicate_2_id = None
+    qc_review.copper_final = None
+    qc_review.silver_final = None
+    qc_review.sulphur_final = None
+    qc_review.carbon_activity_final = None
+    qc_review.metallurgical_original = None
+
+    mineral = entries["mineral"]
+    if mineral is not None:
+        elements = mineral.registered_elements
+        replicates = list(mineral.replicates.all())
+        if elements["gold"]:
+            golds = [(r.id, r.gold_ppm) for r in replicates if r.gold_ppm is not None]
+            if len(golds) >= 1:
+                qc_review.gold_replicate_1_id, qc_review.gold_test_1 = golds[0]
+            if len(golds) >= 2:
+                qc_review.gold_replicate_2_id, qc_review.gold_test_2 = golds[1]
+        if elements["copper"]:
+            values = [r.copper_ppm for r in replicates if r.copper_ppm is not None]
+            qc_review.copper_final = values[0] if values else None
+        if elements["silver"]:
+            values = [r.silver_ppm for r in replicates if r.silver_ppm is not None]
+            qc_review.silver_final = values[0] if values else None
+        if elements["sulphur"]:
+            values = [r.sulphur for r in replicates if r.sulphur is not None]
+            qc_review.sulphur_final = values[0] if values else None
+
+    carbon = entries["carbon"]
+    if carbon is not None:
+        qc_review.carbon_activity_final = carbon.final_carbon_activity_percent
 
 
-def _route_pending(sample, route):
-    entry = _latest_entry(ENTRY_MODELS[route], sample)
-    return entry is None or entry.status != entry.SUBMITTED_TO_QC
+def _get_qc_review(sample, kind=None, entry=None):
+    qc_review, _ = QCReview.objects.get_or_create(sample=sample)
+    entries = _all_entries(sample)
+    revision = sum(e.revision for e in entries.values() if e is not None) or None
+    if qc_review.defaults_revision != revision:
+        _apply_qc_defaults(qc_review, entries)
+        qc_review.defaults_revision = revision
+        qc_review.save()
+    return qc_review
 
 
-def _can_open(sample, route):
-    if _latest_entry(ENTRY_MODELS[route], sample) is not None:
+class _Edit:
+    def __init__(self, request, sample, user, revision):
+        self.request = request
+        self.sample = sample
+        self.user = user
+        self.revision = revision
+        self.logs = []
+        self.errors = []
+        self.rows_to_save = []
+
+    def has(self, key):
+        return key in self.request.POST
+
+    def decimal(self, key, label):
+        return _parse_decimal(self.request.POST.get(key), label, self.errors)
+
+    def log(self, label, old, new):
+        if old == new:
+            return False
+        self.logs.append(
+            QCEditLog(
+                sample=self.sample,
+                entry_revision=self.revision,
+                field_label=label,
+                previous_value=_fmt(old),
+                new_value=_fmt(new),
+                edited_by=self.user,
+            )
+        )
         return True
-    return bool(_rows_for_route(sample, route))
 
 
-def _fill_from_first(replicates):
-    if len(replicates) < 2:
+def _edit_gold_slot(edit, qc_review, slot, replicates, labels):
+    id_field = f"gold_replicate_{slot}_id"
+    value_field = f"gold_test_{slot}"
+    label = f"Gold Test {slot} (ppm)"
+    pick_key = f"qc_gold_replicate_{slot}"
+    value_key = f"qc_gold_test_{slot}"
+
+    if not edit.has(pick_key) and not edit.has(value_key):
         return
-    first = replicates[0]
-    for field in SHARED_FIELDS:
-        value = getattr(first, field)
-        if value is None:
-            continue
-        for replicate in replicates[1:]:
-            if getattr(replicate, field) is None:
-                setattr(replicate, field, value)
 
+    old_value = getattr(qc_review, value_field)
+    old_id = getattr(qc_review, id_field)
+    new_id = old_id
 
-def _pending_crm(submission):
-    return any(
-        item["kind"] == "crm" and item["state"] != "submitted"
-        for item in _mineral_worksheet_items(submission)
-    )
-
-
-def _pending_sections(submission, skip_sample=None, skip_route=None):
-    candidates = (
-        _visible_samples()
-        .filter(
-            submission=submission,
-            analysis_status__in=MineralAnalysisEntry.EDITABLE_SAMPLE_STATUSES,
-        )
-        .order_by("id")
-    )
-    sections = []
-    for candidate in candidates:
-        for route in _routes(candidate):
-            if (
-                skip_sample is not None
-                and candidate.pk == skip_sample.pk
-                and route == skip_route
-            ):
-                continue
-            section = SECTION_LISTS[route]
-            if section in sections:
-                continue
-            if _route_pending(candidate, route) and _can_open(candidate, route):
-                sections.append(section)
-
-    if MINERAL_LIST_ROUTE not in sections and _pending_crm(submission):
-        sections.insert(0, MINERAL_LIST_ROUTE)
-    return sections
-
-
-def _finalize(request, sample, entry, list_route, entry_route):
-    if "submit_qc" in request.POST:
+    raw_pick = (edit.request.POST.get(pick_key) or "").strip()
+    if raw_pick:
         try:
-            entry.submit_to_qc(request.user)
-        except ValidationError as exc:
-            messages.error(request, " ".join(exc.messages))
-            return redirect(entry_route, slug=sample.slug)
-        messages.success(request, f"{lab_sample_id_for(sample)} submitted to QC.")
-        sections = _pending_sections(sample.submission, sample, entry_route)
-        target = list_route
-        if sections:
-            target = list_route if list_route in sections else sections[0]
-            if target == list_route:
-                extra = " (or CRM)" if target == MINERAL_LIST_ROUTE else ""
-                messages.info(
-                    request,
-                    f"Choose the next {SECTION_LABELS[target]} item{extra} from the list.",
+            candidate = int(raw_pick)
+        except ValueError:
+            candidate = None
+        replicate = replicates.get(candidate)
+        if replicate is None or replicate.gold_ppm is None:
+            edit.errors.append(f"{label}: choose a valid replicate.")
+        else:
+            new_id = candidate
+
+    if new_id != old_id:
+        new_value = replicates[new_id].gold_ppm
+        edit.log(
+            f"Gold Test {slot} — source replicate",
+            labels.get(old_id, "") if old_id else "",
+            labels.get(new_id, ""),
+        )
+        setattr(qc_review, id_field, new_id)
+    else:
+        new_value = edit.decimal(value_key, label) if edit.has(value_key) else old_value
+
+    edit.log(label, old_value, new_value)
+    setattr(qc_review, value_field, new_value)
+
+
+def _save_mineral_edits(edit, entry, qc_review):
+    elements = entry.registered_elements
+    replicate_list = list(entry.replicates.all())
+    replicates = {r.id: r for r in replicate_list}
+    labels = {r.id: f"Replicate {i}" for i, r in enumerate(replicate_list, 1)}
+
+    if elements.get("gold"):
+        for slot in (1, 2):
+            _edit_gold_slot(edit, qc_review, slot, replicates, labels)
+        id_1, id_2 = qc_review.gold_replicate_1_id, qc_review.gold_replicate_2_id
+        if id_1 is not None and id_1 == id_2:
+            edit.errors.append(
+                "Gold Test 1 and Gold Test 2 must come from different replicates."
+            )
+
+    for element, field_name, post_key, label in SINGLE_FIELDS:
+        if not elements.get(element) or not edit.has(post_key):
+            continue
+        new = edit.decimal(post_key, label)
+        edit.log(label, getattr(qc_review, field_name), new)
+        setattr(qc_review, field_name, new)
+
+
+def _save_carbon_edits(edit, entry, qc_review):
+    if not edit.has("qc_carbon_final"):
+        return
+    new = edit.decimal("qc_carbon_final", "Carbon Activity (%)")
+    edit.log("Carbon Activity (%)", qc_review.carbon_activity_final, new)
+    qc_review.carbon_activity_final = new
+
+
+def _snapshot_metallurgical(entry, qc_review):
+    if qc_review.metallurgical_original is not None:
+        return
+    qc_review.metallurgical_original = [
+        {
+            "row_id": row.id,
+            "parameter": row.source_parameter.display_label,
+            "weight_volume": _fmt(row.weight_volume),
+            "si_unit": row.si_unit,
+            "gold_recovery_12h": _fmt(row.gold_recovery_12h),
+            "gold_recovery_24h": _fmt(row.gold_recovery_24h),
+            "gold_recovery_48h": _fmt(row.gold_recovery_48h),
+            "remarks": row.remarks,
+            "qc_included": row.qc_included,
+        }
+        for row in entry.rows.select_related("source_parameter")
+    ]
+
+
+def _save_metallurgical_edits(edit, entry, qc_review):
+    _snapshot_metallurgical(entry, qc_review)
+
+    for _row_field, _key, label, flag in RECOVERY_FIELDS:
+        old = getattr(qc_review, flag)
+        new = edit.request.POST.get(flag) == "on"
+        edit.log(
+            f"{label} — shown on COA",
+            "Shown" if old else "Hidden",
+            "Shown" if new else "Hidden",
+        )
+        setattr(qc_review, flag, new)
+
+    for row in entry.rows.select_related("source_parameter"):
+        prefix = f"row{row.id}"
+        if not edit.has(f"{prefix}_weight_volume"):
+            continue
+        row_label = row.source_parameter.display_label
+        changed = False
+
+        weight_new = edit.decimal(
+            f"{prefix}_weight_volume", f"{row_label} Weight/Volume"
+        )
+        if edit.log(f"{row_label} — Weight/Volume", row.weight_volume, weight_new):
+            row.weight_volume = weight_new
+            changed = True
+
+        unit_new = (edit.request.POST.get(f"{prefix}_si_unit") or "").strip()
+        if edit.log(f"{row_label} — SI Unit", row.si_unit, unit_new):
+            row.si_unit = unit_new
+            changed = True
+
+        for field_name, key, label, _flag in RECOVERY_FIELDS:
+            new_val = edit.decimal(f"{prefix}_{key}", f"{row_label} {label}")
+            if edit.log(f"{row_label} — {label}", getattr(row, field_name), new_val):
+                setattr(row, field_name, new_val)
+                changed = True
+
+        included_new = edit.request.POST.get(f"{prefix}_included") == "on"
+        if edit.log(
+            f"{row_label} — included on COA",
+            "Yes" if row.qc_included else "No",
+            "Yes" if included_new else "No",
+        ):
+            row.qc_included = included_new
+            changed = True
+
+        remarks_new = (edit.request.POST.get(f"{prefix}_remarks") or "").strip()
+        if edit.log(f"{row_label} — Remarks", row.remarks, remarks_new):
+            row.remarks = remarks_new
+            changed = True
+
+        if changed:
+            edit.rows_to_save.append(row)
+
+
+def _apply_edits(request, sample, kind, entry, qc_review, user):
+    edit = _Edit(request, sample, user, entry.revision)
+    if kind == "mineral":
+        _save_mineral_edits(edit, entry, qc_review)
+    elif kind == "carbon":
+        _save_carbon_edits(edit, entry, qc_review)
+    elif kind == "metallurgical":
+        _save_metallurgical_edits(edit, entry, qc_review)
+    return edit
+
+
+def _commit_edits(edit, qc_review, user):
+    for row in edit.rows_to_save:
+        row.save()
+    qc_review.updated_by = user
+    qc_review.save()
+    if edit.logs:
+        QCEditLog.objects.bulk_create(edit.logs)
+
+
+def _approval_errors(kind, entry, qc_review):
+    if entry is None:
+        return ["No submitted data was found for this sample."]
+    errors = []
+    prefix = f"{KIND_LABELS.get(kind, kind)}: "
+
+    if kind == "mineral":
+        elements = entry.registered_elements
+        if elements.get("gold"):
+            if qc_review.gold_test_1 is None:
+                errors.append(f"{prefix}Gold Test 1 (ppm) is required.")
+            if qc_review.gold_test_2 is None:
+                errors.append(f"{prefix}Gold Test 2 (ppm) is required.")
+        for element, field_name, _key, label in SINGLE_FIELDS:
+            if elements.get(element) and getattr(qc_review, field_name) is None:
+                errors.append(f"{prefix}{label} is required.")
+    elif kind == "carbon":
+        if qc_review.carbon_activity_final is None:
+            errors.append(f"{prefix}Carbon Activity (%) is required.")
+    elif kind == "metallurgical":
+        rows = [
+            r for r in entry.rows.select_related("source_parameter") if r.qc_included
+        ]
+        if not rows:
+            errors.append(f"{prefix}Include at least one parameter on the COA.")
+        for row in rows:
+            label = row.source_parameter.display_label
+            if row.weight_volume is None or row.weight_volume <= 0:
+                errors.append(f"{prefix}{label}: Weight / Volume is required.")
+            if not row.si_unit:
+                errors.append(f"{prefix}{label}: SI Unit is required.")
+    return errors
+
+
+def _all_approval_errors(sample, qc_review):
+    entries = _all_entries(sample)
+    present = {kind: entry for kind, entry in entries.items() if entry is not None}
+    if not present:
+        return ["No submitted data was found for this sample."]
+    errors = []
+    for kind in KIND_ORDER:
+        if kind in present:
+            errors += _approval_errors(kind, present[kind], qc_review)
+    return errors
+
+
+def _flash_errors(request, errors):
+    for error in errors[:10]:
+        messages.error(request, error)
+
+
+def _auto_generate_coas(request, submission, sample):
+    try:
+        coas = sync_coas(
+            submission,
+            request.user,
+            base_url=request.build_absolute_uri("/"),
+            sample=sample,
+        )
+    except ValidationError as exc:
+        for message in exc.messages:
+            messages.warning(request, message)
+        return
+    except Exception:
+        logger.exception("Automatic COA generation failed for %s", submission.reference)
+        messages.warning(
+            request,
+            "Sample approved, but the COA could not be generated automatically.",
+        )
+        return
+
+    if not coas:
+        return
+
+    numbers = ", ".join(c.coa_number for c in coas)
+    messages.success(request, f"COA created or updated: {numbers}.")
+
+    if not getattr(settings, "COA_BUILD_IN_BACKGROUND", True) and any(
+        not c.pdf_file or not c.png_file for c in coas
+    ):
+        messages.warning(
+            request,
+            "COA saved but some files failed to build. "
+            "Use “Rebuild files” on the report page.",
+        )
+
+
+def _review_redirect(sample, kind):
+    url = reverse("qc:sample_review", kwargs={"slug": sample.slug})
+    if kind:
+        url = f"{url}?kind={kind}"
+    return HttpResponseRedirect(url)
+
+
+def _handle_post(request, sample, kind, entry):
+    action = request.POST.get("action")
+    back = _review_redirect(sample, kind)
+    user = request.user if request.user.is_authenticated else None
+
+    if action not in ("save_edits", "approve", "return_reassay"):
+        messages.error(request, "Unknown action.")
+        return back
+
+    with transaction.atomic():
+        locked = Sample.objects.select_for_update().get(pk=sample.pk)
+        qc_review = QCReview.objects.select_for_update().get(sample=locked)
+
+        if action == "save_edits":
+            if not _is_editable(locked, entry):
+                messages.error(request, "This sample can no longer be edited.")
+                return back
+            edit = _apply_edits(request, locked, kind, entry, qc_review, user)
+            if edit.errors:
+                _flash_errors(request, edit.errors)
+                return back
+            _commit_edits(edit, qc_review, user)
+            if edit.logs:
+                messages.success(
+                    request, f"QC edits saved ({len(edit.logs)} change(s))."
                 )
             else:
-                messages.info(
-                    request,
-                    f"Continue with {SECTION_LABELS[target]} for this reference.",
-                )
-        return redirect(target, reference=sample.submission.reference)
+                messages.success(request, "No changes to save.")
+            return back
 
-    messages.success(request, "Draft saved.")
-    return redirect(entry_route, slug=sample.slug)
+        if locked.analysis_status not in REVIEW_STATUSES:
+            messages.error(request, "This sample is not awaiting QC review.")
+            return back
 
+        if action == "return_reassay":
+            locked.set_analysis_status(Sample.REASSAY_REQUIRED)
+            QCDecision.objects.create(
+                sample=locked,
+                action=QCDecision.RETURNED,
+                entry_revision=entry.revision if entry else None,
+                decided_by=user,
+            )
+            messages.success(
+                request, f"{lab_sample_id_for(sample)} returned for reassay."
+            )
+            return redirect("qc:pending_review")
 
-def _format_result(value):
-    if value is None:
-        return None
-    return format(value, "f")
+        if request.POST.get("edit_form") == "1":
+            if not _is_editable(locked, entry):
+                messages.error(request, "This sample can no longer be edited.")
+                return back
+            edit = _apply_edits(request, locked, kind, entry, qc_review, user)
+            if edit.errors:
+                _flash_errors(request, edit.errors)
+                return back
+            _commit_edits(edit, qc_review, user)
 
+        problems = _all_approval_errors(locked, qc_review)
+        if problems:
+            _flash_errors(request, problems)
+            return back
 
-@chemist_required
-def chemist_dashboard(request):
-    visible = _visible_samples()
-
-    awaiting_mineral_count = (
-        visible.filter(
-            analysis_status=Sample.SUBMITTED_TO_LAB,
-            sample_services__service__metallurgical_type=Service.NONE,
+        locked.set_analysis_status(Sample.QC_APPROVED)
+        QCDecision.objects.create(
+            sample=locked,
+            action=QCDecision.APPROVED,
+            entry_revision=entry.revision if entry else None,
+            decided_by=user,
         )
-        .distinct()
-        .count()
-    )
 
-    awaiting_metallurgical_count = (
-        visible.filter(
-            analysis_status=Sample.SUBMITTED_TO_LAB,
-            sample_services__service__metallurgical_type__in=METALLURGICAL_TYPES,
+    messages.success(request, f"{lab_sample_id_for(sample)} approved.")
+    _auto_generate_coas(request, sample.submission, sample)
+    return redirect("qc:pending_review")
+
+
+@qc_required
+def qc_dashboard(request):
+    visible = Sample.objects.filter(submission__is_submitted=True)
+    cutoff = timezone.now() - timedelta(hours=OVERDUE_HOURS)
+
+    def base(**filters):
+        return (
+            visible.filter(**filters)
+            .select_related("submission", "lab_mapping")
+            .order_by("-updated_at", "-id")
         )
-        .distinct()
-        .count()
-    )
 
-    reassay_count = visible.filter(analysis_status=Sample.REASSAY_REQUIRED).count()
-    qc_approved_count = visible.filter(analysis_status=Sample.QC_APPROVED).count()
-    in_qc_count = visible.filter(analysis_status=Sample.SUBMITTED_TO_QC).count()
-    reassay_submitted_count = visible.filter(
-        analysis_status=Sample.REASSAY_SUBMITTED
-    ).count()
-
-    recent_samples = visible.select_related("submission").order_by("-updated_at")[:8]
+    pending = base(analysis_status=Sample.SUBMITTED_TO_QC)
+    reassay = base(analysis_status=Sample.REASSAY_SUBMITTED)
+    approved = base(analysis_status=Sample.QC_APPROVED)
+    overdue = base(analysis_status__in=REVIEW_STATUSES, updated_at__lt=cutoff)
 
     today = timezone.localdate()
     days = [today - timedelta(days=offset) for offset in range(6, -1, -1)]
@@ -441,651 +645,334 @@ def chemist_dashboard(request):
     ]
 
     context = {
-        "awaiting_mineral_count": awaiting_mineral_count,
-        "awaiting_metallurgical_count": awaiting_metallurgical_count,
-        "reassay_count": reassay_count,
-        "qc_approved_count": qc_approved_count,
-        "in_qc_count": in_qc_count,
-        "reassay_submitted_count": reassay_submitted_count,
-        "recent_samples": recent_samples,
+        "pending_count": pending.count(),
+        "reassay_count": reassay.count(),
+        "approved_count": approved.count(),
+        "overdue_count": overdue.count(),
+        "generated_coa_count": COA.objects.count(),
+        "pending_samples": _with_lab_id(pending[:5]),
+        "reassay_samples": _with_lab_id(reassay[:5]),
+        "approved_samples": _with_lab_id(approved[:5]),
+        "overdue_samples": _with_lab_id(overdue[:5]),
+        "overdue_hours": OVERDUE_HOURS,
         "weekly_chart": weekly_chart,
     }
-    return render(request, "chemist/chemist_dashboard.html", context)
+    return render(request, "quantity_control/qc_dashboard.html", context)
 
 
-@chemist_required
-def mineral_analysis_search(request):
+def _status_list(request, template, statuses, extra=None, expand=False):
     reference = request.GET.get("reference", "").strip()
+    samples = (
+        Sample.objects.filter(
+            submission__is_submitted=True, analysis_status__in=statuses
+        )
+        .select_related("submission", "lab_mapping")
+        .annotate(latest_activity=Max("submission__samples__updated_at"))
+        .order_by("-latest_activity", "-submission_id", "id")
+    )
+    if extra is not None:
+        samples = samples.filter(extra)
     if reference:
-        return redirect(MINERAL_LIST_ROUTE, reference=reference)
-    return render(request, "chemist/mineral_analysis_search.html")
+        samples = samples.filter(submission__reference__iexact=reference)
+
+    page_obj, querystring = _paginate(request, samples)
+    builder = _review_items if expand else _sample_items
+    context = {
+        "reference": reference,
+        "items": builder(page_obj.object_list),
+        "page_obj": page_obj,
+        "querystring": querystring,
+        "total_count": samples.count(),
+    }
+    return render(request, template, context)
 
 
-def _mineral_worksheet_items(submission):
-    worksheets = mineral_worksheets(submission)
-    if not worksheets:
+@qc_required
+def pending_review(request):
+    return _status_list(
+        request,
+        "quantity_control/pending_review.html",
+        (Sample.SUBMITTED_TO_QC,),
+        expand=True,
+    )
+
+
+@qc_required
+def reassay_review(request):
+    return _status_list(
+        request,
+        "quantity_control/reassay_review.html",
+        (Sample.REASSAY_SUBMITTED,),
+        expand=True,
+    )
+
+
+@qc_required
+def approved_reports(request):
+    return _status_list(
+        request,
+        "quantity_control/approved_reports.html",
+        (Sample.QC_APPROVED,),
+        expand=True,
+    )
+
+
+@qc_required
+def generate_report(request):
+    return redirect("qc:generated_reports")
+
+
+@qc_required
+def overdue_results(request):
+    cutoff = timezone.now() - timedelta(hours=OVERDUE_HOURS)
+    return _status_list(
+        request,
+        "quantity_control/pending_review.html",
+        REVIEW_STATUSES,
+        extra=Q(updated_at__lt=cutoff),
+        expand=True,
+    )
+
+
+@qc_required
+def quick_search(request):
+    query = request.GET.get("q", "").strip()
+    if not query:
+        return redirect("qc:qc_dashboard")
+
+    coa = (
+        COA.objects.filter(**{f"{COA_NUMBER_FIELD}__iexact": query})
+        .select_related("submission")
+        .first()
+    )
+    if coa is not None:
+        return redirect("qc:report_detail", reference=coa.submission.reference)
+
+    submission = Submission.objects.filter(
+        is_submitted=True, reference__iexact=query
+    ).first()
+    if submission is not None:
+        return redirect("qc:report_detail", reference=submission.reference)
+
+    matches = list(
+        Sample.objects.filter(
+            submission__is_submitted=True,
+            lab_mapping__lab_sample_id__icontains=query,
+        )[:2]
+    )
+    if len(matches) == 1:
+        return redirect("qc:sample_review", slug=matches[0].slug)
+    if len(matches) > 1:
+        messages.info(request, "Several samples match. Enter the full Laboratory ID.")
+    else:
+        messages.error(request, f"Nothing found for “{query}”.")
+    return redirect("qc:qc_dashboard")
+
+
+def _crm_entries_for_sample(sample):
+    rows = worksheet_rows_for_sample(sample)
+    if not rows:
         return []
-
-    owner = {}
-    for worksheet in worksheets:
-        sample_ids = worksheet.rows.filter(
-            row_type__in=(WorksheetRow.SAMPLE_ROW, WorksheetRow.REPLICATE_ROW),
-            lab_sample_mapping__isnull=False,
-        ).values_list("lab_sample_mapping__sample", flat=True)
-        for sample_id in set(sample_ids):
-            owner.setdefault(sample_id, worksheet.pk)
-
-    active_ids = set(owner.values()) | {worksheets[0].pk}
-    active = [w for w in reversed(worksheets) if w.pk in active_ids]
-
-    items = []
-    for worksheet in active:
-        elements = worksheet_elements(worksheet)
-        rows = worksheet.rows.select_related("lab_sample_mapping__sample").order_by(
-            "row_number"
-        )
-        crm_data = {
-            crm.worksheet_row_id: crm
-            for crm in CRMEntry.objects.filter(worksheet_row__worksheet=worksheet)
-        }
-
-        by_sample = {}
-        for row in rows:
-            number = row.display_number or row.row_number
-            if (
-                row.row_type in (WorksheetRow.SAMPLE_ROW, WorksheetRow.REPLICATE_ROW)
-                and row.lab_sample_mapping_id
-            ):
-                sample = row.lab_sample_mapping.sample
-                if owner.get(sample.pk) != worksheet.pk:
-                    continue
-                item = by_sample.get(sample.pk)
-                if item is None:
-                    item = {
-                        "kind": "sample",
-                        "sample": sample,
-                        "lab_id": format_lab_sample_id(
-                            row.lab_sample_mapping.lab_sample_id
-                        ),
-                        "first": number,
-                        "last": number,
-                    }
-                    by_sample[sample.pk] = item
-                    items.append(item)
-                item["last"] = number
-            elif row.row_type == WorksheetRow.CRM_ROW:
-                crm = crm_data.get(row.pk)
-                if crm is None or not crm.has_data:
-                    state = "pending"
-                elif crm.status == CRMEntry.SUBMITTED_TO_QC:
-                    state = "submitted"
-                elif crm.is_complete(elements):
-                    state = "complete"
-                else:
-                    state = "partial"
-                items.append(
-                    {"kind": "crm", "number": number, "row_id": row.pk, "state": state}
-                )
-
-    sample_ids = [item["sample"].pk for item in items if item["kind"] == "sample"]
-    latest = {}
-    for entry in MineralAnalysisEntry.objects.filter(sample_id__in=sample_ids).order_by(
-        "-revision"
-    ):
-        latest.setdefault(entry.sample_id, entry)
-
-    for item in items:
-        if item["kind"] != "sample":
+    last = rows[-1]
+    following = last.worksheet.rows.filter(row_number__gt=last.row_number).order_by(
+        "row_number"
+    )
+    crm_rows = []
+    for row in following:
+        if row.row_type == WorksheetRow.BLANK_ROW:
             continue
-        sample = item["sample"]
-        entry = latest.get(sample.pk)
-        item["submitted"] = (
-            entry is not None
-            and entry.status == MineralAnalysisEntry.SUBMITTED_TO_QC
-            and not (
-                sample.analysis_status == Sample.REASSAY_REQUIRED
-                and not entry.is_reassay
-            )
+        if row.row_type != WorksheetRow.CRM_ROW:
+            break
+        crm_rows.append(row)
+    return [
+        crm
+        for crm in (
+            CRMEntry.objects.filter(worksheet_row=row).first() for row in crm_rows
         )
-    return items
+        if crm is not None
+    ]
 
 
-@chemist_required
-def mineral_analysis_samples(request, reference):
-    submission = _find_submission(reference)
+@qc_required
+def sample_review(request, slug):
+    sample = get_object_or_404(
+        Sample.objects.filter(submission__is_submitted=True).select_related(
+            "submission", "submission__client", "lab_mapping"
+        ),
+        slug=slug,
+    )
 
-    items = []
-    sample_count = 0
-    worksheet_missing = False
-    if submission:
-        mineral_samples_exist = (
-            _visible_samples()
-            .filter(
-                submission=submission,
-                sample_services__service__metallurgical_type=Service.NONE,
-            )
-            .exists()
-        )
-        worksheet_missing = (
-            latest_mineral_worksheet(submission) is None and mineral_samples_exist
-        )
-        if not worksheet_missing:
-            items = _mineral_worksheet_items(submission)
-        sample_count = sum(1 for item in items if item["kind"] == "sample")
+    requested = request.POST.get("kind") or request.GET.get("kind")
+    kind, entry = _select_entry(sample, requested)
+    qc_review = _get_qc_review(sample, kind, entry)
+
+    if request.method == "POST":
+        return _handle_post(request, sample, kind, entry)
+
+    reviewable = sample.analysis_status in REVIEW_STATUSES
+    report_locked = _report_locked(sample)
+    editable = _is_editable(sample, entry)
+
+    services = (
+        sample.sample_services.select_related("service")
+        .prefetch_related("parameters")
+        .all()
+    )
 
     context = {
-        "reference": reference,
-        "submission": submission,
-        "items": items,
-        "sample_count": sample_count,
-        "worksheet_missing": worksheet_missing,
+        "sample": sample,
+        "lab_id": lab_sample_id_for(sample),
+        "kind": kind,
+        "kinds": [{"key": k, "label": KIND_LABELS[k]} for k in _kinds_for(sample)],
+        "entry": entry,
+        "services": services,
+        "reviewable": reviewable,
+        "editable": editable,
+        "report_locked": report_locked,
+        "qc_review": qc_review,
+        "edit_logs": sample.qc_edit_logs.select_related("edited_by")[:20],
+        "decisions": sample.qc_decisions.select_related("decided_by")[:10],
+        "is_reassay": sample.analysis_status
+        in (Sample.REASSAY_REQUIRED, Sample.REASSAY_SUBMITTED)
+        or (entry.is_reassay if entry else False),
     }
-    return render(request, "chemist/mineral_analysis_samples.html", context)
+
+    if kind == "mineral" and entry is not None:
+        replicates = list(entry.replicates.all())
+        context["elements"] = entry.registered_elements
+        context["replicates"] = replicates
+        context["gold_options"] = [
+            {"id": r.id, "label": f"Replicate {i}", "gold_ppm": r.gold_ppm}
+            for i, r in enumerate(replicates, 1)
+            if r.gold_ppm is not None
+        ]
+        context["crm_entries"] = _crm_entries_for_sample(sample)
+    elif kind == "metallurgical" and entry is not None:
+        context["rows"] = entry.rows.select_related("source_parameter").all()
+        context["original_rows"] = qc_review.metallurgical_original or []
+    elif kind == "carbon" and entry is not None:
+        context["replicates"] = entry.replicates.all()
+
+    return render(request, "quantity_control/sample_review.html", context)
 
 
-@chemist_required
-def mineral_analysis_entry(request, slug):
-    sample = _get_sample(slug)
-    misrouted = _misrouted(sample, MINERAL_ROUTE)
-    if misrouted:
-        return misrouted
-
-    if not _can_open(sample, MINERAL_ROUTE):
-        return _no_worksheet(request)
-
-    entry = _open_entry(MineralAnalysisEntry, sample, request.user)
-    if entry is None:
-        return _no_entry(request, MINERAL_LIST_ROUTE, sample)
-
-    entry.ensure_replicates()
-    replicates = list(
-        entry.replicates.select_related("worksheet_row__lab_sample_mapping")
+@qc_required
+def generated_reports(request):
+    reference = request.GET.get("reference", "").strip()
+    coas = COA.objects.select_related("submission", "group").order_by(
+        "-created_at", "-id"
     )
-    read_only = _is_read_only(sample, entry)
 
-    def render_entry():
-        context = {
-            "sample": sample,
-            "entry": entry,
-            "lab_id": lab_sample_id_for(sample),
-            "elements": entry.registered_elements,
-            "replicates": replicates,
-            "read_only": read_only,
-        }
-        return render(request, "chemist/mineral_analysis_entry.html", context)
+    if reference:
+        coas = coas.filter(submission__reference__iexact=reference)
 
-    if request.method == "POST":
-        if read_only:
-            messages.error(request, "This entry is locked and can no longer be edited.")
-            return redirect(MINERAL_ROUTE, slug=sample.slug)
-
-        reader = _PostReader(request.POST)
-        for replicate in replicates:
-            number = replicate.replicate_number
-            prefix = f"rep{number}"
-            for field, label in MINERAL_FIELDS:
-                setattr(
-                    replicate,
-                    field,
-                    reader.decimal(f"{prefix}_{field}", f"Replicate {number} {label}"),
-                )
-
-        _fill_from_first(replicates)
-
-        for replicate in replicates:
-            _check(reader, replicate, f"Replicate {replicate.replicate_number}")
-
-        if reader.errors:
-            _report_errors(request, reader.errors)
-            return render_entry()
-
-        with transaction.atomic():
-            for replicate in replicates:
-                replicate.save()
-            entry.refresh_status(request.user)
-
-        return _finalize(
-            request,
-            sample,
-            entry,
-            MINERAL_LIST_ROUTE,
-            MINERAL_ROUTE,
-        )
-
-    return render_entry()
+    page_obj, querystring = _paginate(request, coas)
+    context = {
+        "reference": reference,
+        "items": list(page_obj.object_list),
+        "page_obj": page_obj,
+        "querystring": querystring,
+        "total_count": coas.count(),
+    }
+    return render(request, "quantity_control/generated_reports.html", context)
 
 
-@chemist_required
-@require_POST
-def mineral_analysis_preview(request, slug):
-    sample = _get_sample(slug)
-    if not _can_open(sample, MINERAL_ROUTE):
-        return JsonResponse(
-            {"error": "The worksheet for this sample has not been generated."},
-            status=404,
-        )
-    entry = (
-        MineralAnalysisEntry.objects.filter(sample=sample).order_by("-revision").first()
+@qc_required
+def report_detail(request, reference):
+    submission = get_object_or_404(
+        Submission.objects.filter(
+            is_submitted=True, reference__iexact=reference
+        ).select_related("client")
     )
-    if entry is None:
-        return JsonResponse({"results": {}})
-
-    reader = _PostReader(request.POST)
-    replicates = list(entry.replicates.select_related("entry__sample"))
-    for replicate in replicates:
-        number = replicate.replicate_number
-        prefix = f"rep{number}"
-        for field, label in MINERAL_FIELDS:
-            setattr(replicate, field, reader.decimal(f"{prefix}_{field}", label))
-
-    results = {}
-    for replicate in replicates:
-        try:
-            replicate.calculate()
-        except ArithmeticError:
-            replicate.gold_ppm = None
-            replicate.copper_ppm = None
-            replicate.silver_ppm = None
-        results[str(replicate.replicate_number)] = {
-            "gold": _format_result(replicate.gold_ppm),
-            "copper": _format_result(replicate.copper_ppm),
-            "silver": _format_result(replicate.silver_ppm),
-        }
-    return JsonResponse({"results": results})
-
-
-@chemist_required
-def mineral_crm_entry(request, row_id):
-    row = get_object_or_404(
-        WorksheetRow.objects.select_related("worksheet__submission"),
-        pk=row_id,
-        row_type=WorksheetRow.CRM_ROW,
-        worksheet__worksheet_type=Worksheet.MINERAL_ANALYSIS,
-        worksheet__submission__is_submitted=True,
+    coas = list(
+        COA.objects.filter(submission=submission)
+        .select_related("group", "approved_by")
+        .order_by("coa_number")
     )
-    submission = row.worksheet.submission
-    elements = worksheet_elements(row.worksheet)
-    crm, _ = CRMEntry.objects.get_or_create(worksheet_row=row)
-    read_only = crm.is_locked
 
-    def render_entry():
-        context = {
-            "crm": crm,
-            "submission": submission,
-            "elements": elements,
-            "read_only": read_only,
-        }
-        return render(request, "chemist/mineral_crm_entry.html", context)
-
-    if request.method == "POST":
-        if read_only:
-            messages.error(
-                request, "This CRM was submitted to QC and can no longer be edited."
-            )
-            return redirect("chemist:mineral_crm_entry", row_id=row.pk)
-
-        reader = _PostReader(request.POST)
-        for field, label in MINERAL_FIELDS:
-            setattr(crm, field, reader.decimal(f"crm_{field}", f"CRM {label}"))
-        _check(reader, crm, "CRM")
-
-        if reader.errors:
-            _report_errors(request, reader.errors)
-            return render_entry()
-
-        with transaction.atomic():
-            crm.entered_by = request.user
-            crm.save()
-            crm.refresh_status(elements, request.user)
-
-        if "submit_qc" in request.POST:
+    if request.method == "POST" and request.POST.get("action") == "rebuild_files":
+        rebuilt = 0
+        for coa in coas:
+            if coa.pdf_file and coa.png_file:
+                continue
             try:
-                crm.submit_to_qc(elements, request.user)
-            except ValidationError as exc:
-                messages.error(request, " ".join(exc.messages))
-                return redirect("chemist:mineral_crm_entry", row_id=row.pk)
-            messages.success(request, "CRM submitted to QC.")
-            sections = _pending_sections(submission)
-            target = MINERAL_LIST_ROUTE
-            if sections:
-                target = (
-                    MINERAL_LIST_ROUTE
-                    if MINERAL_LIST_ROUTE in sections
-                    else sections[0]
+                attach_files(coa, base_url=request.build_absolute_uri("/"))
+                rebuilt += 1
+            except Exception:
+                logger.exception("COA file rebuild failed for %s", coa.coa_number)
+                messages.error(
+                    request, f"Could not rebuild files for {coa.coa_number}."
                 )
-                if target == MINERAL_LIST_ROUTE:
-                    messages.info(
-                        request,
-                        "Choose the next mineral analysis item (or CRM) from the list.",
-                    )
-                else:
-                    messages.info(
-                        request,
-                        f"Continue with {SECTION_LABELS[target]} for this reference.",
-                    )
-            return redirect(target, reference=submission.reference)
+        if rebuilt:
+            messages.success(request, f"Rebuilt files for {rebuilt} COA(s).")
+        return redirect("qc:report_detail", reference=submission.reference)
 
-        messages.success(request, "Draft saved.")
-        return redirect("chemist:mineral_crm_entry", row_id=row.pk)
-
-    return render_entry()
-
-
-@chemist_required
-def metallurgical_tests_search(request):
-    reference = request.GET.get("reference", "").strip()
-    if reference:
-        return redirect(METALLURGICAL_LIST_ROUTE, reference=reference)
-    return render(request, "chemist/metallurgical_tests_search.html")
-
-
-@chemist_required
-def metallurgical_tests_samples(request, reference):
-    submission = _find_submission(reference)
-
-    items = []
-    worksheet_missing_count = 0
-    if submission:
-        candidates = list(
-            _visible_samples()
-            .filter(submission=submission)
-            .filter(
-                Q(sample_services__service__metallurgical_type__in=METALLURGICAL_TYPES)
-                | Q(metallurgical_test_entries__isnull=False)
-                | Q(carbon_activity_entries__isnull=False)
-            )
-            .distinct()
-            .order_by("id")
-        )
-        for sample in candidates:
-            for route in _routes(sample):
-                if route == MINERAL_ROUTE:
-                    continue
-                if _can_open(sample, route):
-                    items.append(
-                        {
-                            "sample": sample,
-                            "lab_id": lab_sample_id_for(sample),
-                            "route": route,
-                            "label": ROUTE_LABELS[route],
-                            "url": reverse(route, kwargs={"slug": sample.slug}),
-                            "submitted": not _route_pending(sample, route),
-                        }
-                    )
-                else:
-                    worksheet_missing_count += 1
-
-    context = {
-        "reference": reference,
-        "submission": submission,
-        "items": items,
-        "sample_count": len(items),
-        "pending_count": sum(1 for item in items if not item["submitted"]),
-        "worksheet_missing_count": worksheet_missing_count,
-    }
-    return render(request, "chemist/metallurgical_tests_samples.html", context)
-
-
-@chemist_required
-def metallurgical_test_entry(request, slug):
-    sample = _get_sample(slug)
-    misrouted = _misrouted(sample, CYANIDE_ROUTE)
-    if misrouted:
-        return misrouted
-
-    if not _can_open(sample, CYANIDE_ROUTE):
-        return _no_worksheet(request)
-
-    entry = _open_entry(MetallurgicalTestEntry, sample, request.user)
-    if entry is None:
-        return _no_entry(request, METALLURGICAL_LIST_ROUTE, sample)
-
-    entry.ensure_parameter_rows()
-    rows = list(entry.rows.select_related("source_parameter", "worksheet_row"))
-    read_only = _is_read_only(sample, entry)
-
-    def render_entry():
-        context = {
-            "sample": sample,
-            "lab_id": lab_sample_id_for(sample),
-            "entry": entry,
-            "rows": rows,
-            "read_only": read_only,
-        }
-        return render(request, "chemist/metallurgical_test_entry.html", context)
-
-    if request.method == "POST":
-        if read_only:
-            messages.error(request, "This entry is locked and can no longer be edited.")
-            return redirect(CYANIDE_ROUTE, slug=sample.slug)
-
-        reader = _PostReader(request.POST)
-        for row in rows:
-            prefix = f"row{row.id}"
-            label = row.source_parameter.display_label
-            for field, key, field_label in METALLURGICAL_FIELDS:
-                setattr(
-                    row,
-                    field,
-                    reader.decimal(f"{prefix}_{key}", f"{label} {field_label}"),
-                )
-            row.si_unit = reader.text(f"{prefix}_si_unit")
-            if row.si_unit and row.si_unit not in row.allowed_units:
-                reader.errors.append(
-                    f"{label} SI unit must be one of: {', '.join(row.allowed_units)}."
-                )
-            row.remarks = reader.text(f"{prefix}_remarks")
-            _check(reader, row, label)
-
-        if reader.errors:
-            _report_errors(request, reader.errors)
-            return render_entry()
-
-        with transaction.atomic():
-            for row in rows:
-                row.save()
-            entry.refresh_status(request.user)
-
-        return _finalize(
-            request,
-            sample,
-            entry,
-            METALLURGICAL_LIST_ROUTE,
-            CYANIDE_ROUTE,
-        )
-
-    return render_entry()
-
-
-@chemist_required
-def carbon_activity_entry(request, slug):
-    sample = _get_sample(slug)
-    misrouted = _misrouted(sample, CARBON_ROUTE)
-    if misrouted:
-        return misrouted
-
-    if not _can_open(sample, CARBON_ROUTE):
-        return _no_worksheet(request)
-
-    entry = _open_entry(CarbonActivityEntry, sample, request.user)
-    if entry is None:
-        return _no_entry(request, METALLURGICAL_LIST_ROUTE, sample)
-
-    entry.ensure_replicates()
-    replicates = list(
-        entry.replicates.select_related("worksheet_row__lab_sample_mapping")
-    )
-    read_only = _is_read_only(sample, entry)
-
-    def render_entry():
-        context = {
-            "sample": sample,
-            "lab_id": lab_sample_id_for(sample),
-            "entry": entry,
-            "replicates": replicates,
-            "read_only": read_only,
-        }
-        return render(request, "chemist/carbon_activity_entry.html", context)
-
-    if request.method == "POST":
-        if read_only:
-            messages.error(request, "This entry is locked and can no longer be edited.")
-            return redirect(CARBON_ROUTE, slug=sample.slug)
-
-        reader = _PostReader(request.POST)
-        for replicate in replicates:
-            number = replicate.replicate_number
-            prefix = f"rep{number}"
-            for field, key, label in CARBON_FIELDS:
-                setattr(
-                    replicate,
-                    field,
-                    reader.decimal(f"{prefix}_{key}", f"Replicate {number} {label}"),
-                )
-            replicate.remarks = reader.text(f"{prefix}_remarks")
-            _check(reader, replicate, f"Replicate {number}")
-
-        if reader.errors:
-            _report_errors(request, reader.errors)
-            return render_entry()
-
-        with transaction.atomic():
-            for replicate in replicates:
-                replicate.save()
-            entry.recalculate_final_activity()
-            entry.refresh_status(request.user)
-
-        return _finalize(
-            request,
-            sample,
-            entry,
-            METALLURGICAL_LIST_ROUTE,
-            CARBON_ROUTE,
-        )
-
-    return render_entry()
-
-
-@chemist_required
-@require_POST
-def carbon_activity_preview(request, slug):
-    sample = _get_sample(slug)
-    entry = (
-        CarbonActivityEntry.objects.filter(sample=sample).order_by("-revision").first()
-    )
-    if entry is None:
-        return JsonResponse({"results": {}, "final": None})
-
-    reader = _PostReader(request.POST)
-    results = {}
-    activities = []
-
-    for replicate in entry.replicates.all():
-        number = replicate.replicate_number
-        prefix = f"rep{number}"
-        for field, key, label in CARBON_FIELDS:
-            setattr(replicate, field, reader.decimal(f"{prefix}_{key}", label))
-        try:
-            replicate.calculate()
-        except ArithmeticError:
-            replicate.activity_percent = None
-        results[str(number)] = {"activity": _format_result(replicate.activity_percent)}
-        if replicate.activity_percent is not None:
-            activities.append(replicate.activity_percent)
-
-    final = None
-    if activities and len(activities) == entry.required_replicate_count:
-        try:
-            average = sum(activities) / Decimal(len(activities))
-            final = _format_result(_quantize(average * Decimal("0.80")))
-        except ArithmeticError:
-            final = None
-
-    return JsonResponse({"results": results, "final": final})
-
-
-@chemist_required
-def reassay_samples(request):
-    reference = request.GET.get("reference", "").strip()
-    status = request.GET.get("status", "all")
-
-    visible = _visible_samples()
-
-    samples = (
-        visible.filter(
-            analysis_status__in=[Sample.REASSAY_REQUIRED, Sample.REASSAY_SUBMITTED]
-        )
-        .select_related("submission", "lab_mapping")
-        .order_by("-updated_at", "-id")
-    )
-
-    if reference:
-        samples = samples.filter(submission__reference__iexact=reference)
-
-    if status == "required":
-        samples = samples.filter(analysis_status=Sample.REASSAY_REQUIRED)
-    elif status == "submitted":
-        samples = samples.filter(analysis_status=Sample.REASSAY_SUBMITTED)
-
-    page_obj, querystring = _paginate(request, samples)
-
-    items = [
-        {"sample": sample, "lab_id": lab_sample_id_for(sample)}
-        for sample in page_obj.object_list
-    ]
-
-    required_count = visible.filter(analysis_status=Sample.REASSAY_REQUIRED).count()
-    submitted_count = visible.filter(analysis_status=Sample.REASSAY_SUBMITTED).count()
-
-    context = {
-        "reference": reference,
-        "status": status,
-        "items": items,
-        "page_obj": page_obj,
-        "querystring": querystring,
-        "required_count": required_count,
-        "submitted_count": submitted_count,
-        "total_count": required_count + submitted_count,
-    }
-    return render(request, "chemist/reassay_samples.html", context)
-
-
-@chemist_required
-def reassay_entry(request, slug):
-    sample = _get_sample(slug)
-    return redirect(_routes(sample)[0], slug=sample.slug)
-
-
-@chemist_required
-def qc_approved(request):
-    reference = request.GET.get("reference", "").strip()
-    visible = _visible_samples()
-
-    samples = (
-        visible.filter(analysis_status=Sample.QC_APPROVED)
-        .select_related("submission", "lab_mapping")
-        .order_by("-updated_at", "-id")
-    )
-
-    if reference:
-        samples = samples.filter(submission__reference__iexact=reference)
-
-    page_obj, querystring = _paginate(request, samples)
-
-    items = [
+    entries = [
         {
-            "sample": sample,
-            "lab_id": lab_sample_id_for(sample),
-            "route": _routes(sample)[0],
+            "coa": coa,
+            "samples": (
+                _sample_items(
+                    coa.group.samples.select_related("submission").order_by("id")
+                )
+                if coa.group_id
+                else []
+            ),
+            "files_ready": bool(coa.pdf_file and coa.png_file),
+            "preview_ready": bool(coa.png_file),
+            "released": coa.is_client_visible,
         }
-        for sample in page_obj.object_list
+        for coa in coas
     ]
-
+    samples = list(submission.samples.select_related("submission").order_by("id"))
     context = {
-        "reference": reference,
-        "items": items,
-        "page_obj": page_obj,
-        "querystring": querystring,
-        "total_count": visible.filter(analysis_status=Sample.QC_APPROVED).count(),
+        "submission": submission,
+        "sample_items": _sample_items(samples),
+        "entries": entries,
+        "has_missing_files": any(not e["files_ready"] for e in entries),
+        "payment_pending": any(not e["released"] for e in entries),
+        "all_ready": bool(entries) and all(e["released"] for e in entries),
     }
-    return render(request, "chemist/qc_approved.html", context)
+    return render(request, "quantity_control/report_detail.html", context)
+
+
+@qc_required
+def report_coa_preview(request, coa_id):
+    coa = get_object_or_404(COA, pk=coa_id, submission__is_submitted=True)
+    if not coa.png_file:
+        raise Http404
+
+    if not coa.is_client_visible:
+        with coa.png_file.open("rb") as source:
+            image = Image.open(source)
+            image.load()
+        preview = image.filter(ImageFilter.GaussianBlur(radius=12))
+        output = BytesIO()
+        preview.save(output, format="PNG")
+        response = HttpResponse(output.getvalue(), content_type="image/png")
+    else:
+        response = FileResponse(
+            coa.png_file.open("rb"),
+            content_type="image/png",
+        )
+    response["Cache-Control"] = "private, no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@qc_required
+def report_coa_file(request, pk, kind):
+    coa = get_object_or_404(COA, pk=pk)
+    if kind == "pdf":
+        field, content_type = coa.pdf_file, "application/pdf"
+    elif kind == "png":
+        field, content_type = coa.png_file, "image/png"
+    else:
+        raise Http404
+    if not field:
+        raise Http404
+    return FileResponse(
+        field.open("rb"),
+        content_type=content_type,
+        as_attachment=request.GET.get("download") == "1",
+        filename=f"{coa.coa_number.replace('/', '-')}.{kind}",
+    )
