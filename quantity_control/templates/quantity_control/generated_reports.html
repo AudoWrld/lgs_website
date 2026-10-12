@@ -63,12 +63,12 @@
           <td class="list-cell-action">
             <div class="row-actions">
               {% if coa.pdf_file %}
-              <a href="{{ coa.pdf_file.url }}" target="_blank" rel="noopener" class="btn btn-outline btn-sm">
+              <a href="{% url 'qc:report_coa_file' coa.pk 'pdf' %}?download=1" class="btn btn-outline btn-sm" download aria-label="Download PDF for {{ coa.coa_number }}">
                 <i class='bx bxs-file-pdf' aria-hidden="true"></i> PDF
               </a>
               {% endif %}
               {% if coa.png_file %}
-              <a href="{{ coa.png_file.url }}" target="_blank" rel="noopener" class="btn btn-outline btn-sm">
+              <a href="{% url 'qc:report_coa_file' coa.pk 'png' %}?download=1" class="btn btn-outline btn-sm" download aria-label="Download PNG for {{ coa.coa_number }}">
                 <i class='bx bx-image' aria-hidden="true"></i> PNG
               </a>
               {% endif %}
