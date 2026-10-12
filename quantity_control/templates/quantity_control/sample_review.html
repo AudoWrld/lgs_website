@@ -42,16 +42,6 @@
       {% for ss in services %}<li>{{ ss.service.name }}</li>{% endfor %}
     </ul>
   </div>
-  {% if kinds %}
-  <div class="qc-meta-item">
-    <span class="qc-meta-label">View Service</span>
-    <div class="qc-kind-tabs">
-      {% for k in kinds %}
-      <a href="?kind={{ k.key }}" class="btn btn-sm {% if k.key == kind %}btn-primary{% else %}btn-outline{% endif %}">{{ k.label }}</a>
-      {% endfor %}
-    </div>
-  </div>
-  {% endif %}
   <div class="qc-meta-item">
     <span class="qc-meta-label">Method of Analysis</span>
     <ul class="qc-meta-list">

@@ -21,6 +21,15 @@
   .qc-table td {
     vertical-align: middle;
   }
+
+  .list-card .table tbody tr.qc-gap td,
+  .list-card .table tbody tr.qc-gap:hover td {
+    height: 1.25rem;
+    padding: 0;
+    background: var(--off-white);
+    border-left: none;
+    border-right: none;
+  }
 </style>
 {% endblock %}
 
@@ -54,6 +63,7 @@
           <th>Lab Sample ID</th>
           <th>Reference</th>
           <th>Client</th>
+          <th>Service</th>
           <th>Last Updated</th>
           <th>Action</th>
         </tr>
@@ -61,6 +71,11 @@
       <tbody>
         {% for item in items %}
         {% with sample=item.sample %}
+        {% ifchanged sample.submission.reference %}
+          {% if not forloop.first %}
+          <tr class="qc-gap" aria-hidden="true"><td colspan="6"></td></tr>
+          {% endif %}
+        {% endifchanged %}
         <tr>
           <td>
             <div class="qc-id">
@@ -70,9 +85,10 @@
           </td>
           <td>{{ sample.submission.reference }}</td>
           <td>{{ sample.submission.client.client_name }}</td>
+          <td>{{ item.kind_label }}</td>
           <td class="list-cell-muted">{{ sample.updated_at|date:"d M Y, H:i" }}</td>
           <td class="list-cell-action">
-            <a href="{% url 'qc:sample_review' slug=sample.slug %}" class="btn btn-outline btn-sm">
+            <a href="{% url 'qc:sample_review' slug=sample.slug %}{% if item.kind %}?kind={{ item.kind }}{% endif %}" class="btn btn-outline btn-sm">
               <i class='bx bx-show' aria-hidden="true"></i> Review
             </a>
           </td>

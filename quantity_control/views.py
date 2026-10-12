@@ -132,7 +132,10 @@ def _review_items(samples):
     items = []
     for sample in samples:
         lab_id = lab_sample_id_for(sample)
-        for kind in _kinds_for(sample) or [None]:
+        entries = _all_entries(sample)
+        kinds = [kind for kind in KIND_ORDER if entries[kind] is not None]
+        for kind in kinds or [None]:
+            entry = entries.get(kind) if kind else None
             items.append(
                 {
                     "sample": sample,
@@ -140,6 +143,7 @@ def _review_items(samples):
                     "submission": sample.submission,
                     "kind": kind or "",
                     "kind_label": KIND_LABELS.get(kind, ""),
+                    "is_reassay": bool(entry and entry.is_reassay),
                 }
             )
     return items
@@ -663,7 +667,7 @@ def _status_list(request, template, statuses, extra=None, expand=False):
             submission__is_submitted=True, analysis_status__in=statuses
         )
         .select_related("submission", "lab_mapping")
-        .order_by("-updated_at", "-id")
+        .order_by("submission__reference", "id")
     )
     if extra is not None:
         samples = samples.filter(extra)
