@@ -111,18 +111,27 @@ def latest_mineral_worksheet(submission):
     )
 
 
-def worksheet_rows_for_sample(sample):
-    worksheet = latest_mineral_worksheet(sample.submission)
-    if worksheet is None:
-        return []
+def mineral_worksheets(submission):
     return list(
-        worksheet.rows.filter(
-            lab_sample_mapping__sample=sample,
-            row_type__in=[WorksheetRow.SAMPLE_ROW, WorksheetRow.REPLICATE_ROW],
-        )
-        .select_related("worksheet", "lab_sample_mapping")
-        .order_by("row_number")
+        Worksheet.objects.filter(
+            submission=submission, worksheet_type=Worksheet.MINERAL_ANALYSIS
+        ).order_by("-generated_at", "-id")
     )
+
+
+def worksheet_rows_for_sample(sample):
+    for worksheet in mineral_worksheets(sample.submission):
+        rows = list(
+            worksheet.rows.filter(
+                lab_sample_mapping__sample=sample,
+                row_type__in=[WorksheetRow.SAMPLE_ROW, WorksheetRow.REPLICATE_ROW],
+            )
+            .select_related("worksheet", "lab_sample_mapping")
+            .order_by("row_number")
+        )
+        if rows:
+            return rows
+    return []
 
 
 def latest_carbon_worksheet(submission):

@@ -9,6 +9,7 @@ from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -30,6 +31,7 @@ from .models import (
     lab_sample_id_for,
     latest_carbon_worksheet,
     latest_mineral_worksheet,
+    mineral_worksheets,
     worksheet_elements,
     worksheet_rows_for_sample,
 )
@@ -85,6 +87,17 @@ ROUTE_LABELS = {
     MINERAL_ROUTE: "Mineral analysis",
     CYANIDE_ROUTE: "Cyanide leaching",
     CARBON_ROUTE: "Carbon activity",
+}
+
+SECTION_LISTS = {
+    MINERAL_ROUTE: MINERAL_LIST_ROUTE,
+    CYANIDE_ROUTE: METALLURGICAL_LIST_ROUTE,
+    CARBON_ROUTE: METALLURGICAL_LIST_ROUTE,
+}
+
+SECTION_LABELS = {
+    MINERAL_LIST_ROUTE: "mineral analysis",
+    METALLURGICAL_LIST_ROUTE: "metallurgical tests",
 }
 
 ENTRY_MODELS = {
@@ -281,8 +294,7 @@ def _rows_for_route(sample, route):
 
 
 def _route_pending(sample, route):
-    model = ENTRY_MODELS[route]
-    entry = model.objects.filter(sample=sample).order_by("-revision").first()
+    entry = _latest_entry(ENTRY_MODELS[route], sample)
     return entry is None or entry.status != entry.SUBMITTED_TO_QC
 
 
@@ -305,31 +317,26 @@ def _fill_from_first(replicates):
                 setattr(replicate, field, value)
 
 
-def _other_service_target(sample, current_route):
-    for route in _routes(sample):
-        if route == current_route:
-            continue
-        if _route_pending(sample, route) and _rows_for_route(sample, route):
-            return route, sample
-
-    pending = (
+def _pending_sections(sample, current_route):
+    candidates = (
         _visible_samples()
         .filter(
             submission=sample.submission,
             analysis_status__in=MineralAnalysisEntry.EDITABLE_SAMPLE_STATUSES,
         )
-        .exclude(pk=sample.pk)
-        .select_related("lab_mapping", "submission")
         .order_by("id")
-        .distinct()
     )
-    for candidate in pending:
+    sections = []
+    for candidate in candidates:
         for route in _routes(candidate):
-            if route == current_route:
+            if candidate.pk == sample.pk and route == current_route:
                 continue
-            if _route_pending(candidate, route) and _rows_for_route(candidate, route):
-                return route, candidate
-    return None
+            section = SECTION_LISTS[route]
+            if section in sections:
+                continue
+            if _route_pending(candidate, route) and _can_open(candidate, route):
+                sections.append(section)
+    return sections
 
 
 def _finalize(request, sample, entry, list_route, entry_route):
@@ -340,15 +347,21 @@ def _finalize(request, sample, entry, list_route, entry_route):
             messages.error(request, " ".join(exc.messages))
             return redirect(entry_route, slug=sample.slug)
         messages.success(request, f"{lab_sample_id_for(sample)} submitted to QC.")
-        target = _other_service_target(sample, entry_route)
-        if target is not None:
-            route, candidate = target
-            messages.info(
-                request,
-                f"Continue with {lab_sample_id_for(candidate)} ({ROUTE_LABELS[route]}).",
-            )
-            return redirect(route, slug=candidate.slug)
-        return redirect(list_route, reference=sample.submission.reference)
+        sections = _pending_sections(sample, entry_route)
+        target = list_route
+        if sections:
+            target = list_route if list_route in sections else sections[0]
+            if target == list_route:
+                messages.info(
+                    request,
+                    f"Choose the next {SECTION_LABELS[target]} item from the list.",
+                )
+            else:
+                messages.info(
+                    request,
+                    f"Continue with {SECTION_LABELS[target]} for this reference.",
+                )
+        return redirect(target, reference=sample.submission.reference)
 
     messages.success(request, "Draft saved.")
     return redirect(entry_route, slug=sample.slug)
@@ -434,55 +447,70 @@ def mineral_analysis_search(request):
 
 
 def _mineral_worksheet_items(submission):
-    worksheet = latest_mineral_worksheet(submission)
-    if worksheet is None:
+    worksheets = mineral_worksheets(submission)
+    if not worksheets:
         return []
 
-    elements = worksheet_elements(worksheet)
-    rows = worksheet.rows.select_related("lab_sample_mapping__sample").order_by(
-        "row_number"
-    )
-    crm_data = {
-        crm.worksheet_row_id: crm
-        for crm in CRMEntry.objects.filter(worksheet_row__worksheet=worksheet)
-    }
+    owner = {}
+    for worksheet in worksheets:
+        sample_ids = worksheet.rows.filter(
+            row_type__in=(WorksheetRow.SAMPLE_ROW, WorksheetRow.REPLICATE_ROW),
+            lab_sample_mapping__isnull=False,
+        ).values_list("lab_sample_mapping__sample", flat=True)
+        for sample_id in set(sample_ids):
+            owner.setdefault(sample_id, worksheet.pk)
+
+    active_ids = set(owner.values()) | {worksheets[0].pk}
+    active = [w for w in reversed(worksheets) if w.pk in active_ids]
 
     items = []
-    by_sample = {}
-    for row in rows:
-        number = row.display_number or row.row_number
-        if (
-            row.row_type in (WorksheetRow.SAMPLE_ROW, WorksheetRow.REPLICATE_ROW)
-            and row.lab_sample_mapping_id
-        ):
-            sample = row.lab_sample_mapping.sample
-            item = by_sample.get(sample.pk)
-            if item is None:
-                item = {
-                    "kind": "sample",
-                    "sample": sample,
-                    "lab_id": format_lab_sample_id(
-                        row.lab_sample_mapping.lab_sample_id
-                    ),
-                    "first": number,
-                    "last": number,
-                }
-                by_sample[sample.pk] = item
-                items.append(item)
-            item["last"] = number
-        elif row.row_type == WorksheetRow.CRM_ROW:
-            crm = crm_data.get(row.pk)
-            if crm is None or not crm.has_data:
-                state = "pending"
-            elif crm.status == CRMEntry.SUBMITTED_TO_QC:
-                state = "submitted"
-            elif crm.is_complete(elements):
-                state = "complete"
-            else:
-                state = "partial"
-            items.append(
-                {"kind": "crm", "number": number, "row_id": row.pk, "state": state}
-            )
+    for worksheet in active:
+        elements = worksheet_elements(worksheet)
+        rows = worksheet.rows.select_related("lab_sample_mapping__sample").order_by(
+            "row_number"
+        )
+        crm_data = {
+            crm.worksheet_row_id: crm
+            for crm in CRMEntry.objects.filter(worksheet_row__worksheet=worksheet)
+        }
+
+        by_sample = {}
+        for row in rows:
+            number = row.display_number or row.row_number
+            if (
+                row.row_type in (WorksheetRow.SAMPLE_ROW, WorksheetRow.REPLICATE_ROW)
+                and row.lab_sample_mapping_id
+            ):
+                sample = row.lab_sample_mapping.sample
+                if owner.get(sample.pk) != worksheet.pk:
+                    continue
+                item = by_sample.get(sample.pk)
+                if item is None:
+                    item = {
+                        "kind": "sample",
+                        "sample": sample,
+                        "lab_id": format_lab_sample_id(
+                            row.lab_sample_mapping.lab_sample_id
+                        ),
+                        "first": number,
+                        "last": number,
+                    }
+                    by_sample[sample.pk] = item
+                    items.append(item)
+                item["last"] = number
+            elif row.row_type == WorksheetRow.CRM_ROW:
+                crm = crm_data.get(row.pk)
+                if crm is None or not crm.has_data:
+                    state = "pending"
+                elif crm.status == CRMEntry.SUBMITTED_TO_QC:
+                    state = "submitted"
+                elif crm.is_complete(elements):
+                    state = "complete"
+                else:
+                    state = "partial"
+                items.append(
+                    {"kind": "crm", "number": number, "row_id": row.pk, "state": state}
+                )
     return items
 
 
@@ -726,6 +754,8 @@ def metallurgical_tests_samples(request, reference):
                             "lab_id": lab_sample_id_for(sample),
                             "route": route,
                             "label": ROUTE_LABELS[route],
+                            "url": reverse(route, kwargs={"slug": sample.slug}),
+                            "submitted": not _route_pending(sample, route),
                         }
                     )
                 else:
@@ -736,6 +766,7 @@ def metallurgical_tests_samples(request, reference):
         "submission": submission,
         "items": items,
         "sample_count": len(items),
+        "pending_count": sum(1 for item in items if not item["submitted"]),
         "worksheet_missing_count": worksheet_missing_count,
     }
     return render(request, "chemist/metallurgical_tests_samples.html", context)
