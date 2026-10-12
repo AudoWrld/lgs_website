@@ -37,6 +37,60 @@ from .models import QCDecision, QCEditLog, QCReview
 
 logger = logging.getLogger(__name__)
 
+KIND_ORDER = ("metallurgical", "carbon", "mineral")
+KIND_LABELS = {
+    "metallurgical": "Cyanide leaching",
+    "carbon": "Carbon activity",
+    "mineral": "Mineral analysis",
+}
+
+
+def _all_entries(sample):
+    return {
+        "metallurgical": MetallurgicalTestEntry.objects.filter(sample=sample)
+        .order_by("-revision")
+        .first(),
+        "carbon": CarbonActivityEntry.objects.filter(sample=sample)
+        .order_by("-revision")
+        .first(),
+        "mineral": MineralAnalysisEntry.objects.filter(sample=sample)
+        .order_by("-revision")
+        .first(),
+    }
+
+
+def _kinds_for(sample):
+    entries = _all_entries(sample)
+    return [kind for kind in KIND_ORDER if entries[kind] is not None]
+
+
+def _select_entry(sample, requested=None):
+    entries = _all_entries(sample)
+    if requested in entries and entries[requested] is not None:
+        return requested, entries[requested]
+    for kind in KIND_ORDER:
+        if entries[kind] is not None:
+            return kind, entries[kind]
+    return _load_entry(sample)
+
+
+def _review_items(samples):
+    items = []
+    for sample in samples:
+        lab_id = lab_sample_id_for(sample)
+        for kind in _kinds_for(sample) or [None]:
+            items.append(
+                {
+                    "sample": sample,
+                    "lab_id": lab_id,
+                    "submission": sample.submission,
+                    "kind": kind or "",
+                    "kind_label": KIND_LABELS.get(kind, ""),
+                }
+            )
+    return items
+
+
 PAGE_SIZE = 12
 DECIMAL_PLACES = Decimal("0.0001")
 MAX_VALUE = Decimal("99999999")
@@ -601,7 +655,7 @@ def qc_dashboard(request):
     return render(request, "quantity_control/qc_dashboard.html", context)
 
 
-def _status_list(request, template, statuses, extra=None):
+def _status_list(request, template, statuses, extra=None, expand=False):
     reference = request.GET.get("reference", "").strip()
     samples = (
         Sample.objects.filter(
@@ -616,9 +670,10 @@ def _status_list(request, template, statuses, extra=None):
         samples = samples.filter(submission__reference__iexact=reference)
 
     page_obj, querystring = _paginate(request, samples)
+    builder = _review_items if expand else _sample_items
     context = {
         "reference": reference,
-        "items": _sample_items(page_obj.object_list),
+        "items": builder(page_obj.object_list),
         "page_obj": page_obj,
         "querystring": querystring,
         "total_count": samples.count(),
@@ -629,7 +684,10 @@ def _status_list(request, template, statuses, extra=None):
 @qc_required
 def pending_review(request):
     return _status_list(
-        request, "quantity_control/pending_review.html", (Sample.SUBMITTED_TO_QC,)
+        request,
+        "quantity_control/pending_review.html",
+        (Sample.SUBMITTED_TO_QC,),
+        expand=True,
     )
 
 
@@ -660,6 +718,7 @@ def overdue_results(request):
         "quantity_control/pending_review.html",
         REVIEW_STATUSES,
         extra=Q(updated_at__lt=cutoff),
+        expand=True,
     )
 
 
@@ -731,7 +790,8 @@ def sample_review(request, slug):
         slug=slug,
     )
 
-    kind, entry = _load_entry(sample)
+    requested = request.POST.get("kind") or request.GET.get("kind")
+    kind, entry = _select_entry(sample, requested)
     qc_review = _get_qc_review(sample, kind, entry)
 
     if request.method == "POST":
@@ -746,6 +806,10 @@ def sample_review(request, slug):
         .prefetch_related("parameters")
         .all()
     )
+
+    kinds_list = [
+        {"key": k, "label": KIND_LABELS[k]} for k in _kinds_for(sample)
+    ]
 
     context = {
         "sample": sample,
@@ -762,6 +826,7 @@ def sample_review(request, slug):
         "is_reassay": sample.analysis_status
         in (Sample.REASSAY_REQUIRED, Sample.REASSAY_SUBMITTED)
         or (entry.is_reassay if entry else False),
+        "kinds": kinds_list,
     }
 
     if kind == "mineral" and entry is not None:

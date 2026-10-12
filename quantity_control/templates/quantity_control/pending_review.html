@@ -54,6 +54,7 @@
           <th>Lab Sample ID</th>
           <th>Reference</th>
           <th>Client</th>
+          <th>Service</th>
           <th>Last Updated</th>
           <th>Action</th>
         </tr>
@@ -70,9 +71,10 @@
           </td>
           <td>{{ sample.submission.reference }}</td>
           <td>{{ sample.submission.client.client_name }}</td>
+          <td>{{ item.kind_label }}</td>
           <td class="list-cell-muted">{{ sample.updated_at|date:"d M Y, H:i" }}</td>
           <td class="list-cell-action">
-            <a href="{% url 'qc:sample_review' slug=sample.slug %}" class="btn btn-outline btn-sm">
+            <a href="{% url 'qc:sample_review' slug=sample.slug %}{% if item.kind %}?kind={{ item.kind }}{% endif %}" class="btn btn-outline btn-sm">
               <i class='bx bx-show' aria-hidden="true"></i> Review
             </a>
           </td>
