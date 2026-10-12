@@ -47,7 +47,9 @@ STAMP_DATE_CX = 0.508
 STAMP_DATE_CY = 0.539
 STAMP_DATE_W = 0.455
 
-COMPANY_NAME = "LGS MINERAL ASSAY LABORATORY"
+COMPANY_NAME = "KARUMWA"
+COMPANY_NAME_SIZE = 25 * PX
+COMPANY_NAME_SPACING = 3
 ADDRESS_LINES = [
     "Karumwa \u2013 Sweya, Kahama Road, Njia Panda ya Mahagi, Nyang'hwale, Geita",
     "P.O. Box 1214, Mwanza, Tanzania",
@@ -198,6 +200,22 @@ def _draw_watermark(c, d):
     c.doForm("watermark")
 
 
+def _draw_company_name(c, right, y):
+    font = "Helvetica-Bold"
+    size = COMPANY_NAME_SIZE
+    spacing = COMPANY_NAME_SPACING
+    width = stringWidth(COMPANY_NAME, font, size) + spacing * (len(COMPANY_NAME) - 1)
+    c.saveState()
+    t = c.beginText()
+    t.setFont(font, size)
+    t.setFillColor(COMPANY_BLUE)
+    t.setCharSpace(spacing)
+    t.setTextOrigin(right - width, y)
+    t.textOut(COMPANY_NAME)
+    c.drawText(t)
+    c.restoreState()
+
+
 def _draw_letterhead(c, d):
     right = PAGE_W - MARGIN_X
     if d.logo_path and os.path.exists(d.logo_path):
@@ -211,12 +229,10 @@ def _draw_letterhead(c, d):
             mask="auto",
             anchor="sw",
         )
-    c.setFillColor(COMPANY_BLUE)
-    c.setFont("Helvetica-Bold", 15)
-    c.drawRightString(right, PAGE_H - 15 * mm, COMPANY_NAME)
+    _draw_company_name(c, right, PAGE_H - 16 * mm)
     c.setFillColor(PURPLE)
     c.setFont("Helvetica", 8.5)
-    y = PAGE_H - 21.5 * mm
+    y = PAGE_H - 22.5 * mm
     for line in ADDRESS_LINES:
         c.drawRightString(right, y, line)
         y -= 4.3 * mm
