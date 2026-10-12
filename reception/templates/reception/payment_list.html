@@ -236,16 +236,16 @@
           <button type="button" class="ps-rollup-toggle" aria-expanded="true" aria-label="Minimize documents"><i class='bx bx-minus' aria-hidden="true"></i></button>
         </span>
       </div>
-      <div class="ps-rollup-body">
-        <p>Open the documents for this submission.</p>
-        <a href="{% url 'reception:client_submission_form_pdf' submission.reference %}?view=1" target="_blank" rel="noopener" class="ps-rollup-link">
+        <div class="ps-rollup-body">
+        <p>Download the documents for this submission.</p>
+        <a href="{% url 'reception:client_submission_form_pdf' submission.reference %}" download="{{ submission.reference }}-client-submission-form.pdf" class="ps-rollup-link">
           <i class='bx bx-file' aria-hidden="true"></i> Client Submission Form
-          <i class='bx bx-link-external ps-rollup-link-end' aria-hidden="true"></i>
+          <i class='bx bx-download ps-rollup-link-end' aria-hidden="true"></i>
         </a>
         {% if submission.worksheets.exists %}
-        <a href="{% url 'reception:worksheet_pdf' submission.reference %}" target="_blank" rel="noopener" class="ps-rollup-link">
+        <a href="{% url 'reception:worksheet_pdf' submission.reference %}" download="{{ submission.reference }}-laboratory-worksheet.pdf" class="ps-rollup-link">
           <i class='bx bx-file-blank' aria-hidden="true"></i> Laboratory Worksheet
-          <i class='bx bx-link-external ps-rollup-link-end' aria-hidden="true"></i>
+          <i class='bx bx-download ps-rollup-link-end' aria-hidden="true"></i>
         </a>
         {% else %}
         <span class="ps-rollup-pending">Worksheet not generated yet.</span>
