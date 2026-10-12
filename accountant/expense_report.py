@@ -14,7 +14,7 @@ from expenses.models import Expense
 from .expense_pdf import render_expense_pdf
 
 ZERO = Decimal("0.00")
-COMPANY_NAME = "LGS AFRICAN GROUP COMPANY LIMITED"
+COMPANY_NAME = "LGS MINERAL ASSAY LABORATORY"
 LOGO_STATIC = "core/img/lgs-logo.png"
 PREVIEW_ROWS = 5
 

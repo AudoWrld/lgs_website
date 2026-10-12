@@ -19,7 +19,7 @@ from .views import (
     _total,
 )
 
-COMPANY_NAME = "LGS AFRICAN GROUP COMPANY LIMITED"
+COMPANY_NAME = "LGS MINERAL ASSAY LABORATORY"
 LOGO_STATIC = "core/img/lgs-logo.png"
 CONTACT_LINES = ()
 

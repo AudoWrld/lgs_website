@@ -1,13 +1,15 @@
 from xml.sax.saxutils import escape
 
 from reportlab.lib.units import mm
-from reportlab.platypus import CondPageBreak, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import CondPageBreak, Paragraph, Spacer, Table
 
 from .expense_pdf import (
     CONTENT_WIDTH,
+    LAB_NAME,
     _clip,
     _clock,
     _styles,
+    amount_table,
     build_pdf,
     details_table,
     heading,
@@ -19,45 +21,8 @@ from .expense_pdf import (
 TITLE = "FINANCIAL REPORT"
 
 
-def _grid(cells, styles, label_width, columns):
-    cells = list(cells)
-    while len(cells) % columns:
-        cells.append(("", None))
-
-    rows = []
-    for i in range(0, len(cells), columns):
-        row = []
-        for label, amount in cells[i : i + columns]:
-            row.append(Paragraph(escape(label), styles["base"]) if label else "")
-            row.append(
-                Paragraph(money(amount), styles["base_right"])
-                if amount is not None
-                else ""
-            )
-        rows.append(row)
-
-    pair = CONTENT_WIDTH / columns
-    commands = [
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 2),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-    ]
-    for column in range(columns):
-        commands.append(("RIGHTPADDING", (column * 2 + 1, 0), (column * 2 + 1, -1), 8))
-
-    table = Table(
-        rows,
-        colWidths=[label_width, pair - label_width] * columns,
-        hAlign="LEFT",
-    )
-    table.setStyle(TableStyle(commands))
-    return table
-
-
 def _records(headers, widths, rows, right_columns, styles):
-    room = [width - 8 for width in widths]
+    room = [width - 10 for width in widths]
     data = [
         [
             Paragraph(
@@ -104,7 +69,7 @@ def render_financial_pdf(
     meta = {
         "title": TITLE,
         "subtitle": f"REPORT PERIOD: {period.upper()}",
-        "company": company,
+        "company": LAB_NAME,
         "logo_path": logo_path,
         "contact_lines": tuple(contact_lines),
         "generated": f"{printed:%d %b %Y} {_clock(printed)}",
@@ -122,26 +87,34 @@ def render_financial_pdf(
             styles,
         ),
         *_section("Summary (TZS)", styles),
-        _grid(
+        amount_table(
+            ("Item", "Amount (TZS)"),
             [
-                ("Payments Collected:", data["payments_total"]),
-                ("Expenses:", data["expenses_total"]),
-                ("Net Income:", data["net_total"]),
-                ("Outstanding Debt:", data["outstanding_debt"]),
-                ("Credit Outstanding:", data["credit_outstanding"]),
+                ("Payments Collected", money(data["payments_total"])),
+                ("Expenses", money(data["expenses_total"])),
+                ("Net Income", money(data["net_total"])),
+                ("Outstanding Debt", money(data["outstanding_debt"])),
+                ("Credit Outstanding", money(data["credit_outstanding"])),
             ],
             styles,
-            40 * mm,
-            2,
+            widths=[CONTENT_WIDTH * 0.7, CONTENT_WIDTH * 0.3],
+            bold_rows={2},
         ),
     ]
 
-    channels = [(f"{c['label']}:", c["amount"]) for c in data["channels"]]
-    while len(channels) % 3 != 2:
-        channels.append(("", None))
-    channels.append(("Total:", data["payments_total"]))
     story.extend(_section("Collections by Channel (TZS)", styles))
-    story.append(_grid(channels, styles, 22 * mm, 3))
+    if data["channels"]:
+        story.append(
+            amount_table(
+                ("Channel", "Amount (TZS)"),
+                [(c["label"], money(c["amount"])) for c in data["channels"]],
+                styles,
+                widths=[CONTENT_WIDTH * 0.7, CONTENT_WIDTH * 0.3],
+                total=("Total", money(data["payments_total"])),
+            )
+        )
+    else:
+        story.append(Paragraph("No collections in this period.", styles["muted"]))
 
     story.extend(_section("Payments Collected", styles))
     if data["payments"]:
@@ -245,5 +218,5 @@ def render_financial_pdf(
     story.append(signature_block(styles, printed))
 
     return build_pdf(
-        story, meta, f"Financial Report {start:%d %b %Y} to {end:%d %b %Y}", company
+        story, meta, f"Financial Report {start:%d %b %Y} to {end:%d %b %Y}"
     )
