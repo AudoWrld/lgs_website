@@ -9,7 +9,7 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Count, Max, Q
 from django.db.models.functions import TruncDate
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
@@ -615,7 +615,7 @@ def qc_dashboard(request):
         return (
             visible.filter(**filters)
             .select_related("submission", "lab_mapping")
-            .order_by("-updated_at")
+            .order_by("-updated_at", "-id")
         )
 
     pending = base(analysis_status=Sample.SUBMITTED_TO_QC)
@@ -667,7 +667,8 @@ def _status_list(request, template, statuses, extra=None, expand=False):
             submission__is_submitted=True, analysis_status__in=statuses
         )
         .select_related("submission", "lab_mapping")
-        .order_by("submission__reference", "id")
+        .annotate(latest_activity=Max("submission__samples__updated_at"))
+        .order_by("-latest_activity", "-submission_id", "id")
     )
     if extra is not None:
         samples = samples.filter(extra)
@@ -858,7 +859,9 @@ def sample_review(request, slug):
 @qc_required
 def generated_reports(request):
     reference = request.GET.get("reference", "").strip()
-    coas = COA.objects.select_related("submission", "group").order_by("-created_at")
+    coas = COA.objects.select_related("submission", "group").order_by(
+        "-created_at", "-id"
+    )
 
     if reference:
         coas = coas.filter(submission__reference__iexact=reference)
