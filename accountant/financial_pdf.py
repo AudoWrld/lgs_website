@@ -1,33 +1,19 @@
-from io import BytesIO
 from xml.sax.saxutils import escape
 
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
-from reportlab.platypus import (
-    BaseDocTemplate,
-    CondPageBreak,
-    Frame,
-    PageTemplate,
-    Paragraph,
-    Spacer,
-    Table,
-    TableStyle,
-)
+from reportlab.platypus import CondPageBreak, Paragraph, Spacer, Table, TableStyle
 
 from .expense_pdf import (
-    CHARCOAL,
     CONTENT_WIDTH,
-    FOOTER_HEIGHT,
-    HEADER_HEIGHT,
-    MARGIN,
-    NAVY,
-    ORANGE,
-    NumberedCanvas,
     _clip,
     _clock,
     _styles,
+    build_pdf,
+    details_table,
+    heading,
     money,
+    records_style,
+    signature_block,
 )
 
 TITLE = "FINANCIAL REPORT"
@@ -72,7 +58,14 @@ def _grid(cells, styles, label_width, columns):
 
 def _records(headers, widths, rows, right_columns, styles):
     room = [width - 8 for width in widths]
-    data = [[Paragraph(text, styles["head"]) for text in headers]]
+    data = [
+        [
+            Paragraph(
+                text, styles["head_right"] if index in right_columns else styles["head"]
+            )
+            for index, text in enumerate(headers)
+        ]
+    ]
     for row in rows:
         cells = []
         for index, value in enumerate(row):
@@ -85,26 +78,12 @@ def _records(headers, widths, rows, right_columns, styles):
         data.append(cells)
 
     table = Table(data, colWidths=widths, repeatRows=1)
-    table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, 0), NAVY),
-                ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
-                ("VALIGN", (0, 1), (-1, -1), "TOP"),
-                ("GRID", (0, 0), (-1, -1), 0.4, CHARCOAL),
-                ("LINEBELOW", (0, 0), (-1, 0), 1.2, ORANGE),
-                ("LEFTPADDING", (0, 0), (-1, -1), 4),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-                ("TOPPADDING", (0, 0), (-1, -1), 3),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-            ]
-        )
-    )
+    table.setStyle(records_style())
     return table
 
 
 def _section(title, styles):
-    return [CondPageBreak(35 * mm), Paragraph(title, styles["heading"])]
+    return [CondPageBreak(35 * mm), heading(title, styles)]
 
 
 def _dash(value):
@@ -121,43 +100,27 @@ def render_financial_pdf(
     contact_lines=(),
 ):
     styles = _styles()
-    buffer = BytesIO()
+    period = f"{start:%d %b %Y} TO {end:%d %b %Y}"
     meta = {
         "title": TITLE,
+        "subtitle": f"REPORT PERIOD: {period.upper()}",
         "company": company,
         "logo_path": logo_path,
         "contact_lines": tuple(contact_lines),
         "generated": f"{printed:%d %b %Y} {_clock(printed)}",
     }
-    doc = BaseDocTemplate(
-        buffer,
-        pagesize=A4,
-        leftMargin=MARGIN,
-        rightMargin=MARGIN,
-        topMargin=HEADER_HEIGHT,
-        bottomMargin=FOOTER_HEIGHT,
-        title=f"Financial Report {start:%d %b %Y} to {end:%d %b %Y}",
-        author=company,
-    )
-    frame = Frame(
-        MARGIN,
-        FOOTER_HEIGHT,
-        CONTENT_WIDTH,
-        A4[1] - HEADER_HEIGHT - FOOTER_HEIGHT,
-        leftPadding=0,
-        rightPadding=0,
-        topPadding=0,
-        bottomPadding=0,
-        id="body",
-    )
-    doc.addPageTemplates([PageTemplate(id="report", frames=[frame])])
 
     as_of = f"as of {printed:%d %b %Y}"
 
     story = [
         Spacer(1, 4),
-        Paragraph(f"Report Period: {start:%d %b %Y} TO {end:%d %b %Y}", styles["base"]),
-        Paragraph(f"Printed: {printed:%d/%m/%Y} {_clock(printed)}", styles["base"]),
+        details_table(
+            [
+                ("Report Period:", period),
+                ("Printed:", f"{printed:%d/%m/%Y} {_clock(printed)}"),
+            ],
+            styles,
+        ),
         *_section("Summary (TZS)", styles),
         _grid(
             [
@@ -185,7 +148,7 @@ def render_financial_pdf(
         story.append(
             _records(
                 ("Date", "Reference No.", "Method", "Amount (TZS)"),
-                [32 * mm, 60 * mm, 44 * mm, 54 * mm],
+                [30 * mm, 56 * mm, 42 * mm, 52 * mm],
                 [
                     (
                         row["date"].strftime("%d/%m/%y %H:%M"),
@@ -209,7 +172,7 @@ def render_financial_pdf(
         story.append(
             _records(
                 ("Date", "Category", "Description", "Amount (TZS)"),
-                [16 * mm, 66 * mm, 78 * mm, 30 * mm],
+                [16 * mm, 62 * mm, 72 * mm, 30 * mm],
                 [
                     (
                         row["date"].strftime("%d/%m/%y"),
@@ -231,7 +194,7 @@ def render_financial_pdf(
         story.append(
             _records(
                 ("Reference No.", "Outstanding (TZS)", "Due Date", "Status"),
-                [60 * mm, 46 * mm, 34 * mm, 50 * mm],
+                [56 * mm, 44 * mm, 34 * mm, 46 * mm],
                 [
                     (
                         row["reference"],
@@ -262,7 +225,7 @@ def render_financial_pdf(
                     "Amount Paid (TZS)",
                     "Outstanding (TZS)",
                 ),
-                [60 * mm, 43 * mm, 43 * mm, 44 * mm],
+                [56 * mm, 41 * mm, 41 * mm, 42 * mm],
                 [
                     (
                         row["reference"],
@@ -279,8 +242,8 @@ def render_financial_pdf(
     else:
         story.append(Paragraph("No outstanding debt.", styles["muted"]))
 
-    doc.build(
-        story,
-        canvasmaker=lambda *args, **kwargs: NumberedCanvas(*args, meta=meta, **kwargs),
+    story.append(signature_block(styles, printed))
+
+    return build_pdf(
+        story, meta, f"Financial Report {start:%d %b %Y} to {end:%d %b %Y}", company
     )
-    return buffer.getvalue()
