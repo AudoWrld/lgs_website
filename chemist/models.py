@@ -35,6 +35,10 @@ def _quantize(value, places="0.0001"):
     return Decimal(value).quantize(Decimal(places), rounding=ROUND_HALF_UP)
 
 
+def _title_case(value):
+    return " ".join(word.capitalize() for word in (value or "").split())
+
+
 def _input_field(max_digits=10, decimal_places=4, maximum=None):
     validators = [MinValueValidator(ZERO)]
     if maximum is not None:
@@ -858,6 +862,10 @@ class MetallurgicalTestRow(models.Model):
             return False
         return all(getattr(self, field) is not None for field in self.RECOVERY_FIELDS)
 
+    def save(self, *args, **kwargs):
+        self.remarks = _title_case(self.remarks)
+        super().save(*args, **kwargs)
+
 
 class CarbonActivityEntry(BaseEntry):
     INCOMPLETE_MESSAGE = "All replicates must be completed before submitting to QC."
@@ -1004,5 +1012,6 @@ class CarbonActivityReplicate(models.Model):
             )
 
     def save(self, *args, **kwargs):
+        self.remarks = _title_case(self.remarks)
         self.calculate()
         super().save(*args, **kwargs)
