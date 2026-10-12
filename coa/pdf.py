@@ -483,7 +483,7 @@ def _build(d, pages_total):
         topMargin=FRAME_TOP,
         bottomMargin=FRAME_BOTTOM,
         title=f"Certificate of Analysis {d.coa_number}",
-        author="LGS African Group Company Limited",
+        author="LGS MINERAL ASSAY LABORATORY",
     )
 
     def make_frame(top):

@@ -1,6 +1,6 @@
 # LGS Website
 
-Official website for **LGS Mineral Assay Laboratory**, a laboratory under **LGS African Group Company Limited**.
+Official website for **LGS MINERAL ASSAY LABORATORY**.
 
 ## About
 
