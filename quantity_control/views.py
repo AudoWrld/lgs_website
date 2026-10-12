@@ -128,13 +128,25 @@ def _select_entry(sample, requested=None):
     return _load_entry(sample)
 
 
-def _review_items(samples):
+def _approved_kinds(sample):
+    value = (
+        QCReview.objects.filter(sample=sample)
+        .values_list("approved_kinds", flat=True)
+        .first()
+    )
+    return list(value or [])
+
+
+def _review_items(samples, pending_only=False):
     items = []
     for sample in samples:
         lab_id = lab_sample_id_for(sample)
         entries = _all_entries(sample)
+        done = _approved_kinds(sample)
         kinds = [kind for kind in KIND_ORDER if entries[kind] is not None]
-        for kind in kinds or [None]:
+        if pending_only:
+            kinds = [kind for kind in kinds if kind not in done]
+        for kind in kinds or ([] if pending_only else [None]):
             entry = entries.get(kind) if kind else None
             items.append(
                 {
@@ -471,18 +483,6 @@ def _approval_errors(kind, entry, qc_review):
     return errors
 
 
-def _all_approval_errors(sample, qc_review):
-    entries = _all_entries(sample)
-    present = {kind: entry for kind, entry in entries.items() if entry is not None}
-    if not present:
-        return ["No submitted data was found for this sample."]
-    errors = []
-    for kind in KIND_ORDER:
-        if kind in present:
-            errors += _approval_errors(kind, present[kind], qc_review)
-    return errors
-
-
 def _flash_errors(request, errors):
     for error in errors[:10]:
         messages.error(request, error)
@@ -540,13 +540,17 @@ def _handle_post(request, sample, kind, entry):
         messages.error(request, "Unknown action.")
         return back
 
+    fully_approved = False
+    required = []
+
     with transaction.atomic():
         locked = Sample.objects.select_for_update().get(pk=sample.pk)
         qc_review = QCReview.objects.select_for_update().get(sample=locked)
+        approved_kinds = list(qc_review.approved_kinds or [])
 
         if action == "save_edits":
-            if not _is_editable(locked, entry):
-                messages.error(request, "This sample can no longer be edited.")
+            if kind in approved_kinds or not _is_editable(locked, entry):
+                messages.error(request, "This service can no longer be edited.")
                 return back
             edit = _apply_edits(request, locked, kind, entry, qc_review, user)
             if edit.errors:
@@ -566,6 +570,8 @@ def _handle_post(request, sample, kind, entry):
             return back
 
         if action == "return_reassay":
+            qc_review.approved_kinds = []
+            qc_review.save(update_fields=["approved_kinds", "updated_at"])
             locked.set_analysis_status(Sample.REASSAY_REQUIRED)
             QCDecision.objects.create(
                 sample=locked,
@@ -578,6 +584,10 @@ def _handle_post(request, sample, kind, entry):
             )
             return redirect("qc:pending_review")
 
+        if kind in approved_kinds:
+            messages.info(request, "This service is already approved.")
+            return back
+
         if request.POST.get("edit_form") == "1":
             if not _is_editable(locked, entry):
                 messages.error(request, "This sample can no longer be edited.")
@@ -588,18 +598,39 @@ def _handle_post(request, sample, kind, entry):
                 return back
             _commit_edits(edit, qc_review, user)
 
-        problems = _all_approval_errors(locked, qc_review)
+        problems = _approval_errors(kind, entry, qc_review)
         if problems:
             _flash_errors(request, problems)
             return back
 
-        locked.set_analysis_status(Sample.QC_APPROVED)
+        approved_kinds.append(kind)
+        qc_review.approved_kinds = [k for k in KIND_ORDER if k in approved_kinds]
+        qc_review.save(update_fields=["approved_kinds", "updated_at"])
+
         QCDecision.objects.create(
             sample=locked,
             action=QCDecision.APPROVED,
+            reason=f"{KIND_LABELS.get(kind, kind)} approved",
             entry_revision=entry.revision if entry else None,
             decided_by=user,
         )
+
+        required = _kinds_for(locked)
+        fully_approved = all(k in qc_review.approved_kinds for k in required)
+        if fully_approved:
+            locked.set_analysis_status(Sample.QC_APPROVED)
+        else:
+            remaining = [
+                KIND_LABELS[k] for k in required if k not in qc_review.approved_kinds
+            ]
+
+    if not fully_approved:
+        messages.success(
+            request,
+            f"{KIND_LABELS.get(kind, kind)} approved. "
+            f"Still to approve: {', '.join(remaining)}.",
+        )
+        return redirect("qc:pending_review")
 
     messages.success(request, f"{lab_sample_id_for(sample)} approved.")
     _auto_generate_coas(request, sample.submission, sample)
@@ -660,7 +691,9 @@ def qc_dashboard(request):
     return render(request, "quantity_control/qc_dashboard.html", context)
 
 
-def _status_list(request, template, statuses, extra=None, expand=False):
+def _status_list(
+    request, template, statuses, extra=None, expand=False, pending_only=False
+):
     reference = request.GET.get("reference", "").strip()
     samples = (
         Sample.objects.filter(
@@ -676,10 +709,14 @@ def _status_list(request, template, statuses, extra=None, expand=False):
         samples = samples.filter(submission__reference__iexact=reference)
 
     page_obj, querystring = _paginate(request, samples)
-    builder = _review_items if expand else _sample_items
+    if expand:
+        items = _review_items(page_obj.object_list, pending_only=pending_only)
+    else:
+        items = _sample_items(page_obj.object_list)
+
     context = {
         "reference": reference,
-        "items": builder(page_obj.object_list),
+        "items": items,
         "page_obj": page_obj,
         "querystring": querystring,
         "total_count": samples.count(),
@@ -694,6 +731,7 @@ def pending_review(request):
         "quantity_control/pending_review.html",
         (Sample.SUBMITTED_TO_QC,),
         expand=True,
+        pending_only=True,
     )
 
 
@@ -704,6 +742,7 @@ def reassay_review(request):
         "quantity_control/reassay_review.html",
         (Sample.REASSAY_SUBMITTED,),
         expand=True,
+        pending_only=True,
     )
 
 
@@ -731,6 +770,7 @@ def overdue_results(request):
         REVIEW_STATUSES,
         extra=Q(updated_at__lt=cutoff),
         expand=True,
+        pending_only=True,
     )
 
 
@@ -809,9 +849,12 @@ def sample_review(request, slug):
     if request.method == "POST":
         return _handle_post(request, sample, kind, entry)
 
-    reviewable = sample.analysis_status in REVIEW_STATUSES
+    approved_kinds = list(qc_review.approved_kinds or [])
+    kind_approved = kind in approved_kinds
+
+    reviewable = sample.analysis_status in REVIEW_STATUSES and not kind_approved
     report_locked = _report_locked(sample)
-    editable = _is_editable(sample, entry)
+    editable = _is_editable(sample, entry) and not kind_approved
 
     services = (
         sample.sample_services.select_related("service")
@@ -824,6 +867,8 @@ def sample_review(request, slug):
         "lab_id": lab_sample_id_for(sample),
         "kind": kind,
         "kinds": [{"key": k, "label": KIND_LABELS[k]} for k in _kinds_for(sample)],
+        "approved_kinds": approved_kinds,
+        "kind_approved": kind_approved,
         "entry": entry,
         "services": services,
         "reviewable": reviewable,
