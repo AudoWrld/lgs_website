@@ -23,7 +23,7 @@
     </div>
     <div class="list-chip">
       <span class="list-chip-value">{{ sample_count }}</span>
-      <span class="list-chip-label">Lab Sample IDs</span>
+      <span class="list-chip-label">Tests</span>
     </div>
   </div>
 
@@ -38,7 +38,7 @@
 
 {% if worksheet_missing_count %}
 <div class="empty-state">
-  <p>The required worksheet has not been generated for {{ worksheet_missing_count }} sample{{ worksheet_missing_count|pluralize }}. Data entry is unavailable for those samples.</p>
+  <p>The required worksheet has not been generated for {{ worksheet_missing_count }} test{{ worksheet_missing_count|pluralize }}. Data entry is unavailable for those tests.</p>
 </div>
 {% endif %}
 
@@ -54,6 +54,7 @@
       <thead>
         <tr>
           <th>Lab Sample ID</th>
+          <th>Test</th>
           <th>Status</th>
           <th>Last Updated</th>
           <th></th>
@@ -65,26 +66,27 @@
         <tr>
           <td>
             <div class="list-cell-id metallurgical-sample-id">
-              <span class="list-id-dot{% if sample.analysis_status == 'QC_APPROVED' %} is-approved{% elif sample.analysis_status == 'SUBMITTED_TO_QC' %} is-submitted{% endif %}"></span>
+              <span class="list-id-dot{% if sample.analysis_status == 'QC_APPROVED' %} is-approved{% elif item.submitted %} is-submitted{% endif %}"></span>
               {{ item.lab_id }}
             </div>
           </td>
+          <td>{{ item.label }}</td>
           <td>
             {% if sample.analysis_status == "QC_APPROVED" %}
               <span class="badge badge-success">QC Approved</span>
-            {% elif sample.analysis_status == "SUBMITTED_TO_QC" %}
+            {% elif item.submitted and sample.analysis_status == "REASSAY_SUBMITTED" %}
+              <span class="badge badge-warning">Reassay Submitted</span>
+            {% elif item.submitted %}
               <span class="badge badge-success">Submitted to QC</span>
             {% elif sample.analysis_status == "REASSAY_REQUIRED" %}
               <span class="badge badge-warning">Reassay Required</span>
-            {% elif sample.analysis_status == "REASSAY_SUBMITTED" %}
-              <span class="badge badge-warning">Reassay Submitted</span>
             {% else %}
               <span class="badge badge-danger">Draft</span>
             {% endif %}
           </td>
           <td class="list-cell-muted">{{ sample.updated_at|date:"d M Y, H:i" }}</td>
           <td class="list-cell-action">
-            <a href="{% url 'chemist:metallurgical_tests_entry' slug=sample.slug %}" class="btn btn-outline btn-sm">
+            <a href="{{ item.url }}" class="btn btn-outline btn-sm">
               <i class='bx bx-edit' aria-hidden="true"></i> Open
             </a>
           </td>
