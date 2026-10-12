@@ -65,9 +65,10 @@
         <tr>
           <th>S/N</th>
           <th>Lab Sample ID</th>
+          <th>Test</th>
           <th>Status</th>
           <th>Last Updated</th>
-          <th></th>
+          <th>Action</th>
         </tr>
       </thead>
       <tbody>
@@ -81,6 +82,7 @@
               CRM
             </div>
           </td>
+          <td>Mineral analysis (CRM)</td>
           <td>
             {% if item.state == "submitted" %}
               <span class="badge badge-success">Submitted to QC</span>
@@ -111,6 +113,7 @@
               {{ item.lab_id }}
             </div>
           </td>
+          <td>Mineral analysis</td>
           <td>
             {% if sample.analysis_status == "QC_APPROVED" %}
               <span class="badge badge-success">QC Approved</span>
