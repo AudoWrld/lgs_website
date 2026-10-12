@@ -69,6 +69,38 @@ def get_metallurgical_type(sample):
     return sample_service.service.metallurgical_type if sample_service else None
 
 
+def get_cyanide_type(sample):
+    sample_service = (
+        sample.sample_services.filter(service__metallurgical_type__in=CYANIDE_TYPES)
+        .select_related("service")
+        .first()
+    )
+    return sample_service.service.metallurgical_type if sample_service else None
+
+
+def required_entry_models(sample):
+    kinds = {
+        line.service.metallurgical_type or Service.NONE
+        for line in sample.sample_services.select_related("service")
+    }
+    required = []
+    if Service.NONE in kinds:
+        required.append(MineralAnalysisEntry)
+    if any(kind in CYANIDE_TYPES for kind in kinds):
+        required.append(MetallurgicalTestEntry)
+    if Service.CARBON_ACTIVITY in kinds:
+        required.append(CarbonActivityEntry)
+    return required
+
+
+def all_services_submitted(sample):
+    for model in required_entry_models(sample):
+        latest = model.objects.filter(sample=sample).order_by("-revision").first()
+        if latest is None or latest.status != model.SUBMITTED_TO_QC:
+            return False
+    return True
+
+
 def latest_mineral_worksheet(submission):
     return (
         Worksheet.objects.filter(
@@ -296,9 +328,10 @@ class BaseEntry(models.Model):
                 fields.append("entered_by")
             self.save(update_fields=fields)
 
-            sample.set_analysis_status(
-                Sample.REASSAY_SUBMITTED if is_reassay else Sample.SUBMITTED_TO_QC
-            )
+            if all_services_submitted(sample):
+                sample.set_analysis_status(
+                    Sample.REASSAY_SUBMITTED if is_reassay else Sample.SUBMITTED_TO_QC
+                )
             self.after_submit()
 
 
@@ -674,7 +707,7 @@ class MetallurgicalTestEntry(BaseEntry):
 
     @classmethod
     def creation_kwargs(cls, sample):
-        test_type = get_metallurgical_type(sample)
+        test_type = get_cyanide_type(sample)
         if test_type not in CYANIDE_TYPES:
             raise ValidationError(
                 "This sample is not registered for a cyanide leaching test."

@@ -78,6 +78,9 @@ MINERAL_ROUTE = "chemist:mineral_analysis_entry"
 CYANIDE_ROUTE = "chemist:metallurgical_tests_entry"
 CARBON_ROUTE = "chemist:carbon_activity_entry"
 
+MINERAL_LIST_ROUTE = "chemist:mineral_analysis_samples"
+METALLURGICAL_LIST_ROUTE = "chemist:metallurgical_tests_samples"
+
 ROUTE_LABELS = {
     MINERAL_ROUTE: "Mineral analysis",
     CYANIDE_ROUTE: "Cyanide leaching",
@@ -216,9 +219,20 @@ def _is_read_only(sample, entry):
     )
 
 
-def _no_entry(request):
+def _latest_entry(model, sample):
+    return model.objects.filter(sample=sample).order_by("-revision").first()
+
+
+def _open_entry(model, sample, user):
+    entry = model.current_for(sample, user)
+    if entry is None:
+        entry = _latest_entry(model, sample)
+    return entry
+
+
+def _no_entry(request, list_route, sample):
     messages.error(request, "This sample is not available for data entry.")
-    return redirect("chemist:chemist_dashboard")
+    return redirect(list_route, reference=sample.submission.reference)
 
 
 def _no_worksheet(request):
@@ -270,6 +284,12 @@ def _route_pending(sample, route):
     model = ENTRY_MODELS[route]
     entry = model.objects.filter(sample=sample).order_by("-revision").first()
     return entry is None or entry.status != entry.SUBMITTED_TO_QC
+
+
+def _can_open(sample, route):
+    if _latest_entry(ENTRY_MODELS[route], sample) is not None:
+        return True
+    return bool(_rows_for_route(sample, route))
 
 
 def _fill_from_first(replicates):
@@ -409,7 +429,7 @@ def chemist_dashboard(request):
 def mineral_analysis_search(request):
     reference = request.GET.get("reference", "").strip()
     if reference:
-        return redirect("chemist:mineral_analysis_samples", reference=reference)
+        return redirect(MINERAL_LIST_ROUTE, reference=reference)
     return render(request, "chemist/mineral_analysis_search.html")
 
 
@@ -506,12 +526,12 @@ def mineral_analysis_entry(request, slug):
     if misrouted:
         return misrouted
 
-    if not worksheet_rows_for_sample(sample):
+    if not _can_open(sample, MINERAL_ROUTE):
         return _no_worksheet(request)
 
-    entry = MineralAnalysisEntry.current_for(sample, request.user)
+    entry = _open_entry(MineralAnalysisEntry, sample, request.user)
     if entry is None:
-        return _no_entry(request)
+        return _no_entry(request, MINERAL_LIST_ROUTE, sample)
 
     entry.ensure_replicates()
     replicates = list(
@@ -564,7 +584,7 @@ def mineral_analysis_entry(request, slug):
             request,
             sample,
             entry,
-            "chemist:mineral_analysis_samples",
+            MINERAL_LIST_ROUTE,
             MINERAL_ROUTE,
         )
 
@@ -575,7 +595,7 @@ def mineral_analysis_entry(request, slug):
 @require_POST
 def mineral_analysis_preview(request, slug):
     sample = _get_sample(slug)
-    if not worksheet_rows_for_sample(sample):
+    if not _can_open(sample, MINERAL_ROUTE):
         return JsonResponse(
             {"error": "The worksheet for this sample has not been generated."},
             status=404,
@@ -661,9 +681,7 @@ def mineral_crm_entry(request, row_id):
                 messages.error(request, " ".join(exc.messages))
                 return redirect("chemist:mineral_crm_entry", row_id=row.pk)
             messages.success(request, "CRM submitted to QC.")
-            return redirect(
-                "chemist:mineral_analysis_samples", reference=submission.reference
-            )
+            return redirect(MINERAL_LIST_ROUTE, reference=submission.reference)
 
         messages.success(request, "Draft saved.")
         return redirect("chemist:mineral_crm_entry", row_id=row.pk)
@@ -675,7 +693,7 @@ def mineral_crm_entry(request, row_id):
 def metallurgical_tests_search(request):
     reference = request.GET.get("reference", "").strip()
     if reference:
-        return redirect("chemist:metallurgical_tests_samples", reference=reference)
+        return redirect(METALLURGICAL_LIST_ROUTE, reference=reference)
     return render(request, "chemist/metallurgical_tests_search.html")
 
 
@@ -701,7 +719,7 @@ def metallurgical_tests_samples(request, reference):
             for route in _routes(sample):
                 if route == MINERAL_ROUTE:
                     continue
-                if _rows_for_route(sample, route):
+                if _can_open(sample, route):
                     items.append(
                         {
                             "sample": sample,
@@ -730,12 +748,12 @@ def metallurgical_test_entry(request, slug):
     if misrouted:
         return misrouted
 
-    if not _rows_for_route(sample, CYANIDE_ROUTE):
+    if not _can_open(sample, CYANIDE_ROUTE):
         return _no_worksheet(request)
 
-    entry = MetallurgicalTestEntry.current_for(sample, request.user)
+    entry = _open_entry(MetallurgicalTestEntry, sample, request.user)
     if entry is None:
-        return _no_entry(request)
+        return _no_entry(request, METALLURGICAL_LIST_ROUTE, sample)
 
     entry.ensure_parameter_rows()
     rows = list(entry.rows.select_related("source_parameter", "worksheet_row"))
@@ -787,7 +805,7 @@ def metallurgical_test_entry(request, slug):
             request,
             sample,
             entry,
-            "chemist:metallurgical_tests_samples",
+            METALLURGICAL_LIST_ROUTE,
             CYANIDE_ROUTE,
         )
 
@@ -801,12 +819,12 @@ def carbon_activity_entry(request, slug):
     if misrouted:
         return misrouted
 
-    if not _rows_for_route(sample, CARBON_ROUTE):
+    if not _can_open(sample, CARBON_ROUTE):
         return _no_worksheet(request)
 
-    entry = CarbonActivityEntry.current_for(sample, request.user)
+    entry = _open_entry(CarbonActivityEntry, sample, request.user)
     if entry is None:
-        return _no_entry(request)
+        return _no_entry(request, METALLURGICAL_LIST_ROUTE, sample)
 
     entry.ensure_replicates()
     replicates = list(
@@ -856,7 +874,7 @@ def carbon_activity_entry(request, slug):
             request,
             sample,
             entry,
-            "chemist:metallurgical_tests_samples",
+            METALLURGICAL_LIST_ROUTE,
             CARBON_ROUTE,
         )
 
