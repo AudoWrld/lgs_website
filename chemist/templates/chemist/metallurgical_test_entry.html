@@ -40,7 +40,7 @@
   <div class="entry-header-main">
     <span class="entry-id-badge"><i class='bx bx-test-tube' aria-hidden="true"></i> {{ lab_id }}</span>
     <h2>{{ entry.get_test_type_display }}</h2>
-    <p>Parameters loaded automatically from Reception registration. No calculation formula applies. Only the first parameter row is required.</p>
+        <p>Parameters loaded automatically from Reception registration. Weight / Volume and SI Unit are required on every row. Gold recovery and remarks are optional.</p>
   </div>
   <div class="entry-header-status">
     {% if sample.analysis_status == "REASSAY_SUBMITTED" %}
@@ -63,11 +63,11 @@
   <div class="card entry-card">
     <div class="table-wrap">
       <table class="table entry-table">
-        <thead>
+         <thead>
           <tr>
             <th>Parameter</th>
-            <th>Weight / Volume</th>
-            <th>SI Unit</th>
+            <th>Weight / Volume <span aria-hidden="true" style="color:#a4342a">*</span></th>
+            <th>SI Unit <span aria-hidden="true" style="color:#a4342a">*</span></th>
             <th>Gold Recovery 12h</th>
             <th>Gold Recovery 24h</th>
             <th>Gold Recovery 48h</th>
@@ -79,20 +79,20 @@
           {% for row in rows %}
           <tr>
             <td class="entry-param-label">{{ row.source_parameter.display_label }}</td>
-            <td><input type="number" step="any" min="0.0001" {% if not forloop.first %}placeholder="Optional"{% endif %} name="row{{ row.id }}_weight_volume" aria-label="Weight / Volume, {{ row.source_parameter.display_label }}" value="{{ row.weight_volume|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0.0001" name="row{{ row.id }}_weight_volume" aria-label="Weight / Volume, {{ row.source_parameter.display_label }} (required)" value="{{ row.weight_volume|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
             <td>
-              <select name="row{{ row.id }}_si_unit" aria-label="SI unit, {{ row.source_parameter.display_label }}" {% if read_only %}disabled{% endif %}>
-                <option value="">{% if forloop.first %}—{% else %}Optional{% endif %}</option>
+              <select name="row{{ row.id }}_si_unit" aria-label="SI unit, {{ row.source_parameter.display_label }} (required)" {% if read_only %}disabled{% endif %}>
+                <option value="">—</option>
                 {% for unit in row.allowed_units %}
                 <option value="{{ unit }}" {% if row.si_unit == unit %}selected{% endif %}>{{ unit }}</option>
                 {% endfor %}
               </select>
             </td>
-            <td><input type="number" step="any" min="0" max="100" {% if not forloop.first %}placeholder="Optional"{% endif %} name="row{{ row.id }}_recovery_12h" aria-label="Gold recovery 12h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_12h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
-            <td><input type="number" step="any" min="0" max="100" {% if not forloop.first %}placeholder="Optional"{% endif %} name="row{{ row.id }}_recovery_24h" aria-label="Gold recovery 24h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_24h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
-            <td><input type="number" step="any" min="0" max="100" {% if not forloop.first %}placeholder="Optional"{% endif %} name="row{{ row.id }}_recovery_48h" aria-label="Gold recovery 48h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_48h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
-            <td><input type="number" step="any" min="0" max="100" {% if not forloop.first %}placeholder="Optional"{% endif %} name="row{{ row.id }}_recovery_72h" aria-label="Gold recovery 72h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_72h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
-            <td><input type="text" {% if not forloop.first %}placeholder="Optional"{% endif %} name="row{{ row.id }}_remarks" aria-label="Remarks, {{ row.source_parameter.display_label }}" value="{{ row.remarks }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" max="100" placeholder="Optional" name="row{{ row.id }}_recovery_12h" aria-label="Gold recovery 12h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_12h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" max="100" placeholder="Optional" name="row{{ row.id }}_recovery_24h" aria-label="Gold recovery 24h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_24h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" max="100" placeholder="Optional" name="row{{ row.id }}_recovery_48h" aria-label="Gold recovery 48h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_48h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="number" step="any" min="0" max="100" placeholder="Optional" name="row{{ row.id }}_recovery_72h" aria-label="Gold recovery 72h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_72h|default_if_none:''|unlocalize }}" {% if read_only %}disabled{% endif %}></td>
+            <td><input type="text" placeholder="Optional" name="row{{ row.id }}_remarks" aria-label="Remarks, {{ row.source_parameter.display_label }}" value="{{ row.remarks }}" {% if read_only %}disabled{% endif %}></td>
           </tr>
           {% endfor %}
         </tbody>

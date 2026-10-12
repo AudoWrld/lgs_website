@@ -16,7 +16,7 @@ ZERO = Decimal("0")
 
 ALL_UNITS = ("kg", "g", "mL", "L")
 SOLID_UNITS = ("kg", "g")
-LIQUID_UNITS = ("L", "mL")
+LIQUID_UNITS = ("L", "mL", "g")
 SOLID_KEYWORDS = ("lime", "cao", "ore", "solid", "sample", "mass", "weight")
 LIQUID_KEYWORDS = (
     "cyanide",
@@ -681,9 +681,7 @@ class CRMEntry(models.Model):
 
 
 class MetallurgicalTestEntry(BaseEntry):
-    INCOMPLETE_MESSAGE = (
-        "The first parameter row must be completed before submitting to QC."
-    )
+    INCOMPLETE_MESSAGE = "Weight / Volume and SI Unit are required on every parameter row before submitting to QC."
 
     SI_UNIT_CHOICES = [
         ("kg", "kg"),
@@ -782,9 +780,7 @@ class MetallurgicalTestEntry(BaseEntry):
         rows = list(self.rows.all())
         if not rows:
             return False
-        if not rows[0].is_filled:
-            return False
-        return all(row.is_filled for row in rows[1:] if row.has_data)
+        return all(row.has_required_inputs for row in rows)
 
 
 class MetallurgicalTestRow(models.Model):
@@ -855,6 +851,14 @@ class MetallurgicalTestRow(models.Model):
         if self.weight_volume is not None or self.si_unit:
             return True
         return any(getattr(self, field) is not None for field in self.RECOVERY_FIELDS)
+
+    @property
+    def has_required_inputs(self):
+        return (
+            self.weight_volume is not None
+            and self.weight_volume > 0
+            and bool(self.si_unit)
+        )
 
     @property
     def is_filled(self):

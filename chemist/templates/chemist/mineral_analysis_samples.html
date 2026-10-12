@@ -109,7 +109,7 @@
           </td>
           <td>
             <div class="list-cell-id mineral-sample-id">
-              <span class="list-id-dot{% if sample.analysis_status == 'QC_APPROVED' %} is-approved{% elif sample.analysis_status == 'SUBMITTED_TO_QC' %} is-submitted{% endif %}"></span>
+              <span class="list-id-dot{% if sample.analysis_status == 'QC_APPROVED' %} is-approved{% elif item.submitted %} is-submitted{% endif %}"></span>
               {{ item.lab_id }}
             </div>
           </td>
@@ -117,12 +117,12 @@
           <td>
             {% if sample.analysis_status == "QC_APPROVED" %}
               <span class="badge badge-success">QC Approved</span>
-            {% elif sample.analysis_status == "SUBMITTED_TO_QC" %}
+            {% elif item.submitted and sample.analysis_status == "REASSAY_SUBMITTED" %}
+              <span class="badge badge-warning">Reassay Submitted</span>
+            {% elif item.submitted %}
               <span class="badge badge-success">Submitted to QC</span>
             {% elif sample.analysis_status == "REASSAY_REQUIRED" %}
               <span class="badge badge-warning">Reassay Required</span>
-            {% elif sample.analysis_status == "REASSAY_SUBMITTED" %}
-              <span class="badge badge-warning">Reassay Submitted</span>
             {% else %}
               <span class="badge badge-danger">Draft</span>
             {% endif %}

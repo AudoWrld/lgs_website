@@ -317,11 +317,18 @@ def _fill_from_first(replicates):
                 setattr(replicate, field, value)
 
 
-def _pending_sections(sample, current_route):
+def _pending_crm(submission):
+    return any(
+        item["kind"] == "crm" and item["state"] != "submitted"
+        for item in _mineral_worksheet_items(submission)
+    )
+
+
+def _pending_sections(submission, skip_sample=None, skip_route=None):
     candidates = (
         _visible_samples()
         .filter(
-            submission=sample.submission,
+            submission=submission,
             analysis_status__in=MineralAnalysisEntry.EDITABLE_SAMPLE_STATUSES,
         )
         .order_by("id")
@@ -329,13 +336,20 @@ def _pending_sections(sample, current_route):
     sections = []
     for candidate in candidates:
         for route in _routes(candidate):
-            if candidate.pk == sample.pk and route == current_route:
+            if (
+                skip_sample is not None
+                and candidate.pk == skip_sample.pk
+                and route == skip_route
+            ):
                 continue
             section = SECTION_LISTS[route]
             if section in sections:
                 continue
             if _route_pending(candidate, route) and _can_open(candidate, route):
                 sections.append(section)
+
+    if MINERAL_LIST_ROUTE not in sections and _pending_crm(submission):
+        sections.insert(0, MINERAL_LIST_ROUTE)
     return sections
 
 
@@ -347,14 +361,15 @@ def _finalize(request, sample, entry, list_route, entry_route):
             messages.error(request, " ".join(exc.messages))
             return redirect(entry_route, slug=sample.slug)
         messages.success(request, f"{lab_sample_id_for(sample)} submitted to QC.")
-        sections = _pending_sections(sample, entry_route)
+        sections = _pending_sections(sample.submission, sample, entry_route)
         target = list_route
         if sections:
             target = list_route if list_route in sections else sections[0]
             if target == list_route:
+                extra = " (or CRM)" if target == MINERAL_LIST_ROUTE else ""
                 messages.info(
                     request,
-                    f"Choose the next {SECTION_LABELS[target]} item from the list.",
+                    f"Choose the next {SECTION_LABELS[target]} item{extra} from the list.",
                 )
             else:
                 messages.info(
@@ -511,6 +526,27 @@ def _mineral_worksheet_items(submission):
                 items.append(
                     {"kind": "crm", "number": number, "row_id": row.pk, "state": state}
                 )
+
+    sample_ids = [item["sample"].pk for item in items if item["kind"] == "sample"]
+    latest = {}
+    for entry in MineralAnalysisEntry.objects.filter(sample_id__in=sample_ids).order_by(
+        "-revision"
+    ):
+        latest.setdefault(entry.sample_id, entry)
+
+    for item in items:
+        if item["kind"] != "sample":
+            continue
+        sample = item["sample"]
+        entry = latest.get(sample.pk)
+        item["submitted"] = (
+            entry is not None
+            and entry.status == MineralAnalysisEntry.SUBMITTED_TO_QC
+            and not (
+                sample.analysis_status == Sample.REASSAY_REQUIRED
+                and not entry.is_reassay
+            )
+        )
     return items
 
 
@@ -709,7 +745,25 @@ def mineral_crm_entry(request, row_id):
                 messages.error(request, " ".join(exc.messages))
                 return redirect("chemist:mineral_crm_entry", row_id=row.pk)
             messages.success(request, "CRM submitted to QC.")
-            return redirect(MINERAL_LIST_ROUTE, reference=submission.reference)
+            sections = _pending_sections(submission)
+            target = MINERAL_LIST_ROUTE
+            if sections:
+                target = (
+                    MINERAL_LIST_ROUTE
+                    if MINERAL_LIST_ROUTE in sections
+                    else sections[0]
+                )
+                if target == MINERAL_LIST_ROUTE:
+                    messages.info(
+                        request,
+                        "Choose the next mineral analysis item (or CRM) from the list.",
+                    )
+                else:
+                    messages.info(
+                        request,
+                        f"Continue with {SECTION_LABELS[target]} for this reference.",
+                    )
+            return redirect(target, reference=submission.reference)
 
         messages.success(request, "Draft saved.")
         return redirect("chemist:mineral_crm_entry", row_id=row.pk)
