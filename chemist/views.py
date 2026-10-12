@@ -75,6 +75,20 @@ CARBON_FIELDS = (
 )
 
 MINERAL_ROUTE = "chemist:mineral_analysis_entry"
+CYANIDE_ROUTE = "chemist:metallurgical_tests_entry"
+CARBON_ROUTE = "chemist:carbon_activity_entry"
+
+ROUTE_LABELS = {
+    MINERAL_ROUTE: "Mineral analysis",
+    CYANIDE_ROUTE: "Cyanide leaching",
+    CARBON_ROUTE: "Carbon activity",
+}
+
+ENTRY_MODELS = {
+    MINERAL_ROUTE: MineralAnalysisEntry,
+    CYANIDE_ROUTE: MetallurgicalTestEntry,
+    CARBON_ROUTE: CarbonActivityEntry,
+}
 
 MAX_REPORTED_ERRORS = 10
 PAGE_SIZE = 10
@@ -152,17 +166,47 @@ def _find_submission(reference):
 def _route_name(sample):
     test_type = get_metallurgical_type(sample)
     if test_type == Service.CARBON_ACTIVITY:
-        return "chemist:carbon_activity_entry"
+        return CARBON_ROUTE
     if test_type in CYANIDE_TYPES:
-        return "chemist:metallurgical_tests_entry"
+        return CYANIDE_ROUTE
     return MINERAL_ROUTE
 
 
+def _kinds(sample):
+    kinds = set()
+    for line in sample.sample_services.select_related("service"):
+        kind = line.service.metallurgical_type
+        kinds.add(kind if kind else Service.NONE)
+    return kinds
+
+
+def _routes(sample):
+    kinds = _kinds(sample)
+    routes = []
+    if Service.NONE in kinds:
+        routes.append(MINERAL_ROUTE)
+    if any(kind in CYANIDE_TYPES for kind in kinds):
+        routes.append(CYANIDE_ROUTE)
+    if Service.CARBON_ACTIVITY in kinds:
+        routes.append(CARBON_ROUTE)
+    if not routes:
+        routes.append(_route_name(sample))
+    return routes
+
+
+def _cyanide_type(sample):
+    kinds = _kinds(sample)
+    for test_type in (Service.CYANIDE_CONVENTIONAL, Service.CYANIDE_OPTIMIZATION):
+        if test_type in kinds:
+            return test_type
+    return get_metallurgical_type(sample)
+
+
 def _misrouted(sample, expected):
-    actual = _route_name(sample)
-    if actual != expected:
-        return redirect(actual, slug=sample.slug)
-    return None
+    routes = _routes(sample)
+    if expected in routes:
+        return None
+    return redirect(routes[0], slug=sample.slug)
 
 
 def _is_read_only(sample, entry):
@@ -185,8 +229,9 @@ def _no_worksheet(request):
     return redirect("chemist:chemist_dashboard")
 
 
-def _metallurgical_worksheet_rows(sample):
-    test_type = get_metallurgical_type(sample)
+def _metallurgical_worksheet_rows(sample, test_type=None):
+    if test_type is None:
+        test_type = get_metallurgical_type(sample)
     if test_type == Service.CARBON_ACTIVITY:
         worksheet = latest_carbon_worksheet(sample.submission)
     else:
@@ -213,6 +258,20 @@ def _metallurgical_worksheet_rows(sample):
     )
 
 
+def _rows_for_route(sample, route):
+    if route == MINERAL_ROUTE:
+        return worksheet_rows_for_sample(sample)
+    if route == CARBON_ROUTE:
+        return _metallurgical_worksheet_rows(sample, Service.CARBON_ACTIVITY)
+    return _metallurgical_worksheet_rows(sample, _cyanide_type(sample))
+
+
+def _route_pending(sample, route):
+    model = ENTRY_MODELS[route]
+    entry = model.objects.filter(sample=sample).order_by("-revision").first()
+    return entry is None or entry.status != entry.SUBMITTED_TO_QC
+
+
 def _fill_from_first(replicates):
     if len(replicates) < 2:
         return
@@ -226,8 +285,13 @@ def _fill_from_first(replicates):
                 setattr(replicate, field, value)
 
 
-def _other_service_target(sample):
-    current_is_mineral = _route_name(sample) == MINERAL_ROUTE
+def _other_service_target(sample, current_route):
+    for route in _routes(sample):
+        if route == current_route:
+            continue
+        if _route_pending(sample, route) and _rows_for_route(sample, route):
+            return route, sample
+
     pending = (
         _visible_samples()
         .filter(
@@ -240,15 +304,11 @@ def _other_service_target(sample):
         .distinct()
     )
     for candidate in pending:
-        route = _route_name(candidate)
-        if (route == MINERAL_ROUTE) == current_is_mineral:
-            continue
-        if route == MINERAL_ROUTE:
-            rows = worksheet_rows_for_sample(candidate)
-        else:
-            rows = _metallurgical_worksheet_rows(candidate)
-        if rows:
-            return route, candidate
+        for route in _routes(candidate):
+            if route == current_route:
+                continue
+            if _route_pending(candidate, route) and _rows_for_route(candidate, route):
+                return route, candidate
     return None
 
 
@@ -260,10 +320,13 @@ def _finalize(request, sample, entry, list_route, entry_route):
             messages.error(request, " ".join(exc.messages))
             return redirect(entry_route, slug=sample.slug)
         messages.success(request, f"{lab_sample_id_for(sample)} submitted to QC.")
-        target = _other_service_target(sample)
+        target = _other_service_target(sample, entry_route)
         if target is not None:
             route, candidate = target
-            messages.info(request, f"Continue with {lab_sample_id_for(candidate)}.")
+            messages.info(
+                request,
+                f"Continue with {lab_sample_id_for(candidate)} ({ROUTE_LABELS[route]}).",
+            )
             return redirect(route, slug=candidate.slug)
         return redirect(list_route, reference=sample.submission.reference)
 
@@ -621,6 +684,7 @@ def metallurgical_tests_samples(request, reference):
     submission = _find_submission(reference)
 
     items = []
+    worksheet_missing_count = 0
     if submission:
         candidates = list(
             _visible_samples()
@@ -634,11 +698,20 @@ def metallurgical_tests_samples(request, reference):
             .order_by("id")
         )
         for sample in candidates:
-            if _metallurgical_worksheet_rows(sample):
-                items.append({"sample": sample, "lab_id": lab_sample_id_for(sample)})
-        worksheet_missing_count = len(candidates) - len(items)
-    else:
-        worksheet_missing_count = 0
+            for route in _routes(sample):
+                if route == MINERAL_ROUTE:
+                    continue
+                if _rows_for_route(sample, route):
+                    items.append(
+                        {
+                            "sample": sample,
+                            "lab_id": lab_sample_id_for(sample),
+                            "route": route,
+                            "label": ROUTE_LABELS[route],
+                        }
+                    )
+                else:
+                    worksheet_missing_count += 1
 
     context = {
         "reference": reference,
@@ -653,11 +726,11 @@ def metallurgical_tests_samples(request, reference):
 @chemist_required
 def metallurgical_test_entry(request, slug):
     sample = _get_sample(slug)
-    misrouted = _misrouted(sample, "chemist:metallurgical_tests_entry")
+    misrouted = _misrouted(sample, CYANIDE_ROUTE)
     if misrouted:
         return misrouted
 
-    if not _metallurgical_worksheet_rows(sample):
+    if not _rows_for_route(sample, CYANIDE_ROUTE):
         return _no_worksheet(request)
 
     entry = MetallurgicalTestEntry.current_for(sample, request.user)
@@ -681,7 +754,7 @@ def metallurgical_test_entry(request, slug):
     if request.method == "POST":
         if read_only:
             messages.error(request, "This entry is locked and can no longer be edited.")
-            return redirect("chemist:metallurgical_tests_entry", slug=sample.slug)
+            return redirect(CYANIDE_ROUTE, slug=sample.slug)
 
         reader = _PostReader(request.POST)
         for row in rows:
@@ -715,7 +788,7 @@ def metallurgical_test_entry(request, slug):
             sample,
             entry,
             "chemist:metallurgical_tests_samples",
-            "chemist:metallurgical_tests_entry",
+            CYANIDE_ROUTE,
         )
 
     return render_entry()
@@ -724,11 +797,11 @@ def metallurgical_test_entry(request, slug):
 @chemist_required
 def carbon_activity_entry(request, slug):
     sample = _get_sample(slug)
-    misrouted = _misrouted(sample, "chemist:carbon_activity_entry")
+    misrouted = _misrouted(sample, CARBON_ROUTE)
     if misrouted:
         return misrouted
 
-    if not _metallurgical_worksheet_rows(sample):
+    if not _rows_for_route(sample, CARBON_ROUTE):
         return _no_worksheet(request)
 
     entry = CarbonActivityEntry.current_for(sample, request.user)
@@ -754,7 +827,7 @@ def carbon_activity_entry(request, slug):
     if request.method == "POST":
         if read_only:
             messages.error(request, "This entry is locked and can no longer be edited.")
-            return redirect("chemist:carbon_activity_entry", slug=sample.slug)
+            return redirect(CARBON_ROUTE, slug=sample.slug)
 
         reader = _PostReader(request.POST)
         for replicate in replicates:
@@ -784,7 +857,7 @@ def carbon_activity_entry(request, slug):
             sample,
             entry,
             "chemist:metallurgical_tests_samples",
-            "chemist:carbon_activity_entry",
+            CARBON_ROUTE,
         )
 
     return render_entry()
@@ -877,7 +950,7 @@ def reassay_samples(request):
 @chemist_required
 def reassay_entry(request, slug):
     sample = _get_sample(slug)
-    return redirect(_route_name(sample), slug=sample.slug)
+    return redirect(_routes(sample)[0], slug=sample.slug)
 
 
 @chemist_required
@@ -900,7 +973,7 @@ def qc_approved(request):
         {
             "sample": sample,
             "lab_id": lab_sample_id_for(sample),
-            "route": _route_name(sample),
+            "route": _routes(sample)[0],
         }
         for sample in page_obj.object_list
     ]
