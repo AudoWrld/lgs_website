@@ -48,8 +48,8 @@ STAMP_DATE_CY = 0.539
 STAMP_DATE_W = 0.455
 
 COMPANY_NAME = "KARUMWA"
-COMPANY_NAME_SIZE = 25 * PX
-COMPANY_NAME_SPACING = 3
+COMPANY_NAME_SIZE = 34 * PX
+COMPANY_NAME_SPACING = 5
 ADDRESS_LINES = [
     "Karumwa \u2013 Sweya, Kahama Road, Njia Panda ya Mahagi, Nyang'hwale, Geita",
     "P.O. Box 1214, Mwanza, Tanzania",
@@ -229,10 +229,10 @@ def _draw_letterhead(c, d):
             mask="auto",
             anchor="sw",
         )
-    _draw_company_name(c, right, PAGE_H - 16 * mm)
+    _draw_company_name(c, right, PAGE_H - 17 * mm)
     c.setFillColor(PURPLE)
     c.setFont("Helvetica", 8.5)
-    y = PAGE_H - 22.5 * mm
+    y = PAGE_H - 23.5 * mm
     for line in ADDRESS_LINES:
         c.drawRightString(right, y, line)
         y -= 4.3 * mm
