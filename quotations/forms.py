@@ -3,11 +3,9 @@ from decimal import Decimal
 from django import forms
 from django.core.exceptions import ValidationError
 
-from .models import Quotation, QuotationItem
+from .models import Quotation, QuotationItem, to_title, capitalize_first
 
 ZERO = Decimal("0.00")
-
-STATUS_FILTER_CHOICES = [("", "All statuses")] + list(Quotation.STATUS_CHOICES)
 
 
 def _date_widget():
@@ -102,7 +100,10 @@ class QuotationItemForm(forms.ModelForm):
         }
 
     def clean_service(self):
-        return self.cleaned_data["service"].strip()
+        return to_title(self.cleaned_data["service"])
+
+    def clean_description(self):
+        return capitalize_first(self.cleaned_data.get("description", ""))
 
 
 class BaseQuotationItemFormSet(forms.BaseInlineFormSet):
@@ -149,9 +150,6 @@ class QuotationFilterForm(forms.Form):
         widget=forms.TextInput(
             attrs={"placeholder": "e.g. LGS-QTN-260930-001", "autocomplete": "off"}
         ),
-    )
-    status = forms.ChoiceField(
-        required=False, choices=STATUS_FILTER_CHOICES, label="Status"
     )
     date_from = forms.DateField(
         required=False,

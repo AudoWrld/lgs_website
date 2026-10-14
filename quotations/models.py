@@ -13,23 +13,23 @@ NUMBER_PREFIX = "LGS-QTN"
 DEFAULT_VALIDITY_DAYS = 14
 
 
+def to_title(value):
+    """Convert string to Title Case without affecting the casing of the rest of the word."""
+    words = (value or "").split()
+    return " ".join(w[:1].upper() + w[1:] for w in words)
+
+
+def capitalize_first(value):
+    """Capitalize the first character of the string, leaving the rest as typed."""
+    value = " ".join((value or "").split())
+    return value[:1].upper() + value[1:] if value else ""
+
+
 def default_valid_until():
     return timezone.localdate() + timedelta(days=DEFAULT_VALIDITY_DAYS)
 
 
 class Quotation(models.Model):
-    DRAFT = "DRAFT"
-    SENT = "SENT"
-    ACCEPTED = "ACCEPTED"
-    EXPIRED = "EXPIRED"
-
-    STATUS_CHOICES = [
-        (DRAFT, "Draft"),
-        (SENT, "Sent"),
-        (ACCEPTED, "Accepted"),
-        (EXPIRED, "Expired"),
-    ]
-
     quotation_number = models.CharField(
         max_length=30, unique=True, editable=False, db_index=True
     )
@@ -48,11 +48,6 @@ class Quotation(models.Model):
     )
     terms = models.TextField(blank=True)
     notes = models.TextField(blank=True)
-    status = models.CharField(
-        max_length=10, choices=STATUS_CHOICES, default=DRAFT, db_index=True
-    )
-    sent_at = models.DateTimeField(null=True, blank=True)
-    accepted_at = models.DateTimeField(null=True, blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -71,7 +66,6 @@ class Quotation(models.Model):
     class Meta:
         ordering = ["-quotation_date", "-id"]
         indexes = [
-            models.Index(fields=["status", "valid_until"]),
             models.Index(fields=["quotation_date"]),
         ]
         constraints = [
@@ -122,9 +116,7 @@ class Quotation(models.Model):
         raise IntegrityError("Could not generate a unique quotation number.")
 
     def delete(self, *args, **kwargs):
-        raise ValidationError(
-            "Quotations cannot be deleted. Mark them as expired instead."
-        )
+        raise ValidationError("Quotations cannot be deleted.")
 
     @property
     def subtotal(self):
@@ -141,46 +133,6 @@ class Quotation(models.Model):
     @property
     def is_past_validity(self):
         return self.valid_until < timezone.localdate()
-
-    @property
-    def effective_status(self):
-        if self.status in (self.DRAFT, self.SENT) and self.is_past_validity:
-            return self.EXPIRED
-        return self.status
-
-    @property
-    def effective_status_display(self):
-        return dict(self.STATUS_CHOICES)[self.effective_status]
-
-    @property
-    def is_editable(self):
-        return self.status == self.DRAFT
-
-    def mark_sent(self, user):
-        if self.status != self.DRAFT:
-            raise ValidationError("Only a draft quotation can be marked as sent.")
-        if not self.items.exists():
-            raise ValidationError("Add at least one service before sending.")
-        self.status = self.SENT
-        self.sent_at = timezone.now()
-        self.updated_by = user
-        self.save(update_fields=["status", "sent_at", "updated_by", "updated_at"])
-
-    def mark_accepted(self, user):
-        if self.effective_status != self.SENT:
-            raise ValidationError("Only a sent, unexpired quotation can be accepted.")
-        self.status = self.ACCEPTED
-        self.accepted_at = timezone.now()
-        self.updated_by = user
-        self.save(update_fields=["status", "accepted_at", "updated_by", "updated_at"])
-
-    def mark_expired(self, user=None):
-        if self.status == self.ACCEPTED:
-            raise ValidationError("An accepted quotation cannot be expired.")
-        self.status = self.EXPIRED
-        if user:
-            self.updated_by = user
-        self.save(update_fields=["status", "updated_by", "updated_at"])
 
 
 class QuotationItem(models.Model):
@@ -223,18 +175,13 @@ class QuotationItem(models.Model):
         return self.quantity * self.unit_price
 
     def clean(self):
-        if self.quotation_id and not self.quotation.is_editable:
-            raise ValidationError(
-                "Items can only be changed while the quotation is a draft."
-            )
+        pass
 
     def save(self, *args, **kwargs):
+        self.service = to_title(self.service)
+        self.description = capitalize_first(self.description)
         self.full_clean()
         return super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        if not self.quotation.is_editable:
-            raise ValidationError(
-                "Items can only be removed while the quotation is a draft."
-            )
         return super().delete(*args, **kwargs)
