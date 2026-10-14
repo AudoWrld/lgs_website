@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 DASH = "\u2014"
 INCLUDE_REMARKS_COLUMN = True
+RECOVERY_PERIODS = (12, 24, 48, 72)
 
 MINERAL = "MINERAL"
 BLOCK_ORDER = [
@@ -71,7 +72,7 @@ def metallurgical_rows(sample, test_type):
     from chemist.models import MetallurgicalTestEntry
 
     qc = _qc_review(sample)
-    periods = [p for p in (12, 24, 48) if getattr(qc, f"show_recovery_{p}h")]
+    periods = [p for p in RECOVERY_PERIODS if getattr(qc, f"show_recovery_{p}h", True)]
     entry = (
         MetallurgicalTestEntry.objects.filter(sample=sample)
         .order_by("-revision")
@@ -87,6 +88,7 @@ def metallurgical_rows(sample, test_type):
             "r12": r.gold_recovery_12h,
             "r24": r.gold_recovery_24h,
             "r48": r.gold_recovery_48h,
+            "r72": r.gold_recovery_72h,
             "remarks": r.remarks,
         }
         for r in entry.rows.filter(qc_included=True)
@@ -94,7 +96,9 @@ def metallurgical_rows(sample, test_type):
         .order_by("id")
     ]
     if not periods:
-        periods = [p for p in (12, 24, 48) if any(r[f"r{p}"] is not None for r in rows)]
+        periods = [
+            p for p in RECOVERY_PERIODS if any(r[f"r{p}"] is not None for r in rows)
+        ]
     return periods, rows
 
 
@@ -119,6 +123,20 @@ def two_dp(value):
     if d is None:
         return DASH
     return f"{d.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP):.2f}"
+
+
+def plain(value):
+    d = _dec(value)
+    if d is None:
+        return DASH
+    return format(d.normalize(), "f")
+
+
+def weight_volume_text(weight_volume, si_unit):
+    amount = plain(weight_volume)
+    if amount == DASH:
+        return DASH
+    return f"{amount} {si_unit or ''}".strip()
 
 
 def _unique(items):
@@ -251,6 +269,13 @@ def _carbon_block(entry):
     )
 
 
+def _first_value(rows, key):
+    for r in rows:
+        if r[key] is not None:
+            return r[key]
+    return None
+
+
 def _cyanide_block(kind, entry):
     optimization = kind == Service.CYANIDE_OPTIMIZATION
     per_sample = []
@@ -269,16 +294,21 @@ def _cyanide_block(kind, entry):
     header = ["S/N", "Sample ID"]
     if show_parameter:
         header.append("Parameter")
-    if optimization:
-        header.append("Weight / Volume")
+    header.append("Weight / Volume")
+    recovery_start = len(header)
     header += [f"{p} Hrs Recovery (%)" for p in periods]
     if show_remarks:
         header.append("Remarks")
+
+    collapse_columns = [0, 1] + list(
+        range(recovery_start, recovery_start + len(periods))
+    )
 
     out = []
     spans = []
     for number, (sample, rows) in enumerate(per_sample, start=1):
         start = len(out)
+        first_recovery = {p: _first_value(rows, f"r{p}") for p in periods}
         for index, r in enumerate(rows):
             first = index == 0
             row = [
@@ -287,21 +317,16 @@ def _cyanide_block(kind, entry):
             ]
             if show_parameter:
                 row.append(r["parameter"])
-            if optimization:
-                wv = (
-                    two_dp(r["weight_volume"])
-                    if r["weight_volume"] is not None
-                    else DASH
-                )
-                row.append(f"{wv} {r['si_unit']}".strip() if wv != DASH else DASH)
-            row += [two_dp(r[f"r{p}"]) for p in periods]
+            row.append(weight_volume_text(r["weight_volume"], r["si_unit"]))
+            for p in periods:
+                row.append(two_dp(first_recovery[p]) if first else "")
             if show_remarks:
                 row.append(r["remarks"] or DASH)
             out.append(row)
         end = len(out) - 1
         if end > start:
-            spans.append((0, start, end))
-            spans.append((1, start, end))
+            for column in collapse_columns:
+                spans.append((column, start, end))
 
     methods = " | ".join(_unique(s.method_of_analysis for s in entry["services"]))
     return Block(
