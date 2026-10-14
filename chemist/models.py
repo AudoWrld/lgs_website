@@ -426,29 +426,22 @@ class MineralAnalysisEntry(BaseEntry):
         if needed == 0 or not any(elements.values()):
             return False
 
-        replicates = list(self.replicates.all())
+        replicates = list(self.replicates.order_by("replicate_number"))
         if len(replicates) != needed:
             return False
 
-        for replicate in replicates:
-            if self.show_weight_column and (
-                replicate.weight is None or replicate.weight <= 0
-            ):
-                return False
-            if elements["gold"] and (
-                replicate.au_aas is None or replicate.au_df is None
-            ):
-                return False
-            if elements["copper"] and (
-                replicate.cu_aas is None or replicate.cu_df is None
-            ):
-                return False
-            if elements["silver"] and (
-                replicate.ag_aas is None or replicate.ag_df is None
-            ):
-                return False
-            if elements["sulphur"] and replicate.sulphur is None:
-                return False
+        first = replicates[0]
+
+        if self.show_weight_column and (first.weight is None or first.weight <= 0):
+            return False
+        if elements["gold"] and (first.au_aas is None or first.au_df is None):
+            return False
+        if elements["copper"] and (first.cu_aas is None or first.cu_df is None):
+            return False
+        if elements["silver"] and (first.ag_aas is None or first.ag_df is None):
+            return False
+        if elements["sulphur"] and first.sulphur is None:
+            return False
 
         return True
 

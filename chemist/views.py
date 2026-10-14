@@ -47,17 +47,6 @@ MINERAL_FIELDS = (
     ("sulphur", "S"),
 )
 
-SHARED_FIELDS = (
-    "weight",
-    "au_aas",
-    "au_df",
-    "cu_aas",
-    "cu_df",
-    "ag_aas",
-    "ag_df",
-    "sulphur",
-)
-
 METALLURGICAL_FIELDS = (
     ("weight_volume", "weight_volume", "Weight / Volume"),
     ("gold_recovery_12h", "recovery_12h", "Gold recovery at 12 hours"),
@@ -302,19 +291,6 @@ def _can_open(sample, route):
     if _latest_entry(ENTRY_MODELS[route], sample) is not None:
         return True
     return bool(_rows_for_route(sample, route))
-
-
-def _fill_from_first(replicates):
-    if len(replicates) < 2:
-        return
-    first = replicates[0]
-    for field in SHARED_FIELDS:
-        value = getattr(first, field)
-        if value is None:
-            continue
-        for replicate in replicates[1:]:
-            if getattr(replicate, field) is None:
-                setattr(replicate, field, value)
 
 
 def _pending_crm(submission):
@@ -629,8 +605,6 @@ def mineral_analysis_entry(request, slug):
                     field,
                     reader.decimal(f"{prefix}_{field}", f"Replicate {number} {label}"),
                 )
-
-        _fill_from_first(replicates)
 
         for replicate in replicates:
             _check(reader, replicate, f"Replicate {replicate.replicate_number}")
