@@ -17,8 +17,8 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.platypus import (
     BaseDocTemplate,
+    CondPageBreak,
     Frame,
-    KeepTogether,
     NextPageTemplate,
     PageTemplate,
     Paragraph,
@@ -36,7 +36,8 @@ FOOTER_BASE = 6 * mm
 
 PX = 0.75
 GAP = 10 * PX
-CELL_PAD = 5
+CELL_PAD = 3
+BLOCK_MIN_SPACE = 45 * mm
 
 BLUE = colors.HexColor("#0B3C91")
 COMPANY_BLUE = colors.HexColor("#1B3FD6")
@@ -345,13 +346,22 @@ def _draw_footer(c, d):
         c.drawCentredString(center, base, label)
 
 
-def _col_widths(ncols, width):
+def _col_widths(ncols, width, header=None):
     if ncols == 1:
         return [width]
     if ncols == 2:
         return [width * 0.3, width * 0.7]
     if ncols == 3:
         return [width * 0.29, width * 0.35, width * 0.36]
+    if header and header[-1] == "Remarks" and ncols > 4:
+        fixed = [0.06, 0.14]
+        remarks = 0.17
+        middle = (1 - sum(fixed) - remarks) / (ncols - 3)
+        return (
+            [width * f for f in fixed]
+            + [width * middle] * (ncols - 3)
+            + [width * remarks]
+        )
     first = [width * 0.1, width * 0.18]
     rest = (width - sum(first)) / (ncols - 2)
     return first + [rest] * (ncols - 2)
@@ -394,7 +404,9 @@ def _table(block, width):
     for col, start, end in block.spans:
         commands.append(("SPAN", (col, start + 1), (col, end + 1)))
 
-    t = Table(data, colWidths=_col_widths(ncols, width), repeatRows=1)
+    t = Table(
+        data, colWidths=_col_widths(ncols, width, block.header), repeatRows=1
+    )
     t.setStyle(TableStyle(commands))
     return t
 
@@ -506,7 +518,8 @@ def _story(d, pages_total):
     else:
         story += disclaimer
     for group in groups:
-        story.append(KeepTogether(group))
+        story.append(CondPageBreak(BLOCK_MIN_SPACE))
+        story.extend(group)
     return story
 
 
