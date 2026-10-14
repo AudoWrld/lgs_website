@@ -54,3 +54,15 @@ def normalize_tz_phone(raw):
         return raw.strip()
 
     return f"+255{subscriber}"
+
+
+import re
+
+
+def to_title(value):
+    value = " ".join((value or "").split())
+    return re.sub(
+        r"(^|[\s\-])([^\W\d_])",
+        lambda m: m.group(1) + m.group(2).upper(),
+        value,
+    )

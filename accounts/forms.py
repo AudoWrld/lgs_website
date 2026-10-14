@@ -1,11 +1,12 @@
-from django.contrib.auth.forms import AuthenticationForm
-from django.utils.translation import gettext_lazy as _
-from .models import Client
+import re
+
 from django import forms
 from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import AuthenticationForm
+from django.utils.translation import gettext_lazy as _
+
 from .models import Client
-from .utils import normalize_tz_phone
-import re
+from .utils import normalize_tz_phone, to_title
 
 User = get_user_model()
 
@@ -119,13 +120,7 @@ class ClientForm(forms.ModelForm):
         return number
 
     def clean_client_name(self):
-        value = self.cleaned_data["client_name"].strip()
-        if self.instance.pk is None:
-            return value.title()
-        return value
+        return to_title(self.cleaned_data["client_name"])
 
     def clean_contact_person(self):
-        value = self.cleaned_data["contact_person"].strip()
-        if self.instance.pk is None:
-            return value.title()
-        return value
+        return to_title(self.cleaned_data["contact_person"])
