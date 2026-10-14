@@ -9,7 +9,7 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Count, Max, Q
+from django.db.models import Count, F, Max, Q
 from django.db.models.functions import TruncDate
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
@@ -73,6 +73,19 @@ def _paginate(request, queryset):
     params = request.GET.copy()
     params.pop("page", None)
     return page, params.urlencode()
+
+
+def _recently_submitted(queryset):
+    return queryset.order_by("-updated_at", "-id")
+
+
+def _recently_approved(queryset):
+    return queryset.annotate(
+        approved_at=Max(
+            "qc_decisions__decided_at",
+            filter=Q(qc_decisions__action=QCDecision.APPROVED),
+        )
+    ).order_by(F("approved_at").desc(nulls_last=True), "-updated_at", "-id")
 
 
 def _with_lab_id(queryset):
@@ -403,6 +416,10 @@ def _save_metallurgical_edits(edit, entry, qc_review):
             changed = True
 
         unit_new = (edit.request.POST.get(f"{prefix}_si_unit") or "").strip()
+        if unit_new and unit_new not in row.allowed_units and unit_new != row.si_unit:
+            edit.errors.append(
+                f"{row_label} SI unit must be one of: {', '.join(row.allowed_units)}."
+            )
         if edit.log(f"{row_label} — SI Unit", row.si_unit, unit_new):
             row.si_unit = unit_new
             changed = True
@@ -645,16 +662,14 @@ def qc_dashboard(request):
     cutoff = timezone.now() - timedelta(hours=OVERDUE_HOURS)
 
     def base(**filters):
-        return (
-            visible.filter(**filters)
-            .select_related("submission", "lab_mapping")
-            .order_by("-updated_at", "-id")
-        )
+        return visible.filter(**filters).select_related("submission", "lab_mapping")
 
-    pending = base(analysis_status=Sample.SUBMITTED_TO_QC)
-    reassay = base(analysis_status=Sample.REASSAY_SUBMITTED)
-    approved = base(analysis_status=Sample.QC_APPROVED)
-    overdue = base(analysis_status__in=REVIEW_STATUSES, updated_at__lt=cutoff)
+    pending = _recently_submitted(base(analysis_status=Sample.SUBMITTED_TO_QC))
+    reassay = _recently_submitted(base(analysis_status=Sample.REASSAY_SUBMITTED))
+    approved = _recently_approved(base(analysis_status=Sample.QC_APPROVED))
+    overdue = _recently_submitted(
+        base(analysis_status__in=REVIEW_STATUSES, updated_at__lt=cutoff)
+    )
 
     today = timezone.localdate()
     days = [today - timedelta(days=offset) for offset in range(6, -1, -1)]
@@ -694,21 +709,27 @@ def qc_dashboard(request):
 
 
 def _status_list(
-    request, template, statuses, extra=None, expand=False, pending_only=False
+    request,
+    template,
+    statuses,
+    extra=None,
+    expand=False,
+    pending_only=False,
+    by_approval=False,
 ):
     reference = request.GET.get("reference", "").strip()
-    samples = (
-        Sample.objects.filter(
-            submission__is_submitted=True, analysis_status__in=statuses
-        )
-        .select_related("submission", "lab_mapping")
-        .annotate(latest_activity=Max("submission__samples__updated_at"))
-        .order_by("-latest_activity", "-submission_id", "id")
-    )
+    samples = Sample.objects.filter(
+        submission__is_submitted=True, analysis_status__in=statuses
+    ).select_related("submission", "lab_mapping")
     if extra is not None:
         samples = samples.filter(extra)
     if reference:
         samples = samples.filter(submission__reference__iexact=reference)
+
+    if by_approval:
+        samples = _recently_approved(samples)
+    else:
+        samples = _recently_submitted(samples)
 
     page_obj, querystring = _paginate(request, samples)
     if expand:
@@ -755,6 +776,7 @@ def approved_reports(request):
         "quantity_control/approved_reports.html",
         (Sample.QC_APPROVED,),
         expand=True,
+        by_approval=True,
     )
 
 
@@ -934,7 +956,7 @@ def report_detail(request, reference):
     coas = list(
         COA.objects.filter(submission=submission)
         .select_related("group", "approved_by")
-        .order_by("coa_number")
+        .order_by("-created_at", "-id")
     )
 
     if request.method == "POST" and request.POST.get("action") == "rebuild_files":
