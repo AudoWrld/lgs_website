@@ -171,11 +171,11 @@
             </li>
             <li>
               <a
-                href="{% url 'accountant:invoice_list' %}"
-                class="{% if request.resolver_match.url_name == 'invoice_list' %}active{% endif %}"
+                href="{% url 'accountant:commercial_invoice_list' %}"
+                class="{% if request.resolver_match.url_name == 'commercial_invoice_list' or request.resolver_match.url_name == 'commercial_invoice_create' %}active{% endif %}"
               >
-                <i class="bx bx-file-blank icon" aria-hidden="true"></i
-                >Invoices
+                <i class="bx bx-receipt icon" aria-hidden="true"></i
+                >Commercial Invoices
               </a>
             </li>
           </ul>

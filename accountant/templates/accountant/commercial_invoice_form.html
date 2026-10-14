@@ -1,0 +1,108 @@
+{% extends "accountant/base_accountant.html" %}
+
+{% block title %}Commercial Invoice — LGS Mineral Assay Laboratory{% endblock %}
+{% block page_title %}Commercial Invoice{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2>Find Customer References</h2>
+    <a href="{% url 'accountant:commercial_invoice_list' %}" class="btn btn-outline btn-sm">View Commercial Invoices</a>
+  </div>
+  <form method="post" class="form-row" style="align-items: end;">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="lookup" />
+    <div class="form-group" style="margin-bottom: 0;">
+      <label for="reference">Reference Number</label>
+      <input type="text" id="reference" name="reference" value="{{ reference }}" placeholder="LGS/261011/01" autocomplete="off" required />
+    </div>
+    <div>
+      <button type="submit" class="btn btn-primary">Retrieve References</button>
+    </div>
+  </form>
+</div>
+
+{% if client %}
+<div class="card">
+  <div class="card-header">
+    <h2>{{ client.client_name }}</h2>
+    <span class="badge">Customer ID: {{ client.pk }}</span>
+  </div>
+
+  {% if already %}
+    <p class="help-text">
+      {{ entered.reference }} is already on Commercial Invoice {{ already.invoice_number }}.
+    </p>
+  {% endif %}
+
+  {% if eligible %}
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="confirm" />
+      <input type="hidden" name="client_id" value="{{ client.pk }}" />
+
+      {% for item in eligible %}
+        <input type="hidden" name="submission_ids" value="{{ item.submission.pk }}" />
+        <h3>{{ item.submission.reference }}</h3>
+        <div class="table-wrap" style="margin-bottom: 1rem;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Description of Service</th>
+                <th>Sample Type</th>
+                <th>No. of Samples</th>
+                <th>Unit Price (TZS)</th>
+                <th>Amount (TZS)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for line in item.lines %}
+              <tr>
+                <td>{{ line.description }}</td>
+                <td>{{ line.sample_type|default:"-" }}</td>
+                <td>{% if line.quantity %}{{ line.quantity }}{% else %}-{% endif %}</td>
+                <td>{% if line.quantity %}{{ line.unit_price|floatformat:"2g" }}{% else %}-{% endif %}</td>
+                <td>{{ line.amount|floatformat:"2g" }}</td>
+              </tr>
+              {% endfor %}
+              <tr>
+                <td colspan="4"><strong>Subtotal</strong></td>
+                <td><strong>{{ item.total|floatformat:"2g" }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      {% endfor %}
+
+      <div class="table-wrap" style="margin-bottom: 1rem;">
+        <table class="table">
+          <tbody>
+            <tr><th>Total Charges (TZS)</th><td>{{ grand_total|floatformat:"2g" }}</td></tr>
+            <tr><th>Amount Paid (TZS)</th><td>{{ paid_total|floatformat:"2g" }}</td></tr>
+            <tr><th>Outstanding Balance (TZS)</th><td><strong>{{ outstanding_total|floatformat:"2g" }}</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Generate Commercial Invoice</button>
+    </form>
+  {% else %}
+    <p class="empty-state">No eligible references to invoice for this customer.</p>
+  {% endif %}
+
+  {% if skipped %}
+    <h3 style="margin-top: 1.5rem;">Not included</h3>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Reference</th><th>Reason</th></tr></thead>
+        <tbody>
+          {% for item in skipped %}
+          <tr><td>{{ item.submission.reference }}</td><td>{{ item.reason }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

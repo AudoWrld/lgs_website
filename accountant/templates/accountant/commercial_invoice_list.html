@@ -1,0 +1,57 @@
+{% extends "accountant/base_accountant.html" %}
+
+{% block title %}Commercial Invoices — LGS Mineral Assay Laboratory{% endblock %}
+{% block page_title %}Commercial Invoices{% endblock %}
+
+{% block content %}
+<div class="page-actions">
+  <a href="{% url 'accountant:commercial_invoice_create' %}" class="btn btn-primary">
+    <i class="bx bx-plus icon" aria-hidden="true"></i>New Commercial Invoice
+  </a>
+  <form method="get" style="display: flex; gap: 0.5rem; flex: 1; min-width: 220px;">
+    <input type="search" name="q" value="{{ query }}" placeholder="Search invoice, client or reference" />
+    <button type="submit" class="btn btn-secondary">Search</button>
+  </form>
+</div>
+
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Invoice No.</th>
+        <th>Date</th>
+        <th>Client</th>
+        <th>References</th>
+        <th>Total (TZS)</th>
+        <th>Paid (TZS)</th>
+        <th>Outstanding (TZS)</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for invoice in invoices %}
+      <tr>
+        <td>{{ invoice.invoice_number }}</td>
+        <td>{{ invoice.invoice_date|date:"Y-m-d" }}</td>
+        <td>{{ invoice.client.client_name }}</td>
+        <td>{{ invoice.reference_numbers|join:", " }}</td>
+        <td>{{ invoice.total_charges|floatformat:"2g" }}</td>
+        <td>{{ invoice.amount_paid|floatformat:"2g" }}</td>
+        <td>{{ invoice.outstanding_balance|floatformat:"2g" }}</td>
+        <td>
+          {% with status=invoice.payment_status %}
+          <span class="badge {% if status == 'PAID' %}badge-success{% elif status == 'UNPAID' %}badge-danger{% else %}badge-warning{% endif %}">{{ status }}</span>
+          {% endwith %}
+        </td>
+        <td>
+          <a href="{% url 'accountant:commercial_invoice_pdf' invoice.pk %}" class="btn btn-outline btn-sm">PDF</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="9" class="empty-state">No commercial invoices yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
