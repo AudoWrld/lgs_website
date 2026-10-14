@@ -32,6 +32,8 @@ from quotations.models import Quotation
 import calendar
 from datetime import date, timedelta
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Max, Q, Sum
+from django.http import HttpResponse
+from quotations.pdf import render_quotation_pdf
 
 ZERO = Decimal("0.00")
 DASH = "\u2014"
@@ -678,13 +680,10 @@ def _quotation_queryset():
 def quotation_list(request):
     form = QuotationFilterForm(request.GET or None)
     quotations = _quotation_queryset()
-    today = timezone.localdate()
 
     query = ""
-    status = ""
     if form.is_valid():
         query = (form.cleaned_data.get("q") or "").strip()
-        status = form.cleaned_data.get("status") or ""
         date_from = form.cleaned_data.get("date_from")
         date_to = form.cleaned_data.get("date_to")
 
@@ -694,19 +693,6 @@ def quotation_list(request):
             quotations = quotations.filter(quotation_date__gte=date_from)
         if date_to:
             quotations = quotations.filter(quotation_date__lte=date_to)
-
-        if status == Quotation.EXPIRED:
-            quotations = quotations.filter(
-                Q(status=Quotation.EXPIRED)
-                | Q(
-                    status__in=[Quotation.DRAFT, Quotation.SENT],
-                    valid_until__lt=today,
-                )
-            )
-        elif status in (Quotation.DRAFT, Quotation.SENT):
-            quotations = quotations.filter(status=status, valid_until__gte=today)
-        elif status == Quotation.ACCEPTED:
-            quotations = quotations.filter(status=Quotation.ACCEPTED)
 
     quotations = quotations.order_by("-quotation_date", "-id")
     page_obj, querystring = _paginate(request, quotations)
@@ -722,7 +708,6 @@ def quotation_list(request):
     context = {
         "form": form,
         "query": query,
-        "status": status,
         "rows": rows,
         "page_obj": page_obj,
         "querystring": querystring,
@@ -769,13 +754,6 @@ def quotation_detail(request, pk):
         "items": items,
         "subtotal": subtotal,
         "total_amount": max(subtotal - quotation.discount, ZERO),
-        "status": quotation.effective_status,
-        "status_display": quotation.effective_status_display,
-        "can_edit": quotation.is_editable,
-        "can_send": quotation.status == Quotation.DRAFT and bool(items),
-        "can_accept": quotation.effective_status == Quotation.SENT,
-        "can_expire": quotation.status != Quotation.ACCEPTED
-        and quotation.status != Quotation.EXPIRED,
     }
     return render(request, "accountant/quotation_detail.html", context)
 
@@ -783,10 +761,6 @@ def quotation_detail(request, pk):
 @accountant_required
 def quotation_edit(request, pk):
     quotation = get_object_or_404(Quotation, pk=pk)
-
-    if not quotation.is_editable:
-        messages.error(request, "Only draft quotations can be edited.")
-        return redirect("accountant:quotation_detail", pk=quotation.pk)
 
     form = QuotationForm(request.POST or None, instance=quotation)
     formset = QuotationItemFormSet(request.POST or None, instance=quotation)
@@ -812,36 +786,14 @@ def quotation_edit(request, pk):
     return render(request, "accountant/quotation_form.html", context)
 
 
-def _quotation_action(request, pk, action, success):
-    quotation = get_object_or_404(Quotation, pk=pk)
-    try:
-        if action == "send":
-            quotation.mark_sent(request.user)
-        elif action == "accept":
-            quotation.mark_accepted(request.user)
-        else:
-            quotation.mark_expired(request.user)
-    except ValidationError as exc:
-        for message in exc.messages:
-            messages.error(request, message)
-    else:
-        messages.success(request, f"Quotation {quotation.quotation_number} {success}.")
-    return redirect("accountant:quotation_detail", pk=quotation.pk)
-
-
 @accountant_required
-@require_POST
-def quotation_send(request, pk):
-    return _quotation_action(request, pk, "send", "marked as sent")
-
-
-@accountant_required
-@require_POST
-def quotation_accept(request, pk):
-    return _quotation_action(request, pk, "accept", "marked as accepted")
-
-
-@accountant_required
-@require_POST
-def quotation_expire(request, pk):
-    return _quotation_action(request, pk, "expire", "marked as expired")
+def quotation_pdf(request, pk):
+    quotation = get_object_or_404(Quotation.objects.prefetch_related("items"), pk=pk)
+    response = HttpResponse(
+        render_quotation_pdf(quotation, base_url=request.build_absolute_uri("/")),
+        content_type="application/pdf",
+    )
+    response["Content-Disposition"] = (
+        f'attachment; filename="{quotation.quotation_number}.pdf"'
+    )
+    return response

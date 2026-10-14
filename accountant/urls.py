@@ -23,13 +23,7 @@ urlpatterns = [
     path("quotations/add/", views.quotation_add, name="quotation_add"),
     path("quotations/<int:pk>/", views.quotation_detail, name="quotation_detail"),
     path("quotations/<int:pk>/edit/", views.quotation_edit, name="quotation_edit"),
-    path("quotations/<int:pk>/send/", views.quotation_send, name="quotation_send"),
-    path(
-        "quotations/<int:pk>/accept/", views.quotation_accept, name="quotation_accept"
-    ),
-    path(
-        "quotations/<int:pk>/expire/", views.quotation_expire, name="quotation_expire"
-    ),
+    path("quotations/<int:pk>/pdf/", views.quotation_pdf, name="quotation_pdf"),
     path(
         "invoices/",
         views.placeholder,
