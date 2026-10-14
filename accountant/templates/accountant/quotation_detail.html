@@ -31,14 +31,13 @@
   <div class="qt-head">
     <h2 id="qt-summary-heading"><i class="bx bx-info-circle" aria-hidden="true"></i> Summary</h2>
   </div>
-  <dl class="qt-summary">
-    <div><dt>Quotation No.</dt><dd>{{ quotation.quotation_number }}</dd></div>
-    <div><dt>Date</dt><dd>{{ quotation.quotation_date|date:"d M Y" }}</dd></div>
-    <div><dt>Valid Until</dt><dd>{{ quotation.valid_until|date:"d M Y" }}</dd></div>
-    {% if quotation.client_label %}<div><dt>Internal Label</dt><dd>{{ quotation.client_label }}</dd></div>{% endif %}
-    <div><dt>Created By</dt><dd>{{ quotation.created_by.get_full_name|default:quotation.created_by.get_username }}</dd></div>
-    {% if quotation.updated_by %}<div><dt>Last Updated By</dt><dd>{{ quotation.updated_by.get_full_name|default:quotation.updated_by.get_username }}</dd></div>{% endif %}
-  </dl>
+    <dl class="qt-summary">
+     <div><dt>Quotation No.</dt><dd>{{ quotation.quotation_number }}</dd></div>
+     <div><dt>Date</dt><dd>{{ quotation.quotation_date|date:"d M Y" }}</dd></div>
+     <div><dt>Valid Until</dt><dd>{{ quotation.valid_until|date:"d M Y" }}</dd></div>
+     <div><dt>Created By</dt><dd>{{ quotation.created_by.get_full_name|default:quotation.created_by.get_username }}</dd></div>
+     {% if quotation.updated_by %}<div><dt>Last Updated By</dt><dd>{{ quotation.updated_by.get_full_name|default:quotation.updated_by.get_username }}</dd></div>{% endif %}
+   </dl>
 </section>
 
 <section class="qt-panel" aria-labelledby="qt-lines-heading">

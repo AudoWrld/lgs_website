@@ -35,11 +35,6 @@ class Quotation(models.Model):
     )
     quotation_date = models.DateField(default=timezone.localdate)
     valid_until = models.DateField(default=default_valid_until)
-    client_label = models.CharField(
-        max_length=120,
-        blank=True,
-        help_text="Optional internal label. Do not enter client contact details.",
-    )
     discount = models.DecimalField(
         max_digits=14,
         decimal_places=2,
@@ -48,6 +43,7 @@ class Quotation(models.Model):
     )
     terms = models.TextField(blank=True)
     notes = models.TextField(blank=True)
+    expired_at = models.DateTimeField(null=True, blank=True, editable=False, db_index=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -133,6 +129,10 @@ class Quotation(models.Model):
     @property
     def is_past_validity(self):
         return self.valid_until < timezone.localdate()
+
+    @property
+    def is_expired(self):
+        return self.expired_at is not None
 
 
 class QuotationItem(models.Model):

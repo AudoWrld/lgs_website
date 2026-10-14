@@ -40,23 +40,17 @@
           <h2 id="qt-details-heading"><i class="bx bx-info-circle" aria-hidden="true"></i> Details</h2>
         </div>
         <div class="qt-form-grid">
-          <div class="qt-field">
-            <label for="{{ form.quotation_date.id_for_label }}">{{ form.quotation_date.label }}</label>
-            {{ form.quotation_date }}
-            {% for error in form.quotation_date.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
-          </div>
-          <div class="qt-field">
-            <label for="{{ form.valid_until.id_for_label }}">{{ form.valid_until.label }}</label>
-            {{ form.valid_until }}
-            {% for error in form.valid_until.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
-          </div>
-          <div class="qt-field qt-span-2">
-            <label for="{{ form.client_label.id_for_label }}">{{ form.client_label.label }}</label>
-            {{ form.client_label }}
-            <span class="qt-help">Internal note only. Do not enter client names or contact details.</span>
-            {% for error in form.client_label.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
-          </div>
-        </div>
+           <div class="qt-field">
+             <label for="{{ form.quotation_date.id_for_label }}">{{ form.quotation_date.label }}</label>
+             {{ form.quotation_date }}
+             {% for error in form.quotation_date.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
+           </div>
+           <div class="qt-field">
+             <label for="{{ form.valid_until.id_for_label }}">{{ form.valid_until.label }}</label>
+             {{ form.valid_until }}
+             {% for error in form.valid_until.errors %}<span class="qt-err">{{ error }}</span>{% endfor %}
+           </div>
+         </div>
       </section>
 
       <section class="qt-panel" aria-labelledby="qt-items-heading">

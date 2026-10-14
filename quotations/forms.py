@@ -18,7 +18,6 @@ class QuotationForm(forms.ModelForm):
         fields = [
             "quotation_date",
             "valid_until",
-            "client_label",
             "discount",
             "terms",
             "notes",
@@ -26,15 +25,11 @@ class QuotationForm(forms.ModelForm):
         labels = {
             "quotation_date": "Date",
             "valid_until": "Valid Until",
-            "client_label": "Internal Label (optional)",
             "discount": "Discount (TZS)",
         }
         widgets = {
             "quotation_date": _date_widget(),
             "valid_until": _date_widget(),
-            "client_label": forms.TextInput(
-                attrs={"placeholder": "No contact details", "autocomplete": "off"}
-            ),
             "discount": forms.NumberInput(
                 attrs={"step": "0.01", "min": "0", "inputmode": "decimal"}
             ),
