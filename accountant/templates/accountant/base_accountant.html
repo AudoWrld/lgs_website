@@ -353,6 +353,19 @@
     </script>
     <script>
       (function () {
+        var nav = document.querySelector(".app-nav");
+
+        function reveal(el) {
+          if (!nav || !el) return;
+          var navBox = nav.getBoundingClientRect();
+          var box = el.getBoundingClientRect();
+          if (box.bottom > navBox.bottom) {
+            nav.scrollTop += box.bottom - navBox.bottom + 16;
+          } else if (box.top < navBox.top) {
+            nav.scrollTop -= navBox.top - box.top + 16;
+          }
+        }
+
         var items = document.querySelectorAll(".accountant-nav-disclosure");
 
         Array.prototype.forEach.call(items, function (item) {
@@ -362,12 +375,12 @@
 
           function setExpanded(expanded) {
             toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
-            sublist.style.maxHeight = expanded
-              ? sublist.scrollHeight + "px"
-              : "0px";
+            if (expanded) {
+              setTimeout(function () {
+                reveal(sublist.lastElementChild);
+              }, 200);
+            }
           }
-
-          setExpanded(toggle.getAttribute("aria-expanded") === "true");
 
           toggle.addEventListener("click", function () {
             setExpanded(toggle.getAttribute("aria-expanded") !== "true");
@@ -383,13 +396,14 @@
             setExpanded(false);
             toggle.focus();
           });
-
-          window.addEventListener("resize", function () {
-            if (toggle.getAttribute("aria-expanded") === "true") {
-              sublist.style.maxHeight = sublist.scrollHeight + "px";
-            }
-          });
         });
+
+        function revealActive() {
+          if (nav) reveal(nav.querySelector("a.active"));
+        }
+
+        revealActive();
+        window.addEventListener("load", revealActive);
       })();
     </script>
     {% block extra_js %}{% endblock %}
