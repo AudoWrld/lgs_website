@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "accountant.apps.AccountantConfig",
     "quantity_control",
     "quotations",
+    "commercial",
 ]
 
 MIDDLEWARE = [
