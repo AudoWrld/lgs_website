@@ -63,6 +63,7 @@
 <form method="post">
   {% csrf_token %}
   <input type="hidden" name="kind" value="{{ kind }}">
+  {% if editable %}<input type="hidden" name="edit_form" value="1">{% endif %}
 
   {% if kind == "mineral" %}
     <section class="qc-section">
@@ -196,6 +197,7 @@
         <label><input type="checkbox" name="show_recovery_12h" {% if qc_review.show_recovery_12h %}checked{% endif %} {% if not editable %}disabled{% endif %}> <span>Show 12h on COA</span></label>
         <label><input type="checkbox" name="show_recovery_24h" {% if qc_review.show_recovery_24h %}checked{% endif %} {% if not editable %}disabled{% endif %}> <span>Show 24h on COA</span></label>
         <label><input type="checkbox" name="show_recovery_48h" {% if qc_review.show_recovery_48h %}checked{% endif %} {% if not editable %}disabled{% endif %}> <span>Show 48h on COA</span></label>
+        <label><input type="checkbox" name="show_recovery_72h" {% if qc_review.show_recovery_72h %}checked{% endif %} {% if not editable %}disabled{% endif %}> <span>Show 72h on COA</span></label>
       </div>
       <div class="table-wrap">
         <table class="table qc-table">
@@ -208,6 +210,7 @@
               <th>Recovery 12h</th>
               <th>Recovery 24h</th>
               <th>Recovery 48h</th>
+              <th>Recovery 72h</th>
               <th>Remarks</th>
             </tr>
           </thead>
@@ -229,6 +232,7 @@
               <td><input type="number" step="any" min="0" max="100" name="row{{ row.id }}_recovery_12h" aria-label="Recovery 12h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_12h|default_if_none:''|unlocalize }}" {% if not editable %}disabled{% endif %}></td>
               <td><input type="number" step="any" min="0" max="100" name="row{{ row.id }}_recovery_24h" aria-label="Recovery 24h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_24h|default_if_none:''|unlocalize }}" {% if not editable %}disabled{% endif %}></td>
               <td><input type="number" step="any" min="0" max="100" name="row{{ row.id }}_recovery_48h" aria-label="Recovery 48h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_48h|default_if_none:''|unlocalize }}" {% if not editable %}disabled{% endif %}></td>
+              <td><input type="number" step="any" min="0" max="100" name="row{{ row.id }}_recovery_72h" aria-label="Recovery 72h, {{ row.source_parameter.display_label }}" value="{{ row.gold_recovery_72h|default_if_none:''|unlocalize }}" {% if not editable %}disabled{% endif %}></td>
               <td><input type="text" name="row{{ row.id }}_remarks" aria-label="Remarks, {{ row.source_parameter.display_label }}" value="{{ row.remarks }}" {% if not editable %}disabled{% endif %}></td>
             </tr>
             {% endfor %}

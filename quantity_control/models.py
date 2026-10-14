@@ -38,6 +38,7 @@ class QCReview(models.Model):
     show_recovery_12h = models.BooleanField(default=True)
     show_recovery_24h = models.BooleanField(default=True)
     show_recovery_48h = models.BooleanField(default=True)
+    show_recovery_72h = models.BooleanField(default=True)
 
     metallurgical_original = models.JSONField(null=True, blank=True)
     approved_kinds = models.JSONField(default=list, blank=True)

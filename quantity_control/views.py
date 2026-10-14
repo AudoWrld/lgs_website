@@ -58,6 +58,7 @@ RECOVERY_FIELDS = (
     ("gold_recovery_12h", "recovery_12h", "Gold Recovery 12h", "show_recovery_12h"),
     ("gold_recovery_24h", "recovery_24h", "Gold Recovery 24h", "show_recovery_24h"),
     ("gold_recovery_48h", "recovery_48h", "Gold Recovery 48h", "show_recovery_48h"),
+    ("gold_recovery_72h", "recovery_72h", "Gold Recovery 72h", "show_recovery_72h"),
 )
 
 SINGLE_FIELDS = (
@@ -366,6 +367,7 @@ def _snapshot_metallurgical(entry, qc_review):
             "gold_recovery_12h": _fmt(row.gold_recovery_12h),
             "gold_recovery_24h": _fmt(row.gold_recovery_24h),
             "gold_recovery_48h": _fmt(row.gold_recovery_48h),
+            "gold_recovery_72h": _fmt(row.gold_recovery_72h),
             "remarks": row.remarks,
             "qc_included": row.qc_included,
         }
