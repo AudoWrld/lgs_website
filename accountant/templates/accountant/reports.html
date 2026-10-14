@@ -5,7 +5,6 @@
 {% block page_title %}Financial Reports{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" />
 <link rel="stylesheet" href="{% static 'accountant/css/reports.css' %}" />
 {% endblock %}
 
@@ -21,9 +20,6 @@
       <i class="bx bx-calendar" aria-hidden="true"></i>
       {{ label }}
     </span>
-    <button type="button" class="btn btn-outline rp-print" data-fm-open aria-haspopup="dialog">
-      <i class="bx bx-printer" aria-hidden="true"></i>Print
-    </button>
   </div>
 </header>
 
@@ -247,47 +243,4 @@
   <p class="rp-empty">No outstanding debt.</p>
   {% endif %}
 </section>
-
-<dialog
-  id="fm-modal"
-  class="fm-modal"
-  aria-labelledby="fm-title"
-  data-preview-url="{% url 'accountant:financial_report_preview' %}"
-  data-pdf-url="{% url 'accountant:financial_report_pdf' %}"
->
-  <div class="fm-modal-head">
-    <h2 id="fm-title">Print Financial Report</h2>
-    <button type="button" class="fm-modal-x" data-fm-close aria-label="Close">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-    </button>
-  </div>
-
-  <div class="fm-dates">
-    <div class="fm-group">
-      <label for="fm-from">From</label>
-      <input type="text" id="fm-from" placeholder="Select start date" autocomplete="off" readonly />
-    </div>
-    <div class="fm-group">
-      <label for="fm-to">To</label>
-      <input type="text" id="fm-to" placeholder="Select end date" autocomplete="off" readonly />
-    </div>
-  </div>
-
-  <div class="fm-preview" id="fm-preview" aria-live="polite">
-    <p class="fm-note">Choose a date range to see a preview.</p>
-  </div>
-
-  <div class="fm-modal-foot">
-    <button type="button" class="btn btn-outline" data-fm-close>Cancel</button>
-    <a id="fm-pdf" class="btn btn-primary" target="_blank" rel="noopener" aria-disabled="true">
-      <svg class="fm-btn-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-      Print PDF
-    </a>
-  </div>
-</dialog>
-{% endblock %}
-
-{% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
-<script src="{% static 'accountant/js/financial_report.js' %}"></script>
 {% endblock %}

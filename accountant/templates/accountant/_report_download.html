@@ -1,0 +1,162 @@
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+
+<style>
+  .rp-download-card {
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+    padding: 1.5rem;
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--orange);
+    background: var(--white);
+  }
+
+  .rp-download-head {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .rp-download-icon {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: var(--navy);
+    color: var(--white);
+    font-size: 1.5rem;
+  }
+
+  .rp-download-title {
+    margin: 0;
+    font-family: var(--font-head);
+    font-size: 1.25rem;
+  }
+
+  .rp-download-sub {
+    margin: 0.2rem 0 0;
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+
+  .rp-download-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .rp-download-group {
+    min-width: 180px;
+    flex: 1 1 0;
+  }
+
+  .rp-download-group label {
+    display: block;
+    margin-bottom: 0.35rem;
+  }
+
+  .rp-download-group input {
+    width: 100%;
+    box-sizing: border-box;
+    cursor: pointer;
+  }
+
+  .rp-download-form .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+  }
+
+  .rp-download-icon-svg {
+    width: 1.1rem;
+    height: 1.1rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .flatpickr-day.selected,
+  .flatpickr-day.selected:hover,
+  .flatpickr-day.startRange,
+  .flatpickr-day.endRange {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: var(--white);
+  }
+
+  .flatpickr-day.today {
+    border-color: var(--orange);
+  }
+
+  @media (max-width: 560px) {
+    .rp-download-group {
+      flex: 1 1 100%;
+    }
+
+    .rp-download-form .btn {
+      width: 100%;
+    }
+  }
+</style>
+
+<section class="rp-download-card">
+  <div class="rp-download-head">
+    <div class="rp-download-icon"><i class="bx {{ icon }}" aria-hidden="true"></i></div>
+    <div>
+      <h1 class="rp-download-title">{{ title }}</h1>
+      <p class="rp-download-sub">{{ subtitle }}</p>
+    </div>
+  </div>
+
+  <form method="get" action="{{ pdf_url }}" class="rp-download-form">
+    <div class="rp-download-group">
+      <label for="rp-from">From</label>
+      <input type="text" id="rp-from" name="from" value="{{ date_from }}" placeholder="YYYY-MM-DD" autocomplete="off" required />
+    </div>
+    <div class="rp-download-group">
+      <label for="rp-to">To</label>
+      <input type="text" id="rp-to" name="to" value="{{ date_to }}" placeholder="YYYY-MM-DD" autocomplete="off" required />
+    </div>
+    <button type="submit" class="btn btn-primary">
+      <svg class="rp-download-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><polyline points="7 10 12 15 17 10"></polyline><path d="M5 21h14"></path></svg>
+      Download PDF
+    </button>
+  </form>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+<script>
+  (function () {
+    var fromInput = document.getElementById("rp-from");
+    var toInput = document.getElementById("rp-to");
+
+    var toPicker = flatpickr(toInput, {
+      dateFormat: "Y-m-d",
+      allowInput: true,
+      minDate: fromInput.value || null
+    });
+
+    flatpickr(fromInput, {
+      dateFormat: "Y-m-d",
+      allowInput: true,
+      maxDate: "today",
+      onChange: function (selectedDates, dateStr) {
+        toPicker.set("minDate", dateStr || null);
+        if (dateStr && toInput.value && toInput.value < dateStr) {
+          toPicker.setDate(dateStr);
+        }
+      }
+    });
+  })();
+</script>

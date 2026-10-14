@@ -205,14 +205,68 @@
 
           <span class="app-nav-label">Reports</span>
           <ul>
-            <li>
-              <a
-                href="{% url 'accountant:reports' %}"
-                class="{% if request.resolver_match.url_name == 'reports' %}active{% endif %}"
+            <li class="accountant-nav-disclosure">
+              <button
+                type="button"
+                id="accountant-reports-toggle"
+                class="accountant-nav-toggle"
+                aria-expanded="{% if request.resolver_match.url_name == 'reports' or request.resolver_match.url_name == 'expense_report' or request.resolver_match.url_name == 'expense_report_preview' or request.resolver_match.url_name == 'financial_report' or request.resolver_match.url_name == 'financial_report_preview' or request.resolver_match.url_name == 'debt_report' %}true{% else %}false{% endif %}"
+                aria-controls="accountant-reports-sublist"
               >
-                <i class="bx bx-bar-chart-alt-2 icon" aria-hidden="true"></i
-                >Reports
-              </a>
+                <span class="accountant-nav-toggle-label"
+                  ><i
+                    class="bx bx-bar-chart-alt-2 icon"
+                    aria-hidden="true"
+                  ></i
+                  >Reports</span
+                >
+                <i
+                  class="bx bx-chevron-down accountant-nav-chevron"
+                  aria-hidden="true"
+                ></i>
+              </button>
+              <ul
+                id="accountant-reports-sublist"
+                class="accountant-nav-sublist"
+                aria-label="Reports"
+              >
+                <li>
+                  <a
+                    href="{% url 'accountant:reports' %}"
+                    class="{% if request.resolver_match.url_name == 'reports' %}active{% endif %}"
+                  >
+                    <i class="bx bx-list-ul icon" aria-hidden="true"></i
+                    >Overview
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="{% url 'accountant:expense_report' %}"
+                    class="{% if request.resolver_match.url_name == 'expense_report' or request.resolver_match.url_name == 'expense_report_preview' %}active{% endif %}"
+                  >
+                    <i class="bx bx-wallet icon" aria-hidden="true"></i
+                    >Expense Report
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="{% url 'accountant:financial_report' %}"
+                    class="{% if request.resolver_match.url_name == 'financial_report' or request.resolver_match.url_name == 'financial_report_preview' %}active{% endif %}"
+                  >
+                    <i class="bx bx-line-chart icon" aria-hidden="true"></i
+                    >Financial Report
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="{% url 'accountant:debt_report' %}"
+                    class="{% if request.resolver_match.url_name == 'debt_report' %}active{% endif %}"
+                  >
+                    <i class="bx bx-transfer icon" aria-hidden="true"></i>Debt
+                    Report
+                  </a>
+                </li>
+              </ul>
             </li>
           </ul>
         </nav>
@@ -299,26 +353,27 @@
     </script>
     <script>
       (function () {
-        var toggle = document.getElementById("accountant-payments-toggle");
-        var sublist = document.getElementById("accountant-payments-sublist");
-        if (!toggle || !sublist) return;
+        var items = document.querySelectorAll(".accountant-nav-disclosure");
 
-        function setExpanded(expanded) {
-          toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
-          sublist.style.maxHeight = expanded
-            ? sublist.scrollHeight + "px"
-            : "0px";
-        }
+        Array.prototype.forEach.call(items, function (item) {
+          var toggle = item.querySelector(".accountant-nav-toggle");
+          var sublist = item.querySelector(".accountant-nav-sublist");
+          if (!toggle || !sublist) return;
 
-        setExpanded(toggle.getAttribute("aria-expanded") === "true");
+          function setExpanded(expanded) {
+            toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+            sublist.style.maxHeight = expanded
+              ? sublist.scrollHeight + "px"
+              : "0px";
+          }
 
-        toggle.addEventListener("click", function () {
-          setExpanded(toggle.getAttribute("aria-expanded") !== "true");
-        });
+          setExpanded(toggle.getAttribute("aria-expanded") === "true");
 
-        toggle
-          .closest(".accountant-nav-disclosure")
-          .addEventListener("keydown", function (event) {
+          toggle.addEventListener("click", function () {
+            setExpanded(toggle.getAttribute("aria-expanded") !== "true");
+          });
+
+          item.addEventListener("keydown", function (event) {
             if (
               event.key !== "Escape" ||
               toggle.getAttribute("aria-expanded") !== "true"
@@ -329,10 +384,11 @@
             toggle.focus();
           });
 
-        window.addEventListener("resize", function () {
-          if (toggle.getAttribute("aria-expanded") === "true") {
-            sublist.style.maxHeight = sublist.scrollHeight + "px";
-          }
+          window.addEventListener("resize", function () {
+            if (toggle.getAttribute("aria-expanded") === "true") {
+              sublist.style.maxHeight = sublist.scrollHeight + "px";
+            }
+          });
         });
       })();
     </script>

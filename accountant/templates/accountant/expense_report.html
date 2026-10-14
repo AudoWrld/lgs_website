@@ -1,0 +1,10 @@
+{% extends 'accountant/base_accountant.html' %}
+{% load static %}
+
+{% block title %}Expense Report — LGS Accountant{% endblock %}
+{% block page_title %}Expense Report{% endblock %}
+
+{% block content %}
+{% url 'accountant:expense_report_pdf' as pdf_url %}
+{% include 'accountant/_report_download.html' with title="Expense Report" subtitle="Choose a period and download the expense report as a PDF." icon="bx-wallet" pdf_url=pdf_url %}
+{% endblock %}

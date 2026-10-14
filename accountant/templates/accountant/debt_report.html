@@ -1,0 +1,10 @@
+{% extends 'accountant/base_accountant.html' %}
+{% load static %}
+
+{% block title %}Debt Report — LGS Accountant{% endblock %}
+{% block page_title %}Debt Report{% endblock %}
+
+{% block content %}
+{% url 'accountant:debt_report_pdf' as pdf_url %}
+{% include 'accountant/_report_download.html' with title="Debt Report" subtitle="Choose a period and download the debt report as a PDF." icon="bx-error-circle" pdf_url=pdf_url %}
+{% endblock %}

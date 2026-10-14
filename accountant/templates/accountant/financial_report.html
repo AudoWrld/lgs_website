@@ -1,0 +1,10 @@
+{% extends 'accountant/base_accountant.html' %}
+{% load static %}
+
+{% block title %}Financial Report — LGS Accountant{% endblock %}
+{% block page_title %}Financial Report{% endblock %}
+
+{% block content %}
+{% url 'accountant:financial_report_pdf' as pdf_url %}
+{% include 'accountant/_report_download.html' with title="Financial Report" subtitle="Choose a period and download the financial report as a PDF." icon="bx-line-chart" pdf_url=pdf_url %}
+{% endblock %}
