@@ -13,10 +13,10 @@
 <header class="qt-hero">
   <div class="qt-hero-main">
     <span class="qt-hero-icon"><i class="bx bx-file" aria-hidden="true"></i></span>
-    <div>
-      <h1 class="qt-hero-title">{% if is_edit %}{{ quotation.quotation_number }}{% else %}New Quotation{% endif %}</h1>
-      <p class="qt-hero-sub">{% if is_edit %}Draft quotations can be edited until they are sent.{% else %}The quotation number is generated when you save.{% endif %}</p>
-    </div>
+   <div>
+     <h1 class="qt-hero-title">{% if is_edit %}{{ quotation.quotation_number }}{% else %}New Quotation{% endif %}</h1>
+     <p class="qt-hero-sub">{% if is_edit %}Quotations can be edited at any time.{% else %}The quotation number is generated when you save.{% endif %}</p>
+   </div>
   </div>
   <div class="qt-hero-actions">
     <a class="qt-hero-btn qt-hero-btn--ghost" href="{% if is_edit %}{% url 'accountant:quotation_detail' quotation.pk %}{% else %}{% url 'accountant:quotation_list' %}{% endif %}"><i class="bx bx-arrow-back" aria-hidden="true"></i>Cancel</a>

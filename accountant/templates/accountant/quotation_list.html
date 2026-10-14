@@ -36,10 +36,6 @@
     {{ form.q }}
   </div>
   <div class="qt-field">
-    <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
-    {{ form.status }}
-  </div>
-  <div class="qt-field">
     <label for="{{ form.date_from.id_for_label }}">{{ form.date_from.label }}</label>
     {{ form.date_from }}
   </div>
@@ -67,7 +63,6 @@
           <th scope="col">Quotation No.</th>
           <th scope="col">Date</th>
           <th scope="col">Valid Until</th>
-          <th scope="col">Status</th>
           <th scope="col" class="qt-num">Total (TZS)</th>
           <th scope="col">Created By</th>
           <th scope="col"><span class="qt-sr">Actions</span></th>
@@ -79,10 +74,12 @@
           <td class="qt-ref"><a href="{% url 'accountant:quotation_detail' row.quotation.pk %}">{{ row.quotation.quotation_number }}</a></td>
           <td class="qt-nowrap">{{ row.quotation.quotation_date|date:"d M Y" }}</td>
           <td class="qt-nowrap">{{ row.quotation.valid_until|date:"d M Y" }}</td>
-          <td><span class="qt-badge qt-badge-{{ row.quotation.effective_status|lower }}">{{ row.quotation.effective_status_display }}</span></td>
           <td class="qt-num">{{ row.total|floatformat:"2g" }}</td>
           <td>{{ row.quotation.created_by.get_full_name|default:row.quotation.created_by.get_username }}</td>
-          <td class="qt-num"><a class="btn btn-outline btn-sm" href="{% url 'accountant:quotation_detail' row.quotation.pk %}"><i class="bx bx-show" aria-hidden="true"></i>View</a></td>
+          <td class="qt-num">
+            <a class="btn btn-outline btn-sm" href="{% url 'accountant:quotation_detail' row.quotation.pk %}"><i class="bx bx-show" aria-hidden="true"></i>View</a>
+            <a class="btn btn-primary btn-sm" href="{% url 'accountant:quotation_pdf' row.quotation.pk %}"><i class="bx bx-download" aria-hidden="true"></i>PDF</a>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
