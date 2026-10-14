@@ -29,6 +29,9 @@ from quotations.forms import (
     QuotationItemFormSet,
 )
 from quotations.models import Quotation
+import calendar
+from datetime import date, timedelta
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Max, Q, Sum
 
 ZERO = Decimal("0.00")
 DASH = "\u2014"
@@ -504,6 +507,72 @@ def reports(request):
         "credit_querystring": credit_querystring,
     }
     return render(request, "accountant/reports.html", context)
+
+
+def _safe_date(value):
+    try:
+        return parse_date(value or "")
+    except ValueError:
+        return None
+
+
+def _month_back(today):
+    if today.month == 1:
+        year, month = today.year - 1, 12
+    else:
+        year, month = today.year, today.month - 1
+    return date(year, month, min(today.day, calendar.monthrange(year, month)[1]))
+
+
+def _report_range(request):
+    today = timezone.localdate()
+    start = _safe_date(request.GET.get("from")) or _month_back(today)
+    end = _safe_date(request.GET.get("to")) or today
+    if start > end:
+        start, end = end, start
+    return start, end
+
+
+def _range_label(start, end):
+    return f"{start:%d %b %Y} \u2013 {end:%d %b %Y}"
+
+
+def _breakdown(queryset, field, names, total):
+    rows = (
+        queryset.order_by()
+        .values(field)
+        .annotate(total=Sum("amount"), count=Count("id"))
+        .order_by("-total")
+    )
+    return [
+        {
+            "name": names.get(row[field], row[field]),
+            "count": row["count"],
+            "total": row["total"],
+            "share": (row["total"] / total * 100) if total else ZERO,
+        }
+        for row in rows
+    ]
+
+
+def _range_context(request):
+    start, end = _report_range(request)
+    return {"date_from": start.isoformat(), "date_to": end.isoformat()}
+
+
+@accountant_required
+def financial_report(request):
+    return render(request, "accountant/financial_report.html", _range_context(request))
+
+
+@accountant_required
+def expense_report(request):
+    return render(request, "accountant/expense_report.html", _range_context(request))
+
+
+@accountant_required
+def debt_report(request):
+    return render(request, "accountant/debt_report.html", _range_context(request))
 
 
 @accountant_required

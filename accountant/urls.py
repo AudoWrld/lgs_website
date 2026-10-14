@@ -1,9 +1,7 @@
 from django.urls import path
 from django.views.generic import RedirectView
 
-from . import views
-from . import expense_report
-from .financial_views import financial_report_pdf, financial_report_preview
+from . import report_downloads, views
 
 app_name = "accountant"
 
@@ -48,20 +46,22 @@ urlpatterns = [
         name="release_authorize",
     ),
     path("reports/", views.reports, name="reports"),
-    path(
-        "expenses/report/preview/",
-        expense_report.expense_report_preview,
-        name="expense_report_preview",
-    ),
+    path("expenses/report/", views.expense_report, name="expense_report"),
     path(
         "expenses/report/pdf/",
-        expense_report.expense_report_pdf,
+        report_downloads.expense_report_pdf,
         name="expense_report_pdf",
     ),
+    path("reports/financial/", views.financial_report, name="financial_report"),
     path(
-        "reports/financial/preview/",
-        financial_report_preview,
-        name="financial_report_preview",
+        "reports/financial/pdf/",
+        report_downloads.financial_report_pdf,
+        name="financial_report_pdf",
     ),
-    path("reports/financial/pdf/", financial_report_pdf, name="financial_report_pdf"),
+    path("reports/debt/", views.debt_report, name="debt_report"),
+    path(
+        "reports/debt/pdf/",
+        report_downloads.debt_report_pdf,
+        name="debt_report_pdf",
+    ),
 ]
