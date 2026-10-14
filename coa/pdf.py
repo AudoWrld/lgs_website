@@ -99,6 +99,7 @@ class CoaDoc:
     logo_path: str = ""
     signature_path: str = ""
     stamp_path: str = ""
+    website: str = ""
 
 
 def _style(name, **kw):
@@ -237,6 +238,13 @@ def _draw_company_name(c, right, y):
     c.restoreState()
 
 
+def _address_lines(website=""):
+    if not website:
+        return ADDRESS_LINES
+    head = ADDRESS_LINES[-1].rsplit("Website:", 1)[0]
+    return [*ADDRESS_LINES[:-1], f"{head}Website: {website}"]
+
+
 def _draw_letterhead(c, d):
     right = PAGE_W - MARGIN_X
     if d.logo_path and os.path.exists(d.logo_path):
@@ -254,7 +262,7 @@ def _draw_letterhead(c, d):
     c.setFillColor(PURPLE)
     c.setFont(ADDRESS_FONT, ADDRESS_SIZE)
     y = PAGE_H - 23.5 * mm
-    for line in ADDRESS_LINES:
+    for line in _address_lines(d.website):
         c.drawRightString(right, y, line)
         y -= 4.3 * mm
     c.setStrokeColor(COMPANY_BLUE)
@@ -405,9 +413,7 @@ def _table(block, width):
     for col, start, end in block.spans:
         commands.append(("SPAN", (col, start + 1), (col, end + 1)))
 
-    t = Table(
-        data, colWidths=_col_widths(ncols, width, block.header), repeatRows=1
-    )
+    t = Table(data, colWidths=_col_widths(ncols, width, block.header), repeatRows=1)
     t.setStyle(TableStyle(commands))
     return t
 

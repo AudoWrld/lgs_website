@@ -352,8 +352,14 @@ def _static_path(relative):
 
 
 def _verify_base(base_url=None):
-    base = base_url or getattr(settings, "SITE_BASE_URL", "https://lgsafrica.co.tz")
-    return str(base).rstrip("/")
+    if base_url:
+        return str(base_url).rstrip("/")
+    hosts = [
+        h for h in settings.ALLOWED_HOSTS if h and h != "*" and not h.startswith(".")
+    ]
+    if settings.DEBUG or not hosts:
+        return "http://127.0.0.1:8000"
+    return f"https://{hosts[0]}"
 
 
 def build_coa_doc(coa, base_url=None):
