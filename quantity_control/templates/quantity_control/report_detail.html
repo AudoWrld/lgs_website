@@ -6,41 +6,76 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
-<link rel="stylesheet" href="{% static 'reception/css/client_coa.css' %}">
 <link rel="stylesheet" href="{% static 'quantity_control/css/report_detail.css' %}">
 {% endblock %}
 
 {% block content %}
 {% with payment=submission.payment %}
-<header class="rc-coa-header">
-  <div>
-    <p class="rc-coa-eyebrow">Client reference</p>
-    <h2>{{ submission.reference }}</h2>
-    <p class="rc-coa-client">{{ submission.client.client_name }}</p>
+<section class="rc-hero">
+  <div class="rc-hero-main">
+    <div class="rc-hero-meta">
+      <i class='bx bx-file' aria-hidden="true"></i>
+      <span>{{ entries|length }} COA{{ entries|length|pluralize }}</span>
+      <span class="rc-hero-divider" aria-hidden="true"></span>
+      <span>{{ sample_items|length }} sample{{ sample_items|length|pluralize }}</span>
+    </div>
+    <h1 class="rc-hero-title">{{ submission.reference }}</h1>
+    <p class="rc-hero-sub">{{ submission.client.client_name }}</p>
   </div>
-  <span class="rc-coa-status{% if all_ready %} is-ready{% endif %}">
-    {% if not entries %}Not generated{% elif payment_pending %}Payment Pending{% else %}Ready for Release{% endif %}
-  </span>
-</header>
-
-{% if payment %}
-<section class="rc-coa-payment" aria-label="Payment for this reference">
-  <div class="rc-coa-payment-grid">
-    <div><span>Payment status</span><strong>{{ payment.get_payment_status_display }}</strong></div>
-    <div><span>Net payable</span><strong>TZS {{ payment.net_amount_payable|floatformat:"2g" }}</strong></div>
-    <div><span>Total paid</span><strong>TZS {{ payment.total_amount_paid|floatformat:"2g" }}</strong></div>
-    <div{% if payment.outstanding_balance > 0 %} class="is-due"{% endif %}><span>Outstanding</span><strong>TZS {{ payment.outstanding_balance|floatformat:"2g" }}</strong></div>
-  </div>
-  <div class="rc-coa-payment-foot">
-    <p>Payment is made once for the whole reference and covers {{ entries|length }} COA{{ entries|length|pluralize }}. {% if payment_pending %}COA previews remain blurred until payment is complete.{% else %}All COAs for this reference are ready for release.{% endif %}</p>
+  <div class="rc-hero-side">
+    <span class="rc-status{% if not entries %} is-empty{% elif payment_pending %} is-pending{% else %} is-ready{% endif %}">
+      {% if not entries %}<i class='bx bx-minus-circle' aria-hidden="true"></i> Not generated
+      {% elif payment_pending %}<i class='bx bx-time-five' aria-hidden="true"></i> Payment pending
+      {% else %}<i class='bx bx-check-circle' aria-hidden="true"></i> Ready for release{% endif %}
+    </span>
+    <a href="{% url 'qc:generated_reports' %}" class="rc-hero-btn">
+      <i class='bx bx-arrow-back' aria-hidden="true"></i> Back to reports
+    </a>
   </div>
 </section>
+
+{% if payment %}
+<section class="rc-stats" aria-label="Payment for this reference">
+  <div class="rc-stat-card">
+    <span class="rc-stat-icon"><i class='bx bx-wallet' aria-hidden="true"></i></span>
+    <div class="rc-stat-body">
+      <span class="rc-stat-label">Payment status</span>
+      <span class="rc-stat-text">{{ payment.get_payment_status_display }}</span>
+    </div>
+  </div>
+  <div class="rc-stat-card">
+    <span class="rc-stat-icon"><i class='bx bx-receipt' aria-hidden="true"></i></span>
+    <div class="rc-stat-body">
+      <span class="rc-stat-label">Net payable</span>
+      <span class="rc-stat-value">TZS {{ payment.net_amount_payable|floatformat:"2g" }}</span>
+    </div>
+  </div>
+  <div class="rc-stat-card">
+    <span class="rc-stat-icon"><i class='bx bx-money' aria-hidden="true"></i></span>
+    <div class="rc-stat-body">
+      <span class="rc-stat-label">Total paid</span>
+      <span class="rc-stat-value">TZS {{ payment.total_amount_paid|floatformat:"2g" }}</span>
+    </div>
+  </div>
+  <div class="rc-stat-card{% if payment.outstanding_balance > 0 %} rc-stat-warning{% endif %}">
+    <span class="rc-stat-icon"><i class='bx bx-time-five' aria-hidden="true"></i></span>
+    <div class="rc-stat-body">
+      <span class="rc-stat-label">Outstanding</span>
+      <span class="rc-stat-value">TZS {{ payment.outstanding_balance|floatformat:"2g" }}</span>
+    </div>
+  </div>
+</section>
+
+<p class="rc-note{% if payment_pending %} is-pending{% endif %}">
+  <i class='bx {% if payment_pending %}bx-lock-alt{% else %}bx-check-circle{% endif %}' aria-hidden="true"></i>
+  <span>Payment is made once for the whole reference and covers {{ entries|length }} COA{{ entries|length|pluralize }}. {% if payment_pending %}COA previews stay blurred until payment is complete.{% else %}All COAs for this reference are ready for release.{% endif %}</span>
+</p>
 {% endif %}
 {% endwith %}
 
 {% if has_missing_files %}
-<section class="qc-section rc-coa-missing">
-  <p class="qc-empty-note"><i class='bx bx-error' aria-hidden="true"></i> Some COA files are missing.</p>
+<section class="rc-alert" role="alert">
+  <p><i class='bx bx-error' aria-hidden="true"></i> Some COA files are missing. Rebuild them to restore the PDF and PNG.</p>
   <form method="post" class="coa-form">
     {% csrf_token %}
     <input type="hidden" name="action" value="rebuild_files">
@@ -50,55 +85,83 @@
 {% endif %}
 
 {% if entries %}
-<section class="rc-coa-list" aria-label="Certificates of analysis">
-{% for entry in entries %}
-<article class="rc-coa-item{% if not entry.released %} is-pending{% endif %}">
-  <div class="rc-coa-item-head">
-    <div>
-      <h3>{{ entry.coa.coa_number }}</h3>
-      {% if entry.samples %}
-      <p class="rc-coa-samples">Samples: {% for item in entry.samples %}{{ item.sample.client_sample_id }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+<section class="rc-panel" aria-label="Certificates of analysis">
+  <div class="rc-panel-head">
+    <h3><i class='bx bx-certification' aria-hidden="true"></i> Certificates of analysis</h3>
+  </div>
+  <div class="rc-grid">
+    {% for entry in entries %}
+    <article class="rc-card{% if not entry.released %} is-pending{% endif %}">
+      <header class="rc-card-head">
+        <div class="rc-card-title">
+          <h4>{{ entry.coa.coa_number }}</h4>
+          {% if entry.samples %}
+          <ul class="rc-chips" aria-label="Samples in this COA">
+            {% for item in entry.samples %}<li>{{ item.sample.client_sample_id }}</li>{% endfor %}
+          </ul>
+          {% endif %}
+        </div>
+        <span class="rc-status{% if entry.released %} is-ready{% else %} is-pending{% endif %}">{{ entry.coa.get_status_display }}</span>
+      </header>
+
+      <dl class="rc-meta">
+        <div><dt>Samples covered</dt><dd>{{ entry.samples|length }}</dd></div>
+        <div><dt>Report date</dt><dd>{{ entry.coa.created_at|date:"d M Y" }}</dd></div>
+        <div><dt>Files</dt><dd class="{% if entry.files_ready %}is-ok{% else %}is-warn{% endif %}">{% if entry.files_ready %}PDF and PNG ready{% else %}Missing{% endif %}</dd></div>
+      </dl>
+
+      {% if entry.preview_ready %}
+      <div class="rc-preview{% if not entry.released %} is-blurred{% endif %}">
+        <img src="{% url 'qc:report_coa_preview' entry.coa.pk %}" alt="{% if entry.released %}Preview of COA {{ entry.coa.coa_number }}{% else %}Locked preview of COA {{ entry.coa.coa_number }}{% endif %}" loading="lazy" draggable="false">
+        {% if not entry.released %}<span class="rc-lock"><i class="bx bx-lock-alt" aria-hidden="true"></i> Available after payment</span>{% endif %}
+      </div>
+      {% else %}
+      <div class="rc-preview-empty"><i class='bx bx-image-alt' aria-hidden="true"></i> COA preview is not available.</div>
       {% endif %}
-    </div>
-    <span class="rc-coa-status{% if entry.released %} is-ready{% endif %}">{{ entry.coa.get_status_display }}</span>
-  </div>
 
-  <dl class="rc-coa-meta">
-    <div><dt>Samples covered</dt><dd>{{ entry.samples|length }}</dd></div>
-    <div><dt>Report date</dt><dd>{{ entry.coa.created_at|date:"d M Y" }}</dd></div>
-  </dl>
-
-  {% if entry.preview_ready %}
-  <div class="rc-coa-preview{% if not entry.released %} is-blurred{% endif %}">
-    <img src="{% url 'qc:report_coa_preview' entry.coa.pk %}" alt="{% if entry.released %}Preview of COA {{ entry.coa.coa_number }}{% else %}Locked preview of COA {{ entry.coa.coa_number }}{% endif %}" loading="lazy" draggable="false">
-    {% if not entry.released %}<span class="rc-coa-lock"><i class="bx bx-lock-alt" aria-hidden="true"></i> Available after payment</span>{% endif %}
+      {% if entry.released %}
+      <footer class="rc-actions">
+        {% if entry.coa.pdf_file %}
+        <a href="{% url 'qc:report_coa_file' entry.coa.pk 'pdf' %}" target="_blank" rel="noopener" class="btn btn-outline" title="Open and print PDF"><i class="bx bx-printer" aria-hidden="true"></i> Print PDF</a>
+        <a href="{% url 'qc:report_coa_file' entry.coa.pk 'pdf' %}?download=1" class="btn btn-primary" title="Download PDF"><i class="bx bx-download" aria-hidden="true"></i> Download PDF</a>
+        {% endif %}
+        {% if entry.coa.png_file %}
+        <a href="{% url 'qc:report_coa_file' entry.coa.pk 'png' %}" target="_blank" rel="noopener" class="btn btn-outline" title="Open and print PNG"><i class="bx bx-image" aria-hidden="true"></i> Print PNG</a>
+        <a href="{% url 'qc:report_coa_file' entry.coa.pk 'png' %}?download=1" class="btn btn-outline" title="Download PNG"><i class="bx bx-download" aria-hidden="true"></i> Download PNG</a>
+        {% endif %}
+      </footer>
+      {% else %}
+      <p class="rc-locked-note"><i class="bx bx-lock-alt" aria-hidden="true"></i> Locked until payment for this reference is complete.</p>
+      {% endif %}
+    </article>
+    {% endfor %}
   </div>
-  {% else %}
-  <div class="rc-coa-preview-empty">COA preview is not available.</div>
-  {% endif %}
-
-  {% if entry.released %}
-  <div class="rc-coa-actions">
-    {% if entry.coa.pdf_file %}
-    <a href="{% url 'qc:report_coa_file' entry.coa.pk 'pdf' %}" target="_blank" rel="noopener" class="btn btn-outline" title="Open and print PDF"><i class="bx bx-printer" aria-hidden="true"></i> Print PDF</a>
-    <a href="{% url 'qc:report_coa_file' entry.coa.pk 'pdf' %}?download=1" class="btn btn-primary" title="Download PDF"><i class="bx bx-download" aria-hidden="true"></i> Download PDF</a>
-    {% endif %}
-    {% if entry.coa.png_file %}
-    <a href="{% url 'qc:report_coa_file' entry.coa.pk 'png' %}" target="_blank" rel="noopener" class="btn btn-outline" title="Open and print PNG"><i class="bx bx-image" aria-hidden="true"></i> Print PNG</a>
-    <a href="{% url 'qc:report_coa_file' entry.coa.pk 'png' %}?download=1" class="btn btn-outline" title="Download PNG"><i class="bx bx-download" aria-hidden="true"></i> Download PNG</a>
-    {% endif %}
-  </div>
-  {% else %}
-  <p class="rc-coa-pending-note"><i class="bx bx-lock-alt" aria-hidden="true"></i> Locked until payment for this reference is complete.</p>
-  {% endif %}
-</article>
-{% endfor %}
 </section>
 {% else %}
-<div class="rc-coa-empty" role="status">No COA has been generated for this reference yet.</div>
-<div class="rc-coa-empty-action">
-  <a href="{% url 'qc:generate_report' %}?reference={{ submission.reference|urlencode }}" class="btn btn-outline btn-sm">Go to Generate Report</a>
-</div>
+<section class="rc-panel">
+  <div class="rc-empty" role="status">
+    <i class='bx bx-file-blank' aria-hidden="true"></i>
+    <p>No COA has been generated for this reference yet.</p>
+    <a href="{% url 'qc:generate_report' %}?reference={{ submission.reference|urlencode }}" class="btn btn-outline btn-sm">Go to Generate Report</a>
+  </div>
+</section>
 {% endif %}
-<a href="{% url 'qc:generated_reports' %}" class="btn btn-outline rc-coa-back"><i class="bx bx-arrow-back" aria-hidden="true"></i> Back to reports</a>
+
+{% if waiting_items %}
+<section class="rc-panel" aria-label="Samples without a COA">
+  <div class="rc-panel-head">
+    <h3><i class='bx bx-time-five' aria-hidden="true"></i> Not generated yet</h3>
+    <span>{{ waiting_items|length }} sample{{ waiting_items|length|pluralize }} not in a COA</span>
+  </div>
+  <ul class="rc-waiting">
+    {% for item in waiting_items %}
+    <li>
+      <span class="rc-waiting-id">{{ item.sample.client_sample_id }}</span>
+      <span class="rc-waiting-lab">{{ item.lab_id }}</span>
+      <span class="rc-waiting-status">{{ item.sample.get_analysis_status_display }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
 {% endblock %}

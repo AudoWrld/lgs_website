@@ -981,7 +981,9 @@ def report_detail(request, reference):
             "coa": coa,
             "samples": (
                 _sample_items(
-                    coa.group.samples.select_related("submission").order_by("id")
+                    coa.group.samples.filter(analysis_status=Sample.QC_APPROVED)
+                    .select_related("submission")
+                    .order_by("id")
                 )
                 if coa.group_id
                 else []
@@ -993,9 +995,12 @@ def report_detail(request, reference):
         for coa in coas
     ]
     samples = list(submission.samples.select_related("submission").order_by("id"))
+    covered = {item["sample"].pk for e in entries for item in e["samples"]}
+    waiting = [s for s in samples if s.pk not in covered]
     context = {
         "submission": submission,
         "sample_items": _sample_items(samples),
+        "waiting_items": _sample_items(waiting),
         "entries": entries,
         "has_missing_files": any(not e["files_ready"] for e in entries),
         "payment_pending": any(not e["released"] for e in entries),
