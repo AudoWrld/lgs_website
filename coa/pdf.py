@@ -17,8 +17,8 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.platypus import (
     BaseDocTemplate,
-    CondPageBreak,
     Frame,
+    KeepTogether,
     NextPageTemplate,
     PageTemplate,
     Paragraph,
@@ -36,8 +36,7 @@ FOOTER_BASE = 6 * mm
 
 PX = 0.75
 GAP = 10 * PX
-CELL_PAD = 3
-BLOCK_MIN_SPACE = 45 * mm
+CELL_PAD = 2
 
 BLUE = colors.HexColor("#0B3C91")
 COMPANY_BLUE = colors.HexColor("#1B3FD6")
@@ -353,15 +352,17 @@ def _col_widths(ncols, width, header=None):
         return [width * 0.3, width * 0.7]
     if ncols == 3:
         return [width * 0.29, width * 0.35, width * 0.36]
-    if header and header[-1] == "Remarks" and ncols > 4:
+    if header and "Weight / Volume" in header:
+        remarks = 0.17 if header[-1] == "Remarks" else 0.0
         fixed = [0.06, 0.14]
-        remarks = 0.17
-        middle = (1 - sum(fixed) - remarks) / (ncols - 3)
-        return (
-            [width * f for f in fixed]
-            + [width * middle] * (ncols - 3)
-            + [width * remarks]
-        )
+        if "Parameter" in header:
+            fixed.append(0.15)
+        fixed.append(0.11)
+        recovery = ncols - len(fixed) - (1 if remarks else 0)
+        if recovery > 0:
+            rest = (1 - sum(fixed) - remarks) / recovery
+            widths = fixed + [rest] * recovery + ([remarks] if remarks else [])
+            return [width * w for w in widths]
     first = [width * 0.1, width * 0.18]
     rest = (width - sum(first)) / (ncols - 2)
     return first + [rest] * (ncols - 2)
@@ -518,8 +519,7 @@ def _story(d, pages_total):
     else:
         story += disclaimer
     for group in groups:
-        story.append(CondPageBreak(BLOCK_MIN_SPACE))
-        story.extend(group)
+        story.append(KeepTogether(group))
     return story
 
 
