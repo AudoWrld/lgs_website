@@ -3,6 +3,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils.text import slugify
 
+from accounts.models import Client
 from branches.models import Branch
 from branches.utils import to_title_case
 
@@ -55,17 +56,16 @@ def build_phone(branch_index, role_index):
 
 class Command(BaseCommand):
     help = (
-        "Seeds the default branches (with location, phone and email), then "
-        "creates one test user per role (administrator, customer, reception, "
-        "chemist, quantity_control, accountant) for every branch in the "
-        "database, all with password 'passwd'. Development/testing use only — "
-        "never run against a production database."
+        "Seeds default branches and creates test users for every branch. "
+        "Customer users receive individual client profiles. "
+        "Development and testing use only."
     )
 
     @transaction.atomic
     def handle(self, *args, **options):
         created_count = 0
         skipped_count = 0
+        client_profiles_created = 0
 
         for entry in SEED_BRANCHES:
             name = to_title_case(entry["name"])
@@ -85,6 +85,7 @@ class Command(BaseCommand):
                 continue
 
             updated_fields = []
+
             for field, value in details.items():
                 if not getattr(branch, field):
                     setattr(branch, field, value)
@@ -94,7 +95,8 @@ class Command(BaseCommand):
                 branch.save(update_fields=[*updated_fields, "updated_at"])
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f"Updated branch: {branch.name} ({', '.join(updated_fields)})"
+                        f"Updated branch: {branch.name} "
+                        f"({', '.join(updated_fields)})"
                     )
                 )
 
@@ -103,12 +105,44 @@ class Command(BaseCommand):
         for branch_index, branch in enumerate(branches):
             self.stdout.write(self.style.MIGRATE_HEADING(f"\nBranch: {branch.name}"))
 
-            for role_index, (role_key, method, first_name, last_name) in enumerate(
-                SEED_ROLES
-            ):
+            for role_index, (
+                role_key,
+                method,
+                first_name,
+                last_name,
+            ) in enumerate(SEED_ROLES):
                 email = build_email(role_key, branch)
 
-                if User.objects.filter(email=email).exists():
+                existing_user = User.objects.filter(email=email).first()
+
+                if existing_user:
+                    if role_key == "customer":
+                        client_name = (
+                            existing_user.get_full_name()
+                            or existing_user.email.split("@")[0]
+                        )
+
+                        _, profile_created = Client.objects.get_or_create(
+                            portal_user=existing_user,
+                            defaults={
+                                "client_type": Client.INDIVIDUAL,
+                                "client_name": client_name,
+                                "contact_person": client_name,
+                                "email": existing_user.email,
+                                "whatsapp_number": (existing_user.whatsapp_number),
+                                "registered_by": existing_user.created_by,
+                            },
+                        )
+
+                        if profile_created:
+                            client_profiles_created += 1
+                            self.stdout.write(
+                                self.style.SUCCESS(
+                                    f"Created individual client profile: "
+                                    f"{existing_user.email}"
+                                )
+                            )
+
                     self.stdout.write(
                         self.style.WARNING(f"Skipped (already exists): {email}")
                     )
@@ -120,39 +154,66 @@ class Command(BaseCommand):
                     password=SEED_PASSWORD,
                     first_name=first_name,
                     last_name=last_name,
-                    whatsapp_number=build_phone(branch_index, role_index),
+                    whatsapp_number=build_phone(
+                        branch_index,
+                        role_index,
+                    ),
                     branch=branch,
                 )
 
+                if role_key == "customer":
+                    client_name = f"{first_name} {last_name}"
+
+                    Client.objects.create(
+                        portal_user=user,
+                        client_type=Client.INDIVIDUAL,
+                        client_name=client_name,
+                        contact_person=client_name,
+                        email=email,
+                        whatsapp_number=user.whatsapp_number,
+                    )
+
+                    client_profiles_created += 1
+
+                    self.stdout.write(
+                        self.style.SUCCESS(
+                            f"Created individual client profile: {email}"
+                        )
+                    )
+
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f"Created: {email} — {user.get_full_name()} "
+                        f"Created: {email} - {user.get_full_name()} "
                         f"({user.get_role_display()})"
                     )
                 )
                 created_count += 1
 
         for administrator in User.objects.filter(
-            role=User.ADMINISTRATOR, email__startswith="administrator."
+            role=User.ADMINISTRATOR,
+            email__startswith="administrator.",
         ):
             has_admin_access = administrator.is_administrator and administrator.is_staff
             style = self.style.SUCCESS if has_admin_access else self.style.ERROR
             self.stdout.write(
-                style(f"{administrator.email} has admin access: {has_admin_access}")
+                style(f"{administrator.email} has admin access: " f"{has_admin_access}")
             )
 
         for accountant in User.objects.filter(
-            role=User.ACCOUNTANT, email__startswith="accountant."
+            role=User.ACCOUNTANT,
+            email__startswith="accountant.",
         ):
             can_release = accountant.has_perm("coa.authorize_release")
             style = self.style.SUCCESS if can_release else self.style.ERROR
             self.stdout.write(
-                style(f"{accountant.email} can authorize release: {can_release}")
+                style(f"{accountant.email} can authorize release: " f"{can_release}")
             )
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"\n{len(branches)} branches, {created_count} users created, "
-                f"{skipped_count} skipped."
+                f"\n{len(branches)} branches, "
+                f"{created_count} users created, "
+                f"{client_profiles_created} client profiles created, "
+                f"{skipped_count} users skipped."
             )
         )
