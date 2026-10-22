@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "quotations",
     "commercial",
     "administrator",
+    "branches",
 ]
 
 MIDDLEWARE = [
