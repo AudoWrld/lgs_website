@@ -1,0 +1,105 @@
+{% extends "administrator/base_administrator.html" %}
+{% load static %}
+
+{% block title %}Edit Client — LGS Mineral Assay Laboratory{% endblock %}
+{% block page_title %}Edit Client{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'administrator/css/user_lists.css' %}">
+{% endblock %}
+
+{% block content %}
+{% include "administrator/_user_icons.html" %}
+
+<div class="branch-page">
+    <div class="br-toolbar">
+        <div>
+            <h4 class="br-title">
+                <svg class="br-icon br-icon-lg"><use href="#i-edit"/></svg>
+                Edit Client
+            </h4>
+            <p class="br-subtitle">Update details for {{ form.full_name|default:target_user.email }}.</p>
+        </div>
+
+        <a href="{% url 'administrator:client_list' %}" class="br-btn br-btn-light">Back to Clients</a>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h6 class="panel-title">Client Details</h6>
+                <div class="panel-sub">Fields marked <span class="br-required">*</span> are required.</div>
+            </div>
+        </div>
+
+        <form method="POST" novalidate>
+            {% csrf_token %}
+
+            <div class="br-form-body">
+                <div class="br-form-grid">
+                    <div class="br-field">
+                        <label class="br-label" for="full_name">Client name <span class="br-required">*</span></label>
+                        <input type="text" id="full_name" name="full_name" class="br-input{% if errors.full_name %} is-invalid{% endif %}" value="{{ form.full_name }}" maxlength="200" autocomplete="off" required>
+                        {% if errors.full_name %}<div class="field-error-msg">{{ errors.full_name }}</div>{% endif %}
+                    </div>
+
+                    <div class="br-field">
+                        <label class="br-label" for="client_type">Client type <span class="br-required">*</span></label>
+                        <select id="client_type" name="client_type" class="br-input{% if errors.client_type %} is-invalid{% endif %}" required>
+                            <option value="">Select a type</option>
+                            {% for value, label in client_types %}
+                                <option value="{{ value }}" {% if form.client_type == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if errors.client_type %}<div class="field-error-msg">{{ errors.client_type }}</div>{% endif %}
+                    </div>
+
+                    <div class="br-field">
+                        <label class="br-label" for="contact_person">Contact person <span class="br-required">*</span></label>
+                        <input type="text" id="contact_person" name="contact_person" class="br-input{% if errors.contact_person %} is-invalid{% endif %}" value="{{ form.contact_person }}" maxlength="150" autocomplete="off" required>
+                        {% if errors.contact_person %}<div class="field-error-msg">{{ errors.contact_person }}</div>{% endif %}
+                    </div>
+
+                    <div class="br-field">
+                        <label class="br-label" for="whatsapp_number">Phone / WhatsApp <span class="br-required">*</span></label>
+                        <input type="tel" id="whatsapp_number" name="whatsapp_number" class="br-input{% if errors.whatsapp_number %} is-invalid{% endif %}" value="{{ form.whatsapp_number }}" maxlength="20" autocomplete="off" required>
+                        {% if errors.whatsapp_number %}<div class="field-error-msg">{{ errors.whatsapp_number }}</div>{% endif %}
+                    </div>
+
+                    <div class="br-field">
+                        <label class="br-label" for="email">Email address</label>
+                        <input type="email" id="email" class="br-input" value="{{ target_user.email }}" readonly aria-readonly="true" tabindex="-1">
+                        <div class="br-hint">The email address cannot be changed.</div>
+                    </div>
+
+                    <div class="br-field">
+                        <label class="br-label" for="branch_id">Branch <span class="br-required">*</span></label>
+                        <select id="branch_id" name="branch_id" class="br-input{% if errors.branch_id %} is-invalid{% endif %}" required>
+                            <option value="">Select a branch</option>
+                            {% for branch in branches %}
+                                <option value="{{ branch.id }}" {% if form.branch_id == branch.id|stringformat:"s" %}selected{% endif %}>{{ branch.name }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if errors.branch_id %}<div class="field-error-msg">{{ errors.branch_id }}</div>{% endif %}
+                    </div>
+
+                    <div class="br-field br-field-full">
+                        <label class="br-label" for="password">New password <span class="br-optional">(optional)</span></label>
+                        <input type="password" id="password" name="password" class="br-input{% if errors.password %} is-invalid{% endif %}" autocomplete="new-password">
+                        {% if errors.password %}
+                            <div class="field-error-msg">{{ errors.password }}</div>
+                        {% else %}
+                            <div class="br-hint">Leave blank to keep the current password. A new password signs the client out and must be changed at next login.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="br-form-actions">
+                <a href="{% url 'administrator:client_list' %}" class="br-btn br-btn-light">Cancel</a>
+                <button type="submit" class="br-btn br-btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
