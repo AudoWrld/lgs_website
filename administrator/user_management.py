@@ -19,7 +19,6 @@ from accounts.models import Client, ClientEditLog, EmployeeActivity, User
 from .views import _paginate, _resolve_branches, get_selected_branch
 
 PHONE_PATTERN = re.compile(r"^\+?[0-9\s\-]{7,20}$")
-EMPLOYEE_ID_PATTERN = re.compile(r"^[A-Za-z0-9\-_/]{2,30}$")
 TEMP_PASSWORD_ALPHABET = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
 EMPLOYEE_CREATORS = {
@@ -77,7 +76,6 @@ def _read_form(request):
     post = request.POST
     return {
         "full_name": " ".join(post.get("full_name", "").split()),
-        "employee_id": post.get("employee_id", "").strip(),
         "whatsapp_number": post.get("whatsapp_number", "").strip(),
         "email": post.get("email", "").strip().lower(),
         "password": post.get("password", ""),
@@ -133,17 +131,6 @@ def _validate_form(data, branch_ids, kind, instance=None, allowed_roles=()):
     if kind == "employee":
         if data["role"] not in allowed_roles:
             errors["role"] = "Select a valid role."
-        if data["employee_id"]:
-            if not EMPLOYEE_ID_PATTERN.match(data["employee_id"]):
-                errors["employee_id"] = "Use 2-30 letters, numbers, dashes or slashes."
-            else:
-                duplicates = User.objects.filter(
-                    employee_id__iexact=data["employee_id"]
-                )
-                if instance is not None:
-                    duplicates = duplicates.exclude(pk=instance.pk)
-                if duplicates.exists():
-                    errors["employee_id"] = "This employee ID is already in use."
     else:
         valid_types = {value for value, _ in Client.CLIENT_TYPE_CHOICES}
         if data["client_type"] not in valid_types:
@@ -331,7 +318,6 @@ def add_employee(request):
                         first_name=first_name,
                         last_name=last_name,
                         whatsapp_number=data["whatsapp_number"],
-                        employee_id=data["employee_id"] or None,
                     )
                     _log_activity(
                         employee,
@@ -357,7 +343,6 @@ def add_employee(request):
 
     data = {
         "full_name": "",
-        "employee_id": "",
         "whatsapp_number": "",
         "email": "",
         "password": "",
@@ -382,6 +367,7 @@ def edit_client(request, user_id):
 
     if request.method == "POST":
         data = _read_form(request)
+        data["email"] = target.email
         errors, branch_id = _validate_form(data, branch_ids, "client", instance=target)
 
         if not errors:
@@ -481,6 +467,7 @@ def edit_employee(request, user_id):
 
     if request.method == "POST":
         data = _read_form(request)
+        data["email"] = target.email
         if role_locked:
             data["role"] = target.role
             allowed_roles = allowed_roles | {target.role}
@@ -500,7 +487,6 @@ def edit_employee(request, user_id):
                 target.first_name = first_name
                 target.last_name = last_name
                 target.email = data["email"]
-                target.employee_id = data["employee_id"] or None
                 target.whatsapp_number = data["whatsapp_number"]
                 target.branch = branch
                 if role_changed:
@@ -565,7 +551,6 @@ def edit_employee(request, user_id):
 
     data = {
         "full_name": target.get_full_name(),
-        "employee_id": target.employee_id or "",
         "whatsapp_number": target.whatsapp_number,
         "email": target.email,
         "password": "",
