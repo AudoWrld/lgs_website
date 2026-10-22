@@ -9,9 +9,24 @@ from branches.utils import to_title_case
 User = get_user_model()
 
 SEED_BRANCHES = [
-    "Dar Es Salaam Main",
-    "Arusha Branch",
-    "Mwanza Branch",
+    {
+        "name": "Dar Es Salaam Main",
+        "location": "Mikocheni, Dar es Salaam",
+        "phone": "+255 222 701 234",
+        "email": "daressalaam@lgs.co.tz",
+    },
+    {
+        "name": "Arusha Branch",
+        "location": "Njiro, Arusha",
+        "phone": "+255 272 545 678",
+        "email": "arusha@lgs.co.tz",
+    },
+    {
+        "name": "Mwanza Branch",
+        "location": "Nyamagana, Mwanza",
+        "phone": "+255 282 500 123",
+        "email": "mwanza@lgs.co.tz",
+    },
 ]
 
 SEED_PASSWORD = "passwd"
@@ -40,11 +55,11 @@ def build_phone(branch_index, role_index):
 
 class Command(BaseCommand):
     help = (
-        "Seeds the default branches, then creates one test user per role "
-        "(administrator, customer, reception, chemist, quantity_control, "
-        "accountant) for every branch in the database, all with password "
-        "'passwd'. Development/testing use only — never run against a "
-        "production database."
+        "Seeds the default branches (with location, phone and email), then "
+        "creates one test user per role (administrator, customer, reception, "
+        "chemist, quantity_control, accountant) for every branch in the "
+        "database, all with password 'passwd'. Development/testing use only — "
+        "never run against a production database."
     )
 
     @transaction.atomic
@@ -52,13 +67,36 @@ class Command(BaseCommand):
         created_count = 0
         skipped_count = 0
 
-        for name in SEED_BRANCHES:
+        for entry in SEED_BRANCHES:
+            name = to_title_case(entry["name"])
+            details = {
+                "location": entry["location"],
+                "phone": entry["phone"],
+                "email": entry["email"],
+            }
+
             branch, created = Branch.objects.get_or_create(
-                name=to_title_case(name),
-                defaults={"is_active": True},
+                name=name,
+                defaults={"is_active": True, **details},
             )
+
             if created:
                 self.stdout.write(self.style.SUCCESS(f"Created branch: {branch.name}"))
+                continue
+
+            updated_fields = []
+            for field, value in details.items():
+                if not getattr(branch, field):
+                    setattr(branch, field, value)
+                    updated_fields.append(field)
+
+            if updated_fields:
+                branch.save(update_fields=[*updated_fields, "updated_at"])
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"Updated branch: {branch.name} ({', '.join(updated_fields)})"
+                    )
+                )
 
         branches = list(Branch.objects.order_by("pk"))
 
