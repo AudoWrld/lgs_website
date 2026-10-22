@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "quantity_control",
     "quotations",
     "commercial",
+    "administrator",
 ]
 
 MIDDLEWARE = [
