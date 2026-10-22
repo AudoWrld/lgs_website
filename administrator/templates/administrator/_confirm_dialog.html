@@ -1,0 +1,215 @@
+{% csrf_token %}
+<dialog id="confirm-dialog" class="br-dialog br-dialog-sm" aria-labelledby="confirm-title">
+    <div class="br-dialog-header">
+        <h5 class="br-dialog-title" id="confirm-title"></h5>
+        <button type="button" class="br-close" data-close aria-label="Close">
+            <svg class="br-icon"><use href="#i-x"/></svg>
+        </button>
+    </div>
+
+    <div class="br-dialog-body">
+        <p class="br-confirm-message" id="confirm-message"></p>
+
+        <div class="br-secret" id="confirm-secret" hidden>
+            <div class="br-secret-label">Temporary password (shown once)</div>
+            <div class="br-secret-row">
+                <code id="confirm-secret-value"></code>
+                <button type="button" class="br-copy" id="confirm-copy" title="Copy password" aria-label="Copy password">
+                    <svg class="br-icon br-copy-idle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    <svg class="br-icon br-copy-done" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="br-secret-hint" id="confirm-copy-hint" role="status" aria-live="polite"></div>
+        </div>
+
+        <div class="br-alert" id="confirm-error" role="alert" hidden></div>
+    </div>
+
+    <div class="br-dialog-footer">
+        <button type="button" class="br-btn br-btn-light" id="confirm-cancel" data-close>Cancel</button>
+        <button type="button" class="br-btn br-btn-primary" id="confirm-submit">Confirm</button>
+    </div>
+</dialog>
+
+<script>
+(function () {
+    var dialog = document.getElementById("confirm-dialog");
+    if (!dialog) return;
+
+    var titleEl = document.getElementById("confirm-title");
+    var messageEl = document.getElementById("confirm-message");
+    var secretBox = document.getElementById("confirm-secret");
+    var secretValue = document.getElementById("confirm-secret-value");
+    var copyBtn = document.getElementById("confirm-copy");
+    var copyHint = document.getElementById("confirm-copy-hint");
+    var errorEl = document.getElementById("confirm-error");
+    var submitBtn = document.getElementById("confirm-submit");
+    var cancelBtn = document.getElementById("confirm-cancel");
+    var tokenInput = document.querySelector("[name=csrfmiddlewaretoken]");
+    var current = null;
+    var copyTimer = null;
+
+    var configs = {
+        delete: function (d) {
+            return {
+                title: "Delete client",
+                message: "Delete " + d.name + "? Their personal details will be erased and they will no longer be able to sign in. Records linked to them are kept and will show a deleted user.",
+                label: "Delete",
+                danger: true
+            };
+        },
+        toggle: function (d) {
+            if (d.active === "true") {
+                return {
+                    title: "Deactivate employee",
+                    message: "Deactivate " + d.name + "? They will be signed out immediately and cannot log in until reactivated. Their history is kept.",
+                    label: "Deactivate",
+                    danger: true
+                };
+            }
+            return {
+                title: "Activate employee",
+                message: "Activate " + d.name + "? They will be able to log in again.",
+                label: "Activate",
+                danger: false
+            };
+        },
+        reset: function (d) {
+            return {
+                title: "Reset password",
+                message: "Generate a new temporary password for " + d.name + "? They will be signed out and must change it at next login.",
+                label: "Reset password",
+                danger: false
+            };
+        }
+    };
+
+    function resetCopyState() {
+        window.clearTimeout(copyTimer);
+        copyBtn.classList.remove("is-copied");
+        copyHint.textContent = "";
+    }
+
+    function openDialog(trigger) {
+        current = trigger.dataset;
+        var cfg = configs[current.action](current);
+
+        titleEl.textContent = cfg.title;
+        messageEl.textContent = cfg.message;
+        messageEl.classList.remove("is-centered");
+        submitBtn.textContent = cfg.label;
+        submitBtn.className = "br-btn " + (cfg.danger ? "br-btn-danger" : "br-btn-primary");
+        submitBtn.hidden = false;
+        submitBtn.disabled = false;
+        cancelBtn.textContent = "Cancel";
+        secretBox.hidden = true;
+        errorEl.hidden = true;
+        resetCopyState();
+        dialog.showModal();
+    }
+
+    function fallbackCopy(text) {
+        var area = document.createElement("textarea");
+        area.value = text;
+        area.setAttribute("readonly", "");
+        area.style.position = "fixed";
+        area.style.top = "-1000px";
+        document.body.appendChild(area);
+        area.select();
+        var done = false;
+        try {
+            done = document.execCommand("copy");
+        } catch (e) {
+            done = false;
+        }
+        document.body.removeChild(area);
+        return done ? Promise.resolve() : Promise.reject(new Error("copy failed"));
+    }
+
+    function copyText(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            return navigator.clipboard.writeText(text).catch(function () {
+                return fallbackCopy(text);
+            });
+        }
+        return fallbackCopy(text);
+    }
+
+    copyBtn.addEventListener("click", function () {
+        var text = secretValue.textContent;
+        if (!text) return;
+
+        copyText(text)
+            .then(function () {
+                copyBtn.classList.add("is-copied");
+                copyHint.textContent = "Copied to clipboard";
+            })
+            .catch(function () {
+                copyBtn.classList.remove("is-copied");
+                copyHint.textContent = "Press and hold the password to copy it";
+            })
+            .then(function () {
+                window.clearTimeout(copyTimer);
+                copyTimer = window.setTimeout(resetCopyState, 2500);
+            });
+    });
+
+    document.addEventListener("click", function (event) {
+        var trigger = event.target.closest("[data-action]");
+        if (trigger) {
+            openDialog(trigger);
+            return;
+        }
+        if (event.target.closest("[data-close]")) {
+            dialog.close();
+        }
+    });
+
+    submitBtn.addEventListener("click", function () {
+        if (!current) return;
+
+        submitBtn.disabled = true;
+        errorEl.hidden = true;
+
+        fetch(current.url, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+                "X-CSRFToken": tokenInput.value,
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        })
+            .then(function (response) {
+                return response.json().then(function (data) {
+                    return { ok: response.ok, data: data };
+                });
+            })
+            .then(function (result) {
+                if (!result.ok || !result.data.ok) {
+                    throw new Error(result.data.error || "Request failed.");
+                }
+                if (current.action === "reset") {
+                    messageEl.textContent = "Password reset for " + current.name + ". Share this temporary password with them securely.";
+                    messageEl.classList.add("is-centered");
+                    secretValue.textContent = result.data.temp_password;
+                    secretBox.hidden = false;
+                    resetCopyState();
+                    submitBtn.hidden = true;
+                    cancelBtn.textContent = "Close";
+                    return;
+                }
+                window.location.reload();
+            })
+            .catch(function (error) {
+                errorEl.textContent = error instanceof SyntaxError ? "Unexpected server response." : error.message;
+                errorEl.hidden = false;
+                submitBtn.disabled = false;
+            });
+    });
+})();
+</script>
