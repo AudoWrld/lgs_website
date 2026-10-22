@@ -63,15 +63,17 @@
 
                     <div class="br-field">
                         <label class="br-label" for="role">Role <span class="br-required">*</span></label>
-                        <select id="role" name="role" class="br-input{% if errors.role %} is-invalid{% endif %}" {% if role_locked %}disabled{% endif %} required>
-                            {% for value, label in roles %}
-                                <option value="{{ value }}" {% if form.role == value %}selected{% endif %}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
                         {% if role_locked %}
+                            <input type="text" class="br-input" value="{{ target_user.get_role_display }}" readonly aria-readonly="true" tabindex="-1">
                             <div class="br-hint">The role of this account cannot be changed.</div>
+                        {% else %}
+                            <select id="role" name="role" class="br-input{% if errors.role %} is-invalid{% endif %}" required>
+                                {% for value, label in roles %}
+                                    <option value="{{ value }}" {% if form.role == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if errors.role %}<div class="field-error-msg">{{ errors.role }}</div>{% endif %}
                         {% endif %}
-                        {% if errors.role %}<div class="field-error-msg">{{ errors.role }}</div>{% endif %}
                     </div>
 
                     <div class="br-field">
