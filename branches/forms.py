@@ -3,8 +3,9 @@ import re
 from django import forms
 
 from .models import Branch
+from .utils import to_title_case
 
-TZ_NATIONAL_PATTERN = re.compile(r"^(?:(?:6[1-9]|7[1-8])\d{7}|2\d{8})$")
+TZ_NATIONAL_PATTERN = re.compile(r"^(?:[67]\d{8}|2\d{8})$")
 
 
 class BranchForm(forms.ModelForm):
@@ -44,7 +45,7 @@ class BranchForm(forms.ModelForm):
         }
 
     def clean_name(self):
-        name = self.cleaned_data["name"].strip()
+        name = to_title_case(self.cleaned_data["name"])
 
         existing = Branch.objects.filter(name__iexact=name)
         if self.instance.pk:

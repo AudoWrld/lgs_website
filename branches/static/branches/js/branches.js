@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var OPEN_MODAL = page.dataset.openModal === "true";
 
   var SVG_NS = "http://www.w3.org/2000/svg";
-  var TZ_NATIONAL = /^(?:(?:6[1-9]|7[1-8])\d{7}|2\d{8})$/;
+  var TZ_NATIONAL = /^(?:[67]\d{8}|2\d{8})$/;
   var PHONE_MESSAGE =
     "Enter a valid Tanzanian number, e.g. +255 712 345 678 or 0712 345 678.";
 
