@@ -21,7 +21,13 @@
             <p class="br-subtitle">Update details for {{ form.full_name|default:target_user.email }}.</p>
         </div>
 
-        <a href="{% url 'administrator:client_list' %}" class="br-btn br-btn-light">Back to Clients</a>
+        <div class="br-actions">
+            <a href="{% url 'administrator:client_activity' user_id %}" class="br-btn br-btn-light">
+                <svg class="br-icon"><use href="#i-clock"/></svg>
+                Activity
+            </a>
+            <a href="{% url 'administrator:client_list' %}" class="br-btn br-btn-light">Back to Clients</a>
+        </div>
     </div>
 
     <div class="panel">
