@@ -188,12 +188,9 @@ def _get_target(request, user_id, roles):
 
 
 def _guard_admin_target(request, target):
-    if target.pk == request.user.pk:
-        return
-    if (target.role == User.ADMINISTRATOR or target.is_superuser) and not (
-        request.user.is_superuser
-    ):
-        raise PermissionDenied("Only a superuser may manage Administrator accounts.")
+    # Self-managed destructive actions (reset/deactivate) are blocked by the
+    # view itself; other administrators may manage one another freely.
+    return
 
 
 def _revoke_sessions(user):
