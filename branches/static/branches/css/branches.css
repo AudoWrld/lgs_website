@@ -333,6 +333,10 @@
 .branch-name {
   color: var(--navy);
   font-weight: 600;
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .branch-avatar {
