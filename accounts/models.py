@@ -56,9 +56,13 @@ class UserManager(BaseUserManager):
         created_by=None,
         **extra_fields,
     ):
-        if created_by is not None and not created_by.is_reception:
+        if created_by is not None and not (
+            created_by.is_reception
+            or created_by.is_administrator
+            or created_by.is_superuser
+        ):
             raise PermissionDenied(
-                "Only Reception may register client portal accounts."
+                "Only Reception or an Administrator may register client portal accounts."
             )
 
         extra_fields["role"] = User.CUSTOMER
@@ -268,6 +272,14 @@ class User(AbstractUser):
         db_index=True,
     )
 
+    employee_id = models.CharField(
+        max_length=30,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+
     role = models.CharField(
         max_length=20,
         choices=ROLE_CHOICES,
@@ -299,6 +311,10 @@ class User(AbstractUser):
         ),
     )
 
+    is_deleted = models.BooleanField(default=False, db_index=True)
+
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
     created_by = models.ForeignKey(
         "self",
         on_delete=models.SET_NULL,
@@ -322,7 +338,9 @@ class User(AbstractUser):
         ordering = ["-date_joined"]
 
     def __str__(self):
-        return f"{self.get_full_name() or self.email} " f"({self.get_role_display()})"
+        if self.is_deleted:
+            return f"Deleted user #{self.pk}"
+        return f"{self.get_full_name() or self.email} ({self.get_role_display()})"
 
     @property
     def is_customer(self):
@@ -426,6 +444,43 @@ class User(AbstractUser):
         if self.is_active and perm in self.ROLE_DEFAULT_PERMISSIONS.get(self.role, ()):
             return True
         return super().has_perm(perm, obj)
+
+
+class EmployeeActivity(models.Model):
+
+    CREATED = "CREATED"
+    UPDATED = "UPDATED"
+    ROLE_CHANGED = "ROLE_CHANGED"
+    BRANCH_TRANSFERRED = "BRANCH_TRANSFERRED"
+    ACTIVATED = "ACTIVATED"
+    DEACTIVATED = "DEACTIVATED"
+    PASSWORD_RESET = "PASSWORD_RESET"
+
+    employee = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name="activity_log",
+    )
+
+    actor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="employee_actions",
+    )
+
+    action = models.CharField(max_length=30, db_index=True)
+
+    detail = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.employee_id} {self.action} {self.created_at:%Y-%m-%d %H:%M}"
 
 
 class Client(models.Model):
