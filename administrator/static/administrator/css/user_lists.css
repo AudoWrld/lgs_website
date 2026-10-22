@@ -720,7 +720,7 @@ a.br-page-link:hover {
 
 .br-hint {
   margin-top: 0.3rem;
-  color: var(--muted);
+  color: rgba(185, 28, 28, 0.65);
   font-size: 0.8125rem;
 }
 
