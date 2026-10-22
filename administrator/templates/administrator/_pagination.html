@@ -1,0 +1,33 @@
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="br-pagination" aria-label="Pages">
+    {% if page_obj.has_previous %}
+        <a class="br-page-link" href="?{% if search_query %}q={{ search_query|urlencode }}&amp;{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Previous page">
+            <svg class="br-icon br-icon-sm"><use href="#i-chevron-left"/></svg>
+        </a>
+    {% else %}
+        <span class="br-page-link is-disabled" aria-hidden="true">
+            <svg class="br-icon br-icon-sm"><use href="#i-chevron-left"/></svg>
+        </span>
+    {% endif %}
+
+    {% for item in page_items %}
+        {% if item is None %}
+            <span class="br-page-gap">…</span>
+        {% elif item == page_obj.number %}
+            <span class="br-page-link is-current" aria-current="page">{{ item }}</span>
+        {% else %}
+            <a class="br-page-link" href="?{% if search_query %}q={{ search_query|urlencode }}&amp;{% endif %}page={{ item }}">{{ item }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {% if page_obj.has_next %}
+        <a class="br-page-link" href="?{% if search_query %}q={{ search_query|urlencode }}&amp;{% endif %}page={{ page_obj.next_page_number }}" aria-label="Next page">
+            <svg class="br-icon br-icon-sm"><use href="#i-chevron-right"/></svg>
+        </a>
+    {% else %}
+        <span class="br-page-link is-disabled" aria-hidden="true">
+            <svg class="br-icon br-icon-sm"><use href="#i-chevron-right"/></svg>
+        </span>
+    {% endif %}
+</nav>
+{% endif %}
