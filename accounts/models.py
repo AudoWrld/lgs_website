@@ -12,6 +12,20 @@ class UserManager(BaseUserManager):
         if not email:
             raise ValueError("An email address is required.")
 
+        branch = extra_fields.pop("branch", None)
+        created_by = extra_fields.get("created_by")
+
+        if branch is None and created_by is not None:
+            branch = created_by.branch
+
+        if branch is None:
+            raise ValueError("A branch is required for every user account.")
+
+        if hasattr(branch, "pk"):
+            extra_fields["branch"] = branch
+        else:
+            extra_fields["branch_id"] = branch
+
         email = self.normalize_email(email)
 
         user = self.model(
@@ -293,8 +307,14 @@ class User(AbstractUser):
         related_name="accounts_created",
     )
 
+    branch = models.ForeignKey(
+        "branches.Branch",
+        on_delete=models.PROTECT,
+        related_name="users",
+    )
+
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ["branch"]
 
     objects = UserManager()
 
@@ -336,8 +356,23 @@ class User(AbstractUser):
     def is_staff_role(self):
         return self.role in self.STAFF_ROLES
 
+    @property
+    def can_view_all_branches(self):
+        return self.is_superuser or self.is_administrator
+
+    def accessible_branches(self):
+        from branches.models import Branch
+
+        if self.can_view_all_branches:
+            return Branch.objects.all()
+        return Branch.objects.filter(pk=self.branch_id)
+
     def clean(self):
         super().clean()
+
+        if not self.branch_id:
+            raise ValidationError({"branch": "A branch is required."})
+
         if self.role in (
             self.CUSTOMER,
             self.RECEPTION,

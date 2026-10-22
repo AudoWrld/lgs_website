@@ -1,58 +1,58 @@
-from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
 from functools import wraps
 
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 
-def reception_required(view):
-    @wraps(view)
-    @login_required(login_url="accounts:login")
-    def wrapped(request, *args, **kwargs):
-        if not request.user.is_reception:
-            raise PermissionDenied("Reception access is required.")
-        return view(request, *args, **kwargs)
-
-    return wrapped
+BRANCH_KWARGS = ("branch_id", "branch_pk")
 
 
-def chemist_required(view):
-    @wraps(view)
-    @login_required(login_url="accounts:login")
-    def wrapped(request, *args, **kwargs):
-        if not request.user.is_chemist:
-            raise PermissionDenied("Chemist access is required.")
-        return view(request, *args, **kwargs)
+def _role_required(check, message):
+    def decorator(view):
+        @wraps(view)
+        @login_required(login_url="accounts:login")
+        def wrapped(request, *args, **kwargs):
+            user = request.user
 
-    return wrapped
+            if not check(user):
+                raise PermissionDenied(message)
 
+            if not user.can_view_all_branches:
+                for name in BRANCH_KWARGS:
+                    requested = kwargs.get(name)
+                    if requested is not None and str(requested) != str(user.branch_id):
+                        raise PermissionDenied("You do not have access to this branch.")
 
-def qc_required(view):
-    @wraps(view)
-    @login_required(login_url="accounts:login")
-    def wrapped(request, *args, **kwargs):
-        if not request.user.is_qc:
-            raise PermissionDenied("Quality Control access is required.")
-        return view(request, *args, **kwargs)
+            request.branch = user.branch
+            request.accessible_branches = user.accessible_branches()
 
-    return wrapped
+            return view(request, *args, **kwargs)
 
+        return wrapped
 
-def accountant_required(view):
-    @wraps(view)
-    @login_required(login_url="accounts:login")
-    def wrapped(request, *args, **kwargs):
-        if not request.user.is_accountant:
-            raise PermissionDenied("Accountant access is required.")
-        return view(request, *args, **kwargs)
-
-    return wrapped
+    return decorator
 
 
-def administrator_required(view):
-    @wraps(view)
-    @login_required(login_url="accounts:login")
-    def wrapped(request, *args, **kwargs):
-        if not (request.user.is_administrator or request.user.is_superuser):
-            raise PermissionDenied("Administrator access is required.")
-        return view(request, *args, **kwargs)
+reception_required = _role_required(
+    lambda user: user.is_reception,
+    "Reception access is required.",
+)
 
-    return wrapped
+chemist_required = _role_required(
+    lambda user: user.is_chemist,
+    "Chemist access is required.",
+)
+
+qc_required = _role_required(
+    lambda user: user.is_qc,
+    "Quality Control access is required.",
+)
+
+accountant_required = _role_required(
+    lambda user: user.is_accountant,
+    "Accountant access is required.",
+)
+
+administrator_required = _role_required(
+    lambda user: user.is_administrator or user.is_superuser,
+    "Administrator access is required.",
+)

@@ -1,133 +1,120 @@
-from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand
+from django.db import transaction
+from django.utils.text import slugify
+
+from branches.models import Branch
+from branches.utils import to_title_case
 
 User = get_user_model()
 
-SEED_USERS = [
-    {
-        "email": "administrator@gmail.com",
-        "phone": "+255722915374",
-        "first_name": "Samuel",
-        "last_name": "Mwangi",
-        "creator": lambda: User.objects.create_administrator(
-            email="administrator@gmail.com",
-            password="passwd",
-            first_name="Samuel",
-            last_name="Mwangi",
-            whatsapp_number="+255722915374",
-        ),
-    },
-    {
-        "email": "customer@gmail.com",
-        "phone": "+255712483951",
-        "first_name": "John",
-        "last_name": "Otieno",
-        "creator": lambda: User.objects.create_user(
-            email="customer@gmail.com",
-            password="passwd",
-            first_name="John",
-            last_name="Otieno",
-            whatsapp_number="+255712483951",
-        ),
-    },
-    {
-        "email": "reception@gmail.com",
-        "phone": "+255754629183",
-        "first_name": "Grace",
-        "last_name": "Wanjiru",
-        "creator": lambda: User.objects.create_reception(
-            email="reception@gmail.com",
-            password="passwd",
-            first_name="Grace",
-            last_name="Wanjiru",
-            whatsapp_number="+255754629183",
-        ),
-    },
-    {
-        "email": "chemist@gmail.com",
-        "phone": "+255713857426",
-        "first_name": "Peter",
-        "last_name": "Njoroge",
-        "creator": lambda: User.objects.create_chemist(
-            email="chemist@gmail.com",
-            password="passwd",
-            first_name="Peter",
-            last_name="Njoroge",
-            whatsapp_number="+255713857426",
-        ),
-    },
-    {
-        "email": "quantity_control@gmail.com",
-        "phone": "+255765291847",
-        "first_name": "Mary",
-        "last_name": "Achieng",
-        "creator": lambda: User.objects.create_quantity_control(
-            email="quantity_control@gmail.com",
-            password="passwd",
-            first_name="Mary",
-            last_name="Achieng",
-            whatsapp_number="+255765291847",
-        ),
-    },
-    {
-        "email": "accountant@gmail.com",
-        "phone": "+255718402936",
-        "first_name": "David",
-        "last_name": "Ochieng",
-        "creator": lambda: User.objects.create_accountant(
-            email="accountant@gmail.com",
-            password="passwd",
-            first_name="David",
-            last_name="Ochieng",
-            whatsapp_number="+255718402936",
-        ),
-    },
+SEED_BRANCHES = [
+    "Dar Es Salaam Main",
+    "Arusha Branch",
+    "Mwanza Branch",
 ]
+
+SEED_PASSWORD = "passwd"
+
+SEED_ROLES = [
+    ("administrator", "create_administrator", "Samuel", "Mwangi"),
+    ("customer", "create_user", "John", "Otieno"),
+    ("reception", "create_reception", "Grace", "Wanjiru"),
+    ("chemist", "create_chemist", "Peter", "Njoroge"),
+    ("quantity_control", "create_quantity_control", "Mary", "Achieng"),
+    ("accountant", "create_accountant", "David", "Ochieng"),
+]
+
+PHONE_BASE = 712000000
+
+
+def build_email(role_key, branch):
+    branch_slug = slugify(branch.name).replace("-", "_")
+    return f"{role_key}.{branch_slug}@gmail.com"
+
+
+def build_phone(branch_index, role_index):
+    number = PHONE_BASE + branch_index * 100 + role_index
+    return f"+255{number}"
 
 
 class Command(BaseCommand):
     help = (
-        "Seeds one test user per role (administrator, customer, reception, "
-        "chemist, quantity_control, accountant), all with password 'passwd'. "
-        "The administrator has admin-site access (is_staff=True) and the "
-        "accountant can authorize report release by default. Development/testing "
-        "use only — never run against a production database."
+        "Seeds the default branches, then creates one test user per role "
+        "(administrator, customer, reception, chemist, quantity_control, "
+        "accountant) for every branch in the database, all with password "
+        "'passwd'. Development/testing use only — never run against a "
+        "production database."
     )
 
+    @transaction.atomic
     def handle(self, *args, **options):
         created_count = 0
         skipped_count = 0
 
-        for entry in SEED_USERS:
-            if User.objects.filter(email=entry["email"]).exists():
-                self.stdout.write(
-                    self.style.WARNING(f"Skipped (already exists): {entry['email']}")
-                )
-                skipped_count += 1
-                continue
-
-            user = entry["creator"]()
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f"Created: {entry['email']} — {user.get_full_name()} ({user.get_role_display()})"
-                )
+        for name in SEED_BRANCHES:
+            branch, created = Branch.objects.get_or_create(
+                name=to_title_case(name),
+                defaults={"is_active": True},
             )
-            created_count += 1
+            if created:
+                self.stdout.write(self.style.SUCCESS(f"Created branch: {branch.name}"))
 
-        administrator = User.objects.filter(email="administrator@gmail.com").first()
-        if administrator is not None:
+        branches = list(Branch.objects.order_by("pk"))
+
+        for branch_index, branch in enumerate(branches):
+            self.stdout.write(self.style.MIGRATE_HEADING(f"\nBranch: {branch.name}"))
+
+            for role_index, (role_key, method, first_name, last_name) in enumerate(
+                SEED_ROLES
+            ):
+                email = build_email(role_key, branch)
+
+                if User.objects.filter(email=email).exists():
+                    self.stdout.write(
+                        self.style.WARNING(f"Skipped (already exists): {email}")
+                    )
+                    skipped_count += 1
+                    continue
+
+                user = getattr(User.objects, method)(
+                    email=email,
+                    password=SEED_PASSWORD,
+                    first_name=first_name,
+                    last_name=last_name,
+                    whatsapp_number=build_phone(branch_index, role_index),
+                    branch=branch,
+                )
+
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"Created: {email} — {user.get_full_name()} "
+                        f"({user.get_role_display()})"
+                    )
+                )
+                created_count += 1
+
+        for administrator in User.objects.filter(
+            role=User.ADMINISTRATOR, email__startswith="administrator."
+        ):
             has_admin_access = administrator.is_administrator and administrator.is_staff
             style = self.style.SUCCESS if has_admin_access else self.style.ERROR
             self.stdout.write(
-                style(f"Administrator has admin access: {has_admin_access}")
+                style(f"{administrator.email} has admin access: {has_admin_access}")
             )
 
-        accountant = User.objects.filter(email="accountant@gmail.com").first()
-        if accountant is not None:
+        for accountant in User.objects.filter(
+            role=User.ACCOUNTANT, email__startswith="accountant."
+        ):
             can_release = accountant.has_perm("coa.authorize_release")
             style = self.style.SUCCESS if can_release else self.style.ERROR
-            self.stdout.write(style(f"Accountant can authorize release: {can_release}"))
+            self.stdout.write(
+                style(f"{accountant.email} can authorize release: {can_release}")
+            )
 
         self.stdout.write(
-            self.style.SUCCESS(f"\n{created_count} created, {skipped_count} skipped.")
+            self.style.SUCCESS(
+                f"\n{len(branches)} branches, {created_count} users created, "
+                f"{skipped_count} skipped."
+            )
         )
