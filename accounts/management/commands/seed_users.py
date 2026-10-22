@@ -5,6 +5,19 @@ User = get_user_model()
 
 SEED_USERS = [
     {
+        "email": "administrator@gmail.com",
+        "phone": "+255722915374",
+        "first_name": "Samuel",
+        "last_name": "Mwangi",
+        "creator": lambda: User.objects.create_administrator(
+            email="administrator@gmail.com",
+            password="passwd",
+            first_name="Samuel",
+            last_name="Mwangi",
+            whatsapp_number="+255722915374",
+        ),
+    },
+    {
         "email": "customer@gmail.com",
         "phone": "+255712483951",
         "first_name": "John",
@@ -74,8 +87,9 @@ SEED_USERS = [
 
 class Command(BaseCommand):
     help = (
-        "Seeds one test user per role (customer, reception, chemist, "
-        "quantity_control, accountant), all with password 'passwd'. The "
+        "Seeds one test user per role (administrator, customer, reception, "
+        "chemist, quantity_control, accountant), all with password 'passwd'. "
+        "The administrator has admin-site access (is_staff=True) and the "
         "accountant can authorize report release by default. Development/testing "
         "use only — never run against a production database."
     )
@@ -99,6 +113,14 @@ class Command(BaseCommand):
                 )
             )
             created_count += 1
+
+        administrator = User.objects.filter(email="administrator@gmail.com").first()
+        if administrator is not None:
+            has_admin_access = administrator.is_administrator and administrator.is_staff
+            style = self.style.SUCCESS if has_admin_access else self.style.ERROR
+            self.stdout.write(
+                style(f"Administrator has admin access: {has_admin_access}")
+            )
 
         accountant = User.objects.filter(email="accountant@gmail.com").first()
         if accountant is not None:
