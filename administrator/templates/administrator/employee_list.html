@@ -1,0 +1,153 @@
+{% extends "administrator/base_administrator.html" %}
+{% load static %}
+
+{% block title %}Employees &amp; Roles — LGS Mineral Assay Laboratory{% endblock %}
+{% block page_title %}Employees &amp; Roles{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'branches/css/branches.css' %}">
+<link rel="stylesheet" href="{% static 'administrator/css/user_lists.css' %}">
+{% endblock %}
+
+{% block content %}
+{% include "administrator/_user_icons.html" %}
+
+<div class="branch-page">
+    <div class="br-toolbar">
+        <div>
+            <h4 class="br-title">
+                <svg class="br-icon br-icon-lg"><use href="#i-shield"/></svg>
+                Employees &amp; Roles
+            </h4>
+            <p class="br-subtitle">
+                Staff accounts for
+                {% if selected_branch %}{{ selected_branch.name }}{% else %}no branch selected{% endif %}.
+            </p>
+        </div>
+
+        <a href="#" class="br-btn br-btn-primary">
+            <svg class="br-icon"><use href="#i-plus"/></svg>
+            Add Employee
+        </a>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h6 class="panel-title">All Employees</h6>
+                <div class="panel-sub">View and manage staff accounts and roles.</div>
+            </div>
+
+            <form method="GET" class="br-search-form" role="search">
+                <div class="br-search">
+                    <svg class="br-icon"><use href="#i-search"/></svg>
+                    <input type="search"
+                           name="q"
+                           class="br-input"
+                           value="{{ search_query }}"
+                           placeholder="Search employees..."
+                           aria-label="Search employees">
+                </div>
+                <button type="submit" class="br-btn br-btn-light">Search</button>
+                {% if search_query %}
+                    <a href="{% url 'administrator:employee_list' %}" class="br-btn br-btn-light">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+
+        <div class="br-table-wrap">
+            <table class="br-table">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Role</th>
+                        <th>WhatsApp</th>
+                        <th>Status</th>
+                        <th>Created By</th>
+                        <th>Joined</th>
+                        <th class="br-center">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for employee in employees %}
+                    <tr class="branch-row">
+                        <td>
+                            <div class="br-cell-branch">
+                                <div class="branch-avatar">
+                                    <svg class="br-icon"><use href="#i-shield"/></svg>
+                                </div>
+                                <div>
+                                    <div class="branch-name" title="{{ employee.get_full_name|default:employee.email }}">{{ employee.get_full_name|default:employee.email }}</div>
+                                    <div class="br-muted">{{ employee.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td>
+                            <span class="role-pill role-{{ employee.role|lower }}">{{ employee.get_role_display }}</span>
+                        </td>
+
+                        <td>{{ employee.whatsapp_number|default:"Not provided" }}</td>
+
+                        <td>
+                            {% if employee.is_active %}
+                                <span class="status-pill status-active">
+                                    <svg class="br-icon br-icon-sm"><use href="#i-check-circle"/></svg>
+                                    Active
+                                </span>
+                            {% else %}
+                                <span class="status-pill status-inactive">
+                                    <svg class="br-icon br-icon-sm"><use href="#i-x-circle"/></svg>
+                                    Inactive
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td class="br-muted">
+                            {% if employee.created_by %}{{ employee.created_by.get_full_name|default:employee.created_by.email }}{% else %}—{% endif %}
+                        </td>
+
+                        <td class="br-muted">{{ employee.date_joined|date:"M d, Y" }}</td>
+
+                        <td>
+                            <div class="br-actions">
+                                <a href="#" class="action-btn" title="Edit employee" aria-label="Edit employee">
+                                    <svg class="br-icon"><use href="#i-edit"/></svg>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="br-empty">
+                            <svg class="br-icon br-icon-xl"><use href="#i-shield"/></svg>
+                            {% if search_query %}
+                                <h6>No matching employees</h6>
+                                <p>No employees match “{{ search_query }}”.</p>
+                                <a href="{% url 'administrator:employee_list' %}" class="br-btn br-btn-light br-btn-sm">Clear search</a>
+                            {% else %}
+                                <h6>No employees yet</h6>
+                                <p>There are no staff accounts in this branch.</p>
+                                <a href="#" class="br-btn br-btn-primary br-btn-sm">
+                                    <svg class="br-icon"><use href="#i-plus"/></svg>
+                                    Add Employee
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="panel-footer">
+            <div class="br-showing">
+                Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}
+                of {{ page_obj.paginator.count }} employees
+            </div>
+            {% include "administrator/_pagination.html" %}
+        </div>
+    </div>
+</div>
+{% endblock %}
