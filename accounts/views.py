@@ -77,7 +77,7 @@ def post_login_redirect(request):
     if user.is_accountant:
         return redirect("accountant:dashboard")
     if user.is_administrator or user.is_superuser:
-        return redirect("administrator_dashboard")
+        return redirect("administrator:admin_dashboard")
 
     return redirect("accounts:login")
 
