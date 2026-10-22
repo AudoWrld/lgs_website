@@ -1,0 +1,85 @@
+{% extends "administrator/base_administrator.html" %}
+{% load static %}
+
+{% block title %}Client Activity — LGS Mineral Assay Laboratory{% endblock %}
+{% block page_title %}Client Activity{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'administrator/css/user_lists.css' %}">
+{% endblock %}
+
+{% block content %}
+{% include "administrator/_user_icons.html" %}
+
+<div class="branch-page">
+    <div class="br-toolbar">
+        <div>
+            <h4 class="br-title">
+                <svg class="br-icon br-icon-lg"><use href="#i-clock"/></svg>
+                Activity History
+            </h4>
+            <p class="br-subtitle">
+                Account changes for {{ target_user.get_full_name|default:target_user.email }}
+                ({{ target_user.email }}).
+            </p>
+        </div>
+
+        <a href="{% url 'administrator:client_list' %}" class="br-btn br-btn-light">Back to Clients</a>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h6 class="panel-title">All Activity</h6>
+                <div class="panel-sub">Newest changes appear first.</div>
+            </div>
+        </div>
+
+        <div class="br-table-wrap">
+            <table class="br-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Action</th>
+                        <th>Performed By</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for log in logs %}
+                    <tr class="branch-row">
+                        <td class="br-muted">{{ log.created_at|date:"M d, Y H:i" }}</td>
+                        <td><span class="role-pill">{{ log.action_label }}</span></td>
+                        <td>
+                            {% if log.actor %}
+                                <div class="branch-name" title="{{ log.actor.get_full_name|default:log.actor.email }}">{{ log.actor.get_full_name|default:log.actor.email }}</div>
+                            {% else %}
+                                <span class="br-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ log.detail|default:"—" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="br-empty">
+                            <svg class="br-icon br-icon-xl"><use href="#i-clock"/></svg>
+                            <h6>No activity yet</h6>
+                            <p>Changes made to this client will be listed here.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="panel-footer">
+            <div>
+                Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}
+                of {{ page_obj.paginator.count }} entries
+            </div>
+            {% include "administrator/_pagination.html" %}
+        </div>
+    </div>
+</div>
+{% endblock %}
