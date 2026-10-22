@@ -100,6 +100,9 @@
                                 <a href="{% url 'administrator:edit_client' customer.pk %}" class="action-btn" title="Edit client" aria-label="Edit client">
                                     <svg class="br-icon"><use href="#i-edit"/></svg>
                                 </a>
+                                <a href="{% url 'administrator:client_activity' customer.pk %}" class="action-btn" title="Activity history" aria-label="Activity history">
+                                    <svg class="br-icon"><use href="#i-clock"/></svg>
+                                </a>
                                 <button type="button"
                                         class="action-btn"
                                         data-action="reset"
@@ -150,6 +153,9 @@
                             <div class="br-actions">
                                 <a href="{% url 'administrator:edit_client' customer.pk %}" class="action-btn" title="Edit client" aria-label="Edit client">
                                     <svg class="br-icon"><use href="#i-edit"/></svg>
+                                </a>
+                                <a href="{% url 'administrator:client_activity' customer.pk %}" class="action-btn" title="Activity history" aria-label="Activity history">
+                                    <svg class="br-icon"><use href="#i-clock"/></svg>
                                 </a>
                                 <button type="button"
                                         class="action-btn"
