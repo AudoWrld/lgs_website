@@ -43,6 +43,13 @@ def login_view(request):
         if form.is_valid():
             user = form.get_user()
             login(request, user)
+            if user.is_staff_role:
+                EmployeeActivity.objects.create(
+                    employee=user,
+                    actor=user,
+                    action=EmployeeActivity.LOGIN,
+                    detail=f"Signed in from {request.get_meta('HTTP_USER_AGENT', 'unknown')[:200]}.",
+                )
             if safe:
                 request.session[NEXT_SESSION_KEY] = safe
             return redirect("accounts:post_login_redirect")
