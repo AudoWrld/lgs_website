@@ -5,7 +5,6 @@
 {% block page_title %}Clients{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'branches/css/branches.css' %}">
 <link rel="stylesheet" href="{% static 'administrator/css/user_lists.css' %}">
 {% endblock %}
 
@@ -25,7 +24,7 @@
             </p>
         </div>
 
-        <a href="#" class="br-btn br-btn-primary">
+        <a href="{% url 'administrator:add_client' %}" class="br-btn br-btn-primary">
             <svg class="br-icon"><use href="#i-plus"/></svg>
             Add Client
         </a>
@@ -71,6 +70,8 @@
 
                 <tbody>
                     {% for customer in customers %}
+                    {% if customer.client_profile %}
+                        {% with display_name=customer.client_profile.client_name %}
                     <tr class="branch-row">
                         <td>
                             <div class="br-cell-branch">
@@ -78,49 +79,100 @@
                                     <svg class="br-icon"><use href="#i-users"/></svg>
                                 </div>
                                 <div>
-                                    <div class="branch-name" title="{% if customer.client_profile %}{{ customer.client_profile.client_name }}{% else %}{{ customer.get_full_name|default:customer.email }}{% endif %}">
-                                        {% if customer.client_profile %}{{ customer.client_profile.client_name }}{% else %}{{ customer.get_full_name|default:customer.email }}{% endif %}
-                                    </div>
+                                    <div class="branch-name" title="{{ display_name }}">{{ display_name }}</div>
                                     <div class="br-muted">{{ customer.email }}</div>
                                 </div>
                             </div>
                         </td>
-
-                        <td>
-                            {% if customer.client_profile %}
-                                <span class="role-pill role-type">{{ customer.client_profile.get_client_type_display }}</span>
-                            {% else %}
-                                <span class="br-muted">Not provided</span>
-                            {% endif %}
-                        </td>
-
-                        <td>{% if customer.client_profile %}{{ customer.client_profile.contact_person|default:"Not provided" }}{% else %}Not provided{% endif %}</td>
+                        <td><span class="role-pill role-type">{{ customer.client_profile.get_client_type_display }}</span></td>
+                        <td>{{ customer.client_profile.contact_person|default:"Not provided" }}</td>
                         <td>{{ customer.whatsapp_number|default:"Not provided" }}</td>
-
                         <td>
                             {% if customer.is_active %}
-                                <span class="status-pill status-active">
-                                    <svg class="br-icon br-icon-sm"><use href="#i-check-circle"/></svg>
-                                    Active
-                                </span>
+                                <span class="status-pill status-active"><svg class="br-icon br-icon-sm"><use href="#i-check-circle"/></svg>Active</span>
                             {% else %}
-                                <span class="status-pill status-inactive">
-                                    <svg class="br-icon br-icon-sm"><use href="#i-x-circle"/></svg>
-                                    Inactive
-                                </span>
+                                <span class="status-pill status-inactive"><svg class="br-icon br-icon-sm"><use href="#i-x-circle"/></svg>Inactive</span>
                             {% endif %}
                         </td>
-
                         <td class="br-muted">{{ customer.date_joined|date:"M d, Y" }}</td>
-
                         <td>
                             <div class="br-actions">
-                                <a href="#" class="action-btn" title="Edit client" aria-label="Edit client">
+                                <a href="{% url 'administrator:edit_client' customer.pk %}" class="action-btn" title="Edit client" aria-label="Edit client">
                                     <svg class="br-icon"><use href="#i-edit"/></svg>
                                 </a>
+                                <button type="button"
+                                        class="action-btn"
+                                        data-action="reset"
+                                        data-url="{% url 'administrator:reset_client_password' customer.pk %}"
+                                        data-name="{{ display_name }}"
+                                        title="Reset password"
+                                        aria-label="Reset password">
+                                    <svg class="br-icon"><use href="#i-key"/></svg>
+                                </button>
+                                <button type="button"
+                                        class="action-btn action-danger"
+                                        data-action="delete"
+                                        data-url="{% url 'administrator:delete_user' customer.pk %}"
+                                        data-name="{{ display_name }}"
+                                        title="Delete client"
+                                        aria-label="Delete client">
+                                    <svg class="br-icon"><use href="#i-trash"/></svg>
+                                </button>
                             </div>
                         </td>
                     </tr>
+                        {% endwith %}
+                    {% else %}
+                    <tr class="branch-row">
+                        <td>
+                            <div class="br-cell-branch">
+                                <div class="branch-avatar">
+                                    <svg class="br-icon"><use href="#i-users"/></svg>
+                                </div>
+                                <div>
+                                    <div class="branch-name">{{ customer.get_full_name|default:customer.email }}</div>
+                                    <div class="br-muted">{{ customer.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="br-muted">Not provided</span></td>
+                        <td>Not provided</td>
+                        <td>{{ customer.whatsapp_number|default:"Not provided" }}</td>
+                        <td>
+                            {% if customer.is_active %}
+                                <span class="status-pill status-active"><svg class="br-icon br-icon-sm"><use href="#i-check-circle"/></svg>Active</span>
+                            {% else %}
+                                <span class="status-pill status-inactive"><svg class="br-icon br-icon-sm"><use href="#i-x-circle"/></svg>Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="br-muted">{{ customer.date_joined|date:"M d, Y" }}</td>
+                        <td>
+                            <div class="br-actions">
+                                <a href="{% url 'administrator:edit_client' customer.pk %}" class="action-btn" title="Edit client" aria-label="Edit client">
+                                    <svg class="br-icon"><use href="#i-edit"/></svg>
+                                </a>
+                                <button type="button"
+                                        class="action-btn"
+                                        data-action="reset"
+                                        data-url="{% url 'administrator:reset_client_password' customer.pk %}"
+                                        data-name="{{ customer.get_full_name|default:customer.email }}"
+                                        title="Reset password"
+                                        aria-label="Reset password">
+                                    <svg class="br-icon"><use href="#i-key"/></svg>
+                                </button>
+                                <button type="button"
+                                        class="action-btn action-danger"
+                                        data-action="delete"
+                                        data-url="{% url 'administrator:delete_user' customer.pk %}"
+                                        data-name="{{ customer.get_full_name|default:customer.email }}"
+                                        title="Delete client"
+                                        aria-label="Delete client">
+                                    <svg class="br-icon"><use href="#i-trash"/></svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
                     {% empty %}
                     <tr>
                         <td colspan="7" class="br-empty">
@@ -132,7 +184,7 @@
                             {% else %}
                                 <h6>No clients yet</h6>
                                 <p>There are no client accounts in this branch.</p>
-                                <a href="#" class="br-btn br-btn-primary br-btn-sm">
+                                <a href="{% url 'administrator:add_client' %}" class="br-btn br-btn-primary br-btn-sm">
                                     <svg class="br-icon"><use href="#i-plus"/></svg>
                                     Add Client
                                 </a>
@@ -145,7 +197,7 @@
         </div>
 
         <div class="panel-footer">
-            <div class="br-showing">
+            <div>
                 Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}
                 of {{ page_obj.paginator.count }} clients
             </div>
@@ -153,4 +205,6 @@
         </div>
     </div>
 </div>
+
+{% include "administrator/_confirm_dialog.html" %}
 {% endblock %}
