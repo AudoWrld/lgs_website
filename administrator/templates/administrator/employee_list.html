@@ -102,34 +102,32 @@
 
                         <td>
                             <div class="br-actions">
-                                {% if request.user.is_superuser or employee.pk == request.user.pk or employee.role != "ADMINISTRATOR" %}
-                                    <a href="{% url 'administrator:edit_employee' employee.pk %}" class="action-btn" title="Edit employee" aria-label="Edit employee">
-                                        <svg class="br-icon"><use href="#i-edit"/></svg>
-                                    </a>
-                                    <a href="{% url 'administrator:employee_activity' employee.pk %}" class="action-btn" title="Activity history" aria-label="Activity history">
-                                        <svg class="br-icon"><use href="#i-clock"/></svg>
-                                    </a>
-                                    {% if employee.pk != request.user.pk %}
-                                        <button type="button"
-                                                class="action-btn"
-                                                data-action="reset"
-                                                data-url="{% url 'administrator:reset_employee_password' employee.pk %}"
-                                                data-name="{{ employee.get_full_name|default:employee.email }}"
-                                                title="Reset password"
-                                                aria-label="Reset password">
-                                            <svg class="br-icon"><use href="#i-key"/></svg>
-                                        </button>
-                                        <button type="button"
-                                                class="action-btn {% if employee.is_active %}action-danger{% else %}action-success{% endif %}"
-                                                data-action="toggle"
-                                                data-active="{% if employee.is_active %}true{% else %}false{% endif %}"
-                                                data-url="{% url 'administrator:toggle_employee' employee.pk %}"
-                                                data-name="{{ employee.get_full_name|default:employee.email }}"
-                                                title="{% if employee.is_active %}Deactivate{% else %}Activate{% endif %} employee"
-                                                aria-label="{% if employee.is_active %}Deactivate{% else %}Activate{% endif %} employee">
-                                            <svg class="br-icon"><use href="#i-power"/></svg>
-                                        </button>
-                                    {% endif %}
+                                <a href="{% url 'administrator:edit_employee' employee.pk %}" class="action-btn" title="Edit employee" aria-label="Edit employee">
+                                    <svg class="br-icon"><use href="#i-edit"/></svg>
+                                </a>
+                                <a href="{% url 'administrator:employee_activity' employee.pk %}" class="action-btn" title="Activity history" aria-label="Activity history">
+                                    <svg class="br-icon"><use href="#i-clock"/></svg>
+                                </a>
+                                {% if employee.pk != request.user.pk %}
+                                    <button type="button"
+                                            class="action-btn"
+                                            data-action="reset"
+                                            data-url="{% url 'administrator:reset_employee_password' employee.pk %}"
+                                            data-name="{{ employee.get_full_name|default:employee.email }}"
+                                            title="Reset password"
+                                            aria-label="Reset password">
+                                        <svg class="br-icon"><use href="#i-key"/></svg>
+                                    </button>
+                                    <button type="button"
+                                            class="action-btn {% if employee.is_active %}action-danger{% else %}action-success{% endif %}"
+                                            data-action="toggle"
+                                            data-active="{% if employee.is_active %}true{% else %}false{% endif %}"
+                                            data-url="{% url 'administrator:toggle_employee' employee.pk %}"
+                                            data-name="{{ employee.get_full_name|default:employee.email }}"
+                                            title="{% if employee.is_active %}Deactivate{% else %}Activate{% endif %} employee"
+                                            aria-label="{% if employee.is_active %}Deactivate{% else %}Activate{% endif %} employee">
+                                        <svg class="br-icon"><use href="#i-power"/></svg>
+                                    </button>
                                 {% endif %}
                             </div>
                         </td>
