@@ -29,6 +29,17 @@ EMPLOYEE_CREATORS = {
     User.ADMINISTRATOR: "create_administrator",
 }
 
+ACTION_LABELS = {
+    EmployeeActivity.CREATED: "Account created",
+    EmployeeActivity.UPDATED: "Details updated",
+    EmployeeActivity.ROLE_CHANGED: "Role changed",
+    EmployeeActivity.BRANCH_TRANSFERRED: "Branch transferred",
+    EmployeeActivity.ACTIVATED: "Account activated",
+    EmployeeActivity.DEACTIVATED: "Account deactivated",
+    EmployeeActivity.PASSWORD_RESET: "Password reset",
+    "PASSWORD_CHANGED": "Password changed",
+}
+
 
 def _split_name(full_name):
     parts = full_name.split(None, 1)
@@ -498,7 +509,12 @@ def edit_employee(request, user_id):
                         target.must_change_password = True
                 target.save()
 
-                _log_activity(target, request.user, EmployeeActivity.UPDATED)
+                _log_activity(
+                    target,
+                    request.user,
+                    EmployeeActivity.UPDATED,
+                    "Profile details were updated.",
+                )
                 if role_changed:
                     _log_activity(
                         target,
@@ -514,7 +530,12 @@ def edit_employee(request, user_id):
                         f"{old_branch.name} -> {branch.name}",
                     )
                 if data["password"]:
-                    _log_activity(target, request.user, EmployeeActivity.PASSWORD_RESET)
+                    _log_activity(
+                        target,
+                        request.user,
+                        EmployeeActivity.PASSWORD_RESET,
+                        "Password was changed from the edit page.",
+                    )
 
             if target.pk == request.user.pk:
                 if data["password"]:
@@ -609,15 +630,20 @@ def toggle_employee(request, user_id):
     with transaction.atomic():
         target.is_active = not target.is_active
         target.save(update_fields=["is_active"])
-        _log_activity(
-            target,
-            request.user,
-            (
-                EmployeeActivity.ACTIVATED
-                if target.is_active
-                else EmployeeActivity.DEACTIVATED
-            ),
-        )
+        if target.is_active:
+            _log_activity(
+                target,
+                request.user,
+                EmployeeActivity.ACTIVATED,
+                "Account was activated and can sign in again.",
+            )
+        else:
+            _log_activity(
+                target,
+                request.user,
+                EmployeeActivity.DEACTIVATED,
+                "Account was deactivated and signed out of all sessions.",
+            )
 
     if not target.is_active:
         _revoke_sessions(target)
@@ -651,7 +677,12 @@ def reset_employee_password(request, user_id):
         target.set_password(temp_password)
         target.must_change_password = True
         target.save(update_fields=["password", "must_change_password"])
-        _log_activity(target, request.user, EmployeeActivity.PASSWORD_RESET)
+        _log_activity(
+            target,
+            request.user,
+            EmployeeActivity.PASSWORD_RESET,
+            "A temporary password was issued; a password change is required at next login.",
+        )
 
     _revoke_sessions(target)
 
@@ -701,6 +732,12 @@ def employee_activity(request, user_id):
     logs = target.activity_log.select_related("actor")
     page_obj, page_items = _paginate(request, logs)
 
+    log_rows = list(page_obj.object_list)
+    for log in log_rows:
+        log.action_label = ACTION_LABELS.get(
+            log.action, log.action.replace("_", " ").capitalize()
+        )
+
     return render(
         request,
         "administrator/user_management/employee_activity.html",
@@ -709,6 +746,6 @@ def employee_activity(request, user_id):
             "target_user": target,
             "page_obj": page_obj,
             "page_items": page_items,
-            "logs": page_obj.object_list,
+            "logs": log_rows,
         },
     )
