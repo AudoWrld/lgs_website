@@ -45,3 +45,14 @@ def accountant_required(view):
         return view(request, *args, **kwargs)
 
     return wrapped
+
+
+def administrator_required(view):
+    @wraps(view)
+    @login_required(login_url="accounts:login")
+    def wrapped(request, *args, **kwargs):
+        if not (request.user.is_administrator or request.user.is_superuser):
+            raise PermissionDenied("Administrator access is required.")
+        return view(request, *args, **kwargs)
+
+    return wrapped
