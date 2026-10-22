@@ -14,7 +14,7 @@ class Branch(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["name"]
+        ordering = ["pk"]
         verbose_name = "Branch"
         verbose_name_plural = "Branches"
 

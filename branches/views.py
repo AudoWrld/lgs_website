@@ -45,7 +45,7 @@ def _branch_context(request, form, open_modal=False, editing_branch=None):
         active=Count("pk", filter=Q(is_active=True)),
     )
 
-    queryset = Branch.objects.order_by("name")
+    queryset = Branch.objects.order_by("pk")
 
     if search:
         queryset = queryset.filter(

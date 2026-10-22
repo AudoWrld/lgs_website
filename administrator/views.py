@@ -13,6 +13,6 @@ def admin_dashboard(request):
 @administrator_required
 def branch_options(request):
     branches = (
-        Branch.objects.filter(is_active=True).order_by("name").values("id", "name")
+        Branch.objects.filter(is_active=True).order_by("pk").values("id", "name")
     )
     return JsonResponse({"branches": list(branches), "default_id": 1})
