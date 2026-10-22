@@ -3,6 +3,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_POST
+
 from accounts.decorators import administrator_required
 from accounts.models import User
 
@@ -110,7 +111,7 @@ def client_list(request):
         customers = User.objects.none()
     else:
         customers = User.objects.filter(
-            role=User.CUSTOMER, branch=branch
+            role=User.CUSTOMER, branch=branch, is_deleted=False
         ).select_related("client_profile", "branch", "created_by")
 
         if search_query:
@@ -144,17 +145,24 @@ def client_list(request):
 def employee_list(request):
     branch = get_selected_branch(request)
     search_query = request.GET.get("q", "").strip()
+    status = request.GET.get("status", "").strip()
 
     if branch is None:
         employees = User.objects.none()
     else:
         employees = User.objects.filter(
-            role__in=User.STAFF_ROLES, branch=branch
+            role__in=User.STAFF_ROLES, branch=branch, is_deleted=False
         ).select_related("branch", "created_by")
+
+        if status == "active":
+            employees = employees.filter(is_active=True)
+        elif status == "inactive":
+            employees = employees.filter(is_active=False)
 
         if search_query:
             employees = employees.filter(
                 Q(email__icontains=search_query)
+                | Q(employee_id__icontains=search_query)
                 | Q(first_name__icontains=search_query)
                 | Q(last_name__icontains=search_query)
                 | Q(whatsapp_number__icontains=search_query)
@@ -174,5 +182,6 @@ def employee_list(request):
             "page_items": page_items,
             "employees": page_obj.object_list,
             "search_query": search_query,
+            "status": status,
         },
     )
