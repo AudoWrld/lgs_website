@@ -50,7 +50,7 @@
                     {% for log in logs %}
                     <tr class="branch-row">
                         <td class="br-muted">{{ log.created_at|date:"M d, Y H:i" }}</td>
-                        <td><span class="role-pill">{{ log.get_action_display }}</span></td>
+                        <td><span class="role-pill">{{ log.action_label }}</span></td>
                         <td>
                             {% if log.actor %}
                                 <div class="branch-name" title="{{ log.actor.get_full_name|default:log.actor.email }}">{{ log.actor.get_full_name|default:log.actor.email }}</div>
