@@ -1,0 +1,156 @@
+{% extends "administrator/base_administrator.html" %}
+{% load static %}
+
+{% block title %}Clients — LGS Mineral Assay Laboratory{% endblock %}
+{% block page_title %}Clients{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'branches/css/branches.css' %}">
+<link rel="stylesheet" href="{% static 'administrator/css/user_lists.css' %}">
+{% endblock %}
+
+{% block content %}
+{% include "administrator/_user_icons.html" %}
+
+<div class="branch-page">
+    <div class="br-toolbar">
+        <div>
+            <h4 class="br-title">
+                <svg class="br-icon br-icon-lg"><use href="#i-users"/></svg>
+                Clients
+            </h4>
+            <p class="br-subtitle">
+                Client portal accounts for
+                {% if selected_branch %}{{ selected_branch.name }}{% else %}no branch selected{% endif %}.
+            </p>
+        </div>
+
+        <a href="#" class="br-btn br-btn-primary">
+            <svg class="br-icon"><use href="#i-plus"/></svg>
+            Add Client
+        </a>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h6 class="panel-title">All Clients</h6>
+                <div class="panel-sub">View and manage registered clients.</div>
+            </div>
+
+            <form method="GET" class="br-search-form" role="search">
+                <div class="br-search">
+                    <svg class="br-icon"><use href="#i-search"/></svg>
+                    <input type="search"
+                           name="q"
+                           class="br-input"
+                           value="{{ search_query }}"
+                           placeholder="Search clients..."
+                           aria-label="Search clients">
+                </div>
+                <button type="submit" class="br-btn br-btn-light">Search</button>
+                {% if search_query %}
+                    <a href="{% url 'administrator:client_list' %}" class="br-btn br-btn-light">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+
+        <div class="br-table-wrap">
+            <table class="br-table">
+                <thead>
+                    <tr>
+                        <th>Client</th>
+                        <th>Type</th>
+                        <th>Contact Person</th>
+                        <th>WhatsApp</th>
+                        <th>Status</th>
+                        <th>Joined</th>
+                        <th class="br-center">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for customer in customers %}
+                    <tr class="branch-row">
+                        <td>
+                            <div class="br-cell-branch">
+                                <div class="branch-avatar">
+                                    <svg class="br-icon"><use href="#i-users"/></svg>
+                                </div>
+                                <div>
+                                    <div class="branch-name" title="{% if customer.client_profile %}{{ customer.client_profile.client_name }}{% else %}{{ customer.get_full_name|default:customer.email }}{% endif %}">
+                                        {% if customer.client_profile %}{{ customer.client_profile.client_name }}{% else %}{{ customer.get_full_name|default:customer.email }}{% endif %}
+                                    </div>
+                                    <div class="br-muted">{{ customer.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td>
+                            {% if customer.client_profile %}
+                                <span class="role-pill role-type">{{ customer.client_profile.get_client_type_display }}</span>
+                            {% else %}
+                                <span class="br-muted">Not provided</span>
+                            {% endif %}
+                        </td>
+
+                        <td>{% if customer.client_profile %}{{ customer.client_profile.contact_person|default:"Not provided" }}{% else %}Not provided{% endif %}</td>
+                        <td>{{ customer.whatsapp_number|default:"Not provided" }}</td>
+
+                        <td>
+                            {% if customer.is_active %}
+                                <span class="status-pill status-active">
+                                    <svg class="br-icon br-icon-sm"><use href="#i-check-circle"/></svg>
+                                    Active
+                                </span>
+                            {% else %}
+                                <span class="status-pill status-inactive">
+                                    <svg class="br-icon br-icon-sm"><use href="#i-x-circle"/></svg>
+                                    Inactive
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td class="br-muted">{{ customer.date_joined|date:"M d, Y" }}</td>
+
+                        <td>
+                            <div class="br-actions">
+                                <a href="#" class="action-btn" title="Edit client" aria-label="Edit client">
+                                    <svg class="br-icon"><use href="#i-edit"/></svg>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="br-empty">
+                            <svg class="br-icon br-icon-xl"><use href="#i-users"/></svg>
+                            {% if search_query %}
+                                <h6>No matching clients</h6>
+                                <p>No clients match “{{ search_query }}”.</p>
+                                <a href="{% url 'administrator:client_list' %}" class="br-btn br-btn-light br-btn-sm">Clear search</a>
+                            {% else %}
+                                <h6>No clients yet</h6>
+                                <p>There are no client accounts in this branch.</p>
+                                <a href="#" class="br-btn br-btn-primary br-btn-sm">
+                                    <svg class="br-icon"><use href="#i-plus"/></svg>
+                                    Add Client
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="panel-footer">
+            <div class="br-showing">
+                Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}
+                of {{ page_obj.paginator.count }} clients
+            </div>
+            {% include "administrator/_pagination.html" %}
+        </div>
+    </div>
+</div>
+{% endblock %}
