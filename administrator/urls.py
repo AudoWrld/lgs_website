@@ -39,4 +39,9 @@ urlpatterns = [
         user_management.employee_activity,
         name="employee_activity",
     ),
+    path(
+        "clients/<int:user_id>/activity/",
+        user_management.client_activity,
+        name="client_activity",
+    ),
 ]
