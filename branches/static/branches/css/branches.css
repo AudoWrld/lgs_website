@@ -1,3 +1,12 @@
+html:has(dialog.br-dialog[open]),
+body:has(dialog.br-dialog[open]) {
+  overflow: hidden;
+}
+
+html:has(dialog.br-dialog[open]) {
+  scrollbar-gutter: stable;
+}
+
 .branch-page {
   font-family: var(--font-body);
   color: var(--charcoal);
@@ -444,6 +453,7 @@
   color: var(--charcoal);
   font-family: var(--font-body);
   overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .br-dialog::backdrop {
