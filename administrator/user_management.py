@@ -14,7 +14,7 @@ from django.utils.crypto import get_random_string
 from django.views.decorators.http import require_http_methods, require_POST
 
 from accounts.decorators import administrator_required
-from accounts.models import Client, ClientEditLog, EmployeeActivity, User
+from accounts.models import Client, ClientActivity, ClientEditLog, EmployeeActivity, User
 
 from .views import _paginate, _resolve_branches, get_selected_branch
 
@@ -37,7 +37,13 @@ ACTION_LABELS = {
     EmployeeActivity.ACTIVATED: "Account activated",
     EmployeeActivity.DEACTIVATED: "Account deactivated",
     EmployeeActivity.PASSWORD_RESET: "Password reset",
-    "PASSWORD_CHANGED": "Password changed",
+    EmployeeActivity.PASSWORD_CHANGED: "Password changed",
+    EmployeeActivity.LOGIN: "Signed in",
+}
+
+CLIENT_LOG_LABELS = {
+    "EDITED": "Details edited",
+    "DELETED": "Client deleted",
 }
 
 
@@ -206,6 +212,15 @@ def _log_activity(employee, actor, action, detail=""):
     )
 
 
+def _log_client_activity(client, actor, action, detail=""):
+    ClientActivity.objects.create(
+        client=client,
+        actor=actor,
+        action=action,
+        detail=detail,
+    )
+
+
 def _soft_delete_client(user):
     with transaction.atomic():
         profile = getattr(user, "client_profile", None)
@@ -271,6 +286,12 @@ def add_client(request):
                     contact_person=data["contact_person"],
                     email=data["email"],
                     whatsapp_number=data["whatsapp_number"],
+                )
+                _log_client_activity(
+                    user.client_profile,
+                    request.user,
+                    ClientActivity.EDITED,
+                    "Client profile was created.",
                 )
             messages.success(
                 request, f"Client {data['full_name']} was added successfully."
@@ -415,6 +436,13 @@ def edit_client(request, user_id):
                     target.must_change_password = True
                     target.initial_temp_password = data["password"]
                 target.save()
+
+                _log_client_activity(
+                    profile,
+                    request.user,
+                    ClientActivity.EDITED,
+                    "Client details were updated.",
+                )
 
             if data["password"]:
                 _revoke_sessions(target)
@@ -609,7 +637,15 @@ def delete_user(request, user_id):
         return _json_error("Client not found.", 404)
 
     name = _display_name(user)
+    profile = getattr(user, "client_profile", None)
     _soft_delete_client(user)
+    if profile is not None:
+        _log_client_activity(
+            profile,
+            request.user,
+            ClientActivity.DELETED,
+            f"Client account for {name} was deleted.",
+        )
     return _json_ok(request, f"Client {name} was deleted.", user_id=user_id)
 
 
@@ -744,6 +780,38 @@ def employee_activity(request, user_id):
         {
             "selected_branch": get_selected_branch(request),
             "target_user": target,
+            "page_obj": page_obj,
+            "page_items": page_items,
+            "logs": log_rows,
+        },
+    )
+
+
+@administrator_required
+def client_activity(request, user_id):
+    target = _get_target(request, user_id, (User.CUSTOMER,))
+    profile = getattr(target, "client_profile", None)
+
+    if profile is None:
+        logs = ClientActivity.objects.none()
+        page_obj, page_items = _paginate(request, logs)
+    else:
+        logs = profile.activity_log.select_related("actor")
+        page_obj, page_items = _paginate(request, logs)
+
+    log_rows = list(page_obj.object_list)
+    for log in log_rows:
+        log.action_label = CLIENT_LOG_LABELS.get(
+            log.action, log.action.replace("_", " ").capitalize()
+        )
+
+    return render(
+        request,
+        "administrator/user_management/client_activity.html",
+        {
+            "selected_branch": get_selected_branch(request),
+            "target_user": target,
+            "target_client": profile,
             "page_obj": page_obj,
             "page_items": page_items,
             "logs": log_rows,
