@@ -455,6 +455,8 @@ class EmployeeActivity(models.Model):
     ACTIVATED = "ACTIVATED"
     DEACTIVATED = "DEACTIVATED"
     PASSWORD_RESET = "PASSWORD_RESET"
+    PASSWORD_CHANGED = "PASSWORD_CHANGED"
+    LOGIN = "LOGIN"
 
     employee = models.ForeignKey(
         User,
@@ -606,12 +608,55 @@ class Client(models.Model):
         return queryset
 
 
+class ClientActivity(models.Model):
+
+    LOGIN = "LOGIN"
+    EDITED = "EDITED"
+    DELETED = "DELETED"
+
+    ACTION_CHOICES = [
+        (LOGIN, "Signed in"),
+        (EDITED, "Details edited"),
+        (DELETED, "Client deleted"),
+    ]
+
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.CASCADE,
+        related_name="activity_log",
+    )
+    actor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="client_actions",
+    )
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES, db_index=True)
+    detail = models.TextField(blank=True)
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.client.client_name} {self.action} {self.created_at:%Y-%m-%d %H:%M}"
+
+
 class ClientEditLog(models.Model):
 
     client = models.ForeignKey(
         Client,
         on_delete=models.CASCADE,
         related_name="edit_logs",
+    )
+    edited_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="client_edits",
+        limit_choices_to={"role": User.RECEPTION},
     )
 
     edited_by = models.ForeignKey(
