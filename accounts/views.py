@@ -6,14 +6,17 @@ from django.contrib.auth import (
 )
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import SetPasswordForm
+from django.db import transaction
 from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from .forms import EmailAuthenticationForm
+from .models import EmployeeActivity
 
 User = get_user_model()
 
 NEXT_SESSION_KEY = "post_login_next"
+PASSWORD_CHANGED_ACTION = "PASSWORD_CHANGED"
 
 
 def _safe_next(request, target):
@@ -99,7 +102,15 @@ def force_password_change(request):
                 user = form.save(commit=False)
                 user.must_change_password = False
                 user.initial_temp_password = None
-                user.save()
+                with transaction.atomic():
+                    user.save()
+                    if user.is_staff_role:
+                        EmployeeActivity.objects.create(
+                            employee=user,
+                            actor=user,
+                            action=PASSWORD_CHANGED_ACTION,
+                            detail="Replaced their temporary password with a new one.",
+                        )
 
                 update_session_auth_hash(request, user)
 
