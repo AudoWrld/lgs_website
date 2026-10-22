@@ -1,6 +1,5 @@
 from django.contrib import messages
 from django.contrib.auth import (
-    authenticate,
     get_user_model,
     login,
     update_session_auth_hash,
@@ -90,15 +89,22 @@ def force_password_change(request):
     if request.method == "POST":
         form = SetPasswordForm(request.user, request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.must_change_password = False
-            user.initial_temp_password = form.cleaned_data["new_password1"]
-            user.save()
+            new_password = form.cleaned_data["new_password1"]
+            if request.user.check_password(new_password):
+                form.add_error(
+                    "new_password1",
+                    "Choose a password different from your temporary password.",
+                )
+            else:
+                user = form.save(commit=False)
+                user.must_change_password = False
+                user.initial_temp_password = None
+                user.save()
 
-            update_session_auth_hash(request, user)
+                update_session_auth_hash(request, user)
 
-            messages.success(request, "Your password has been updated.")
-            return redirect("accounts:post_login_redirect")
+                messages.success(request, "Your password has been updated.")
+                return redirect("accounts:post_login_redirect")
     else:
         form = SetPasswordForm(request.user)
 
