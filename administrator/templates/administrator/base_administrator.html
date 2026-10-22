@@ -117,7 +117,7 @@
           <span class="app-nav-label">User &amp; Branch Management</span>
           <ul>
             <li>
-              <a href="#" class="{% nav_active 'clients' %}">
+              <a href="{% url 'administrator:client_list' %}" class="{% nav_active 'clients' %}">
                 <svg
                   class="icon"
                   aria-hidden="true"
@@ -137,7 +137,7 @@
               </a>
             </li>
             <li>
-              <a href="#" class="{% nav_active 'employees' %}">
+              <a href="{% url 'administrator:employee_list' %}" class="{% nav_active 'employees' %}">
                 <svg
                   class="icon"
                   aria-hidden="true"
@@ -403,12 +403,14 @@
             {% block page_title %}Dashboard{% endblock %}
           </h1>
 
-          <div
-            class="branch-switcher"
-            data-branch-switcher
-            data-url="{% url 'administrator:branch_options' %}"
-            data-user="{{ user.pk }}"
-          >
+            <div
+              class="branch-switcher"
+              data-branch-switcher
+              data-url="{% url 'administrator:branch_options' %}"
+              data-set-url="{% url 'administrator:set_branch' %}"
+              data-csrf="{{ csrf_token }}"
+              data-user="{{ user.pk }}"
+            >
             <button
               type="button"
               class="branch-switcher-btn"
