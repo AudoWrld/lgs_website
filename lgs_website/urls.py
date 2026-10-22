@@ -11,6 +11,7 @@ urlpatterns = [
     path("accountant/", include("accountant.urls")),
     path("qc/", include("quantity_control.urls")),
     path("verify/", include("coa.urls")),
+    path("administrator/", include("administrator.urls")),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
