@@ -11,12 +11,11 @@ from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from .forms import EmailAuthenticationForm
-from .models import EmployeeActivity
+from .models import ClientActivity, EmployeeActivity
 
 User = get_user_model()
 
 NEXT_SESSION_KEY = "post_login_next"
-PASSWORD_CHANGED_ACTION = "PASSWORD_CHANGED"
 
 
 def _safe_next(request, target):
@@ -27,6 +26,26 @@ def _safe_next(request, target):
     ):
         return target
     return None
+
+
+def _log_user_activity(user, employee_action, client_action, detail):
+    if user.is_staff_role:
+        EmployeeActivity.objects.create(
+            employee=user,
+            actor=user,
+            action=employee_action,
+            detail=detail,
+        )
+        return
+
+    profile = getattr(user, "client_profile", None)
+    if user.is_customer and profile is not None:
+        ClientActivity.objects.create(
+            client=profile,
+            actor=user,
+            action=client_action,
+            detail=detail,
+        )
 
 
 def login_view(request):
@@ -43,13 +62,13 @@ def login_view(request):
         if form.is_valid():
             user = form.get_user()
             login(request, user)
-            if user.is_staff_role:
-                EmployeeActivity.objects.create(
-                    employee=user,
-                    actor=user,
-                    action=EmployeeActivity.LOGIN,
-                    detail=f"Signed in from {request.META.get('HTTP_USER_AGENT', 'unknown')[:200]}.",
-                )
+            agent = request.META.get("HTTP_USER_AGENT", "unknown")[:200]
+            _log_user_activity(
+                user,
+                EmployeeActivity.LOGIN,
+                ClientActivity.LOGIN,
+                f"Signed in from {agent}.",
+            )
             if safe:
                 request.session[NEXT_SESSION_KEY] = safe
             return redirect("accounts:post_login_redirect")
@@ -111,13 +130,12 @@ def force_password_change(request):
                 user.initial_temp_password = None
                 with transaction.atomic():
                     user.save()
-                    if user.is_staff_role:
-                        EmployeeActivity.objects.create(
-                            employee=user,
-                            actor=user,
-                            action=PASSWORD_CHANGED_ACTION,
-                            detail="Replaced their temporary password with a new one.",
-                        )
+                    _log_user_activity(
+                        user,
+                        EmployeeActivity.PASSWORD_CHANGED,
+                        ClientActivity.PASSWORD_CHANGED,
+                        "Replaced their temporary password with a new one.",
+                    )
 
                 update_session_auth_hash(request, user)
 

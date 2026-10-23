@@ -48,8 +48,10 @@ ACTION_LABELS = {
 }
 
 CLIENT_LOG_LABELS = {
+    "LOGIN": "Signed in",
     "EDITED": "Details edited",
     "DELETED": "Client deleted",
+    "PASSWORD_CHANGED": "Password changed",
 }
 
 

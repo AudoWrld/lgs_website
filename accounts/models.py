@@ -613,13 +613,14 @@ class ClientActivity(models.Model):
     LOGIN = "LOGIN"
     EDITED = "EDITED"
     DELETED = "DELETED"
+    PASSWORD_CHANGED = "PASSWORD_CHANGED"
 
     ACTION_CHOICES = [
         (LOGIN, "Signed in"),
         (EDITED, "Details edited"),
         (DELETED, "Client deleted"),
+        (PASSWORD_CHANGED, "Password changed"),
     ]
-
     client = models.ForeignKey(
         Client,
         on_delete=models.CASCADE,

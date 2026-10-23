@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from branches.models import BranchScopedModel
 from django.db import models, transaction
 from django.utils import timezone
 from django.utils.text import slugify
@@ -14,18 +15,26 @@ def _default_receiving_time():
 
 
 class DailySubmissionSequence(models.Model):
-    date = models.DateField(unique=True)
-    last_sequence = models.PositiveIntegerField(default=0)
+    branch = models.ForeignKey(
+        "branches.Branch",
+        on_delete=models.PROTECT,
+        related_name="daily_submission_sequences",
+        db_index=True,
+    )
+    date = models.DateField()
 
     class Meta:
         verbose_name = "Daily Submission Sequence"
         verbose_name_plural = "Daily Submission Sequences"
+        constraints = [
+            models.UniqueConstraint(fields=["branch", "date"], name="unique_daily_submission_sequence_branch_date")
+        ]
 
     def __str__(self):
         return f"{self.date} — last {self.last_sequence:02d}"
 
 
-class Submission(models.Model):
+class Submission(BranchScopedModel):
     REGISTRATION_DRAFT = "REGISTRATION_DRAFT"
 
     SUBMITTED_TO_LAB = "SUBMITTED_TO_LAB"
@@ -111,11 +120,11 @@ class Submission(models.Model):
         return self.samples.count()
 
     @classmethod
-    def generate_reference(cls, for_date=None):
+    def generate_reference(cls, branch, for_date=None):
         for_date = for_date or timezone.localdate()
         with transaction.atomic():
             seq, _ = DailySubmissionSequence.objects.select_for_update().get_or_create(
-                date=for_date
+                branch=branch, date=for_date
             )
             seq.last_sequence += 1
             seq.save(update_fields=["last_sequence"])
@@ -133,7 +142,7 @@ class Submission(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.reference:
-            self.reference = self.generate_reference(self.receiving_date)
+            self.reference = self.generate_reference(self.branch, self.receiving_date)
         if not self.slug:
             self.slug = self.generate_slug(self.reference)
         super().save(*args, **kwargs)
