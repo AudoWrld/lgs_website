@@ -38,6 +38,7 @@
   .header-block { text-align: center; margin-bottom: 6px; }
   .header-logo { text-align: center; margin-bottom: 12px; }
   .org-name { font-size: 13pt; font-weight: bold; margin-top: 8px; }
+  .branch-line { font-size: 10.5pt; font-weight: bold; margin-top: 2px; }
   .doc-name { font-size: 10pt; font-weight: bold; margin-top: 2px; }
   .doc-sub  { font-size: 8pt; font-weight: bold; margin-top: 5px; }
 
@@ -120,7 +121,7 @@
   <div class="footer-line">
     <table class="footer-table">
       <tr>
-        <td>LGS MINERAL ASSAY LABORATORY — Internal Laboratory Use Only</td>
+        <td>LGS MINERAL ASSAY LABORATORY — {{ submission.branch.name }} — Internal Laboratory Use Only</td>
         <td class="footer-right">Page <pdf:pagenumber> of <pdf:pagecount></td>
       </tr>
     </table>
@@ -132,6 +133,7 @@
   <div class="header-block">
     {% if logo_path %}<p class="header-logo"><img src="{{ logo_path }}" width="60" /></p>{% endif %}
     <p class="org-name">LGS MINERAL ASSAY LABORATORY</p>
+    <p class="branch-line">{{ submission.branch.name|upper }} BRANCH</p>
     <p class="doc-name">LABORATORY WORKSHEET</p>
     <p class="doc-sub">INTERNAL LABORATORY USE ONLY</p>
   </div>
@@ -142,6 +144,10 @@
       <td>{{ submission.reference }}</td>
       <th>Total Samples</th>
       <td>{{ submission.sample_count|default:submission.total_samples }}</td>
+    </tr>
+    <tr>
+      <th>Branch</th>
+      <td colspan="3">{{ submission.branch.name|default:"—" }}</td>
     </tr>
     <tr>
       <th>Receiving Date</th>
