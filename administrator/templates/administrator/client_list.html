@@ -59,7 +59,6 @@
                         <th>Contact Person</th>
                         <th>WhatsApp</th>
                         <th>Status</th>
-                        <th>Joined</th>
                         <th class="br-center">Actions</th>
                     </tr>
                 </thead>
@@ -90,7 +89,6 @@
                                 <span class="status-pill status-inactive"><svg class="br-icon br-icon-sm"><use href="#i-x-circle"/></svg>Inactive</span>
                             {% endif %}
                         </td>
-                        <td class="br-muted">{{ customer.date_joined|date:"M d, Y" }}</td>
                         <td>
                             <div class="br-actions">
                                 <a href="{% url 'administrator:edit_client' customer.pk %}" class="action-btn" title="Edit client" aria-label="Edit client">
@@ -144,7 +142,6 @@
                                 <span class="status-pill status-inactive"><svg class="br-icon br-icon-sm"><use href="#i-x-circle"/></svg>Inactive</span>
                             {% endif %}
                         </td>
-                        <td class="br-muted">{{ customer.date_joined|date:"M d, Y" }}</td>
                         <td>
                             <div class="br-actions">
                                 <a href="{% url 'administrator:edit_client' customer.pk %}" class="action-btn" title="Edit client" aria-label="Edit client">
@@ -177,7 +174,7 @@
                     {% endif %}
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="br-empty">
+                        <td colspan="6" class="br-empty">
                             <svg class="br-icon br-icon-xl"><use href="#i-users"/></svg>
                             <h6>No clients yet</h6>
                             <p>There are no client accounts in this branch.</p>
@@ -189,7 +186,7 @@
                     </tr>
                     {% endfor %}
                     <tr data-no-match hidden>
-                        <td colspan="7" class="br-empty">
+                        <td colspan="6" class="br-empty">
                             <h6>No matching clients</h6>
                             <p>No clients match your search.</p>
                         </td>
