@@ -22,7 +22,7 @@ from accounts.models import (
     User,
 )
 
-from .views import _paginate, _resolve_branches, get_selected_branch
+from .views import _resolve_branches, get_selected_branch
 
 PHONE_PATTERN = re.compile(r"^\+?[0-9\s\-]{7,20}$")
 TEMP_PASSWORD_ALPHABET = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -767,11 +767,8 @@ def employee_activity(request, user_id):
     target = _get_target(request, user_id, User.STAFF_ROLES)
     _guard_admin_target(request, target)
 
-    logs = target.activity_log.select_related("actor")
-    page_obj, page_items = _paginate(request, logs)
-
-    log_rows = list(page_obj.object_list)
-    for log in log_rows:
+    logs = list(target.activity_log.select_related("actor")[:1000])
+    for log in logs:
         log.action_label = ACTION_LABELS.get(
             log.action, log.action.replace("_", " ").capitalize()
         )
@@ -782,9 +779,7 @@ def employee_activity(request, user_id):
         {
             "selected_branch": get_selected_branch(request),
             "target_user": target,
-            "page_obj": page_obj,
-            "page_items": page_items,
-            "logs": log_rows,
+            "logs": logs,
         },
     )
 
@@ -795,14 +790,11 @@ def client_activity(request, user_id):
     profile = getattr(target, "client_profile", None)
 
     if profile is None:
-        logs = ClientActivity.objects.none()
-        page_obj, page_items = _paginate(request, logs)
+        logs = []
     else:
-        logs = profile.activity_log.select_related("actor")
-        page_obj, page_items = _paginate(request, logs)
+        logs = list(profile.activity_log.select_related("actor")[:1000])
 
-    log_rows = list(page_obj.object_list)
-    for log in log_rows:
+    for log in logs:
         log.action_label = CLIENT_LOG_LABELS.get(
             log.action, log.action.replace("_", " ").capitalize()
         )
@@ -814,8 +806,6 @@ def client_activity(request, user_id):
             "selected_branch": get_selected_branch(request),
             "target_user": target,
             "target_client": profile,
-            "page_obj": page_obj,
-            "page_items": page_items,
-            "logs": log_rows,
+            "logs": logs,
         },
     )
