@@ -127,6 +127,12 @@ class Payment(BranchScopedModel):
         return True
 
     def save(self, *args, **kwargs):
+        if not self.branch_id and self.submission_id:
+            self.branch_id = self.submission.branch_id
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                kwargs["update_fields"] = {*update_fields, "branch"}
+
         changed = self.apply_credit_terms()
         update_fields = kwargs.get("update_fields")
         if changed and update_fields is not None:
@@ -152,7 +158,10 @@ class Payment(BranchScopedModel):
 
     @classmethod
     def ensure_for(cls, submission):
-        payment, created = cls.objects.get_or_create(submission=submission)
+        payment, created = cls.objects.get_or_create(
+            submission=submission,
+            defaults={"branch": submission.branch},
+        )
         if created:
             payment.refresh_from_charges()
         return payment
