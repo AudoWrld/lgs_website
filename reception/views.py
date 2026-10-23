@@ -53,31 +53,69 @@ SORT_OPTIONS = {
 User = get_user_model()
 
 
+def _branch(request):
+    return request.user.branch
+
+
+def _clients(request):
+    return Client.objects.filter(portal_user__branch=_branch(request))
+
+
+def _submissions(request):
+    return Submission.objects.filter(branch=_branch(request))
+
+
+def _samples(request):
+    return Sample.objects.filter(submission__branch=_branch(request))
+
+
+def _payments(request):
+    return Payment.objects.filter(branch=_branch(request))
+
+
+def _expenses(request):
+    return Expense.objects.filter(branch=_branch(request))
+
+
+def _worksheets(request):
+    return Worksheet.objects.filter(submission__branch=_branch(request))
+
+
+def _coas(request):
+    return COA.objects.filter(submission__branch=_branch(request))
+
+
 @reception_required
 def reception_dashboard(request):
+    branch = _branch(request)
     today = timezone.localdate()
 
-    today_submissions_count = Submission.objects.filter(created_at__date=today).count()
+    today_submissions_count = (
+        _submissions(request).filter(created_at__date=today).count()
+    )
 
-    pending_payments_count = Payment.objects.filter(
-        payment_status__in=[Payment.UNPAID, Payment.PARTIALLY_PAID]
-    ).count()
+    pending_payments_count = (
+        _payments(request)
+        .filter(payment_status__in=[Payment.UNPAID, Payment.PARTIALLY_PAID])
+        .count()
+    )
 
-    submissions_with_samples = Submission.objects.filter(
-        samples__isnull=False
-    ).distinct()
-    submissions_with_worksheets = Worksheet.objects.values_list(
-        "submission_id", flat=True
-    ).distinct()
+    submissions_with_samples = (
+        _submissions(request).filter(samples__isnull=False).distinct()
+    )
+    submissions_with_worksheets = (
+        _worksheets(request).values_list("submission_id", flat=True).distinct()
+    )
     awaiting_worksheet_count = submissions_with_samples.exclude(
         pk__in=submissions_with_worksheets
     ).count()
 
-    todays_expenses_count = Expense.objects.filter(created_at__date=today).count()
+    todays_expenses_count = _expenses(request).filter(created_at__date=today).count()
 
     days = [today - timedelta(days=offset) for offset in range(6, -1, -1)]
     per_day = dict(
-        Submission.objects.filter(created_at__date__gte=days[0])
+        _submissions(request)
+        .filter(created_at__date__gte=days[0])
         .annotate(day=TruncDate("created_at"))
         .values("day")
         .annotate(total=Count("id"))
@@ -87,7 +125,8 @@ def reception_dashboard(request):
     week_labels = [day.strftime("%a") for day in days]
 
     recent_submissions = (
-        Submission.objects.select_related("client")
+        _submissions(request)
+        .select_related("client")
         .annotate(sample_count=Count("samples", distinct=True))
         .order_by("-created_at")[:6]
     )
@@ -99,7 +138,8 @@ def reception_dashboard(request):
     ]
 
     status_rows = (
-        Submission.objects.filter(is_submitted=True)
+        _submissions(request)
+        .filter(is_submitted=True)
         .values("status")
         .annotate(total=Count("id"))
     )
@@ -119,6 +159,7 @@ def reception_dashboard(request):
         request,
         "reception/reception_dashboard.html",
         {
+            "branch": branch,
             "today_submissions_count": today_submissions_count,
             "pending_payments_count": pending_payments_count,
             "awaiting_worksheet_count": awaiting_worksheet_count,
@@ -145,7 +186,8 @@ def client_search(request):
         normalized_phone = normalize_tz_phone(query)
 
         results = (
-            Client.objects.filter(
+            _clients(request)
+            .filter(
                 Q(client_name__icontains=query)
                 | Q(contact_person__icontains=query)
                 | Q(email__icontains=query)
@@ -167,6 +209,7 @@ def _start_submission_for_client(request, client):
     submission = Submission.objects.create(
         client=client,
         registered_by=request.user,
+        branch=_branch(request),
     )
     request.session["active_client_id"] = client.pk
     request.session["active_submission_id"] = submission.pk
@@ -175,8 +218,12 @@ def _start_submission_for_client(request, client):
 
 @reception_required
 def client_submissions(request, slug):
-    client = get_object_or_404(Client, slug=slug)
-    queryset = client.submissions.prefetch_related("samples").order_by("-created_at")
+    client = get_object_or_404(_clients(request), slug=slug)
+    queryset = (
+        client.submissions.filter(branch=_branch(request))
+        .prefetch_related("samples")
+        .order_by("-created_at")
+    )
     paginator = Paginator(queryset, 20)
     page_obj = paginator.get_page(request.GET.get("page"))
     page_range = paginator.get_elided_page_range(
@@ -197,7 +244,7 @@ def client_submissions(request, slug):
 
 @reception_required
 def client_new_submission(request, slug):
-    client = get_object_or_404(Client, slug=slug)
+    client = get_object_or_404(_clients(request), slug=slug)
     submission = _start_submission_for_client(request, client)
     messages.success(request, f"New submission {submission.reference} started.")
     return redirect("reception:sample_registration_detail", slug=submission.slug)
@@ -205,8 +252,10 @@ def client_new_submission(request, slug):
 
 @reception_required
 def submission_use(request, slug, submission_id):
-    client = get_object_or_404(Client, slug=slug)
-    submission = get_object_or_404(Submission, pk=submission_id, client=client)
+    client = get_object_or_404(_clients(request), slug=slug)
+    submission = get_object_or_404(
+        _submissions(request), pk=submission_id, client=client
+    )
     request.session["active_client_id"] = client.pk
     request.session["active_submission_id"] = submission.pk
     messages.success(request, f"Using submission {submission.reference}.")
@@ -215,7 +264,7 @@ def submission_use(request, slug, submission_id):
 
 @reception_required
 def client_edit(request, slug):
-    client = get_object_or_404(Client, slug=slug)
+    client = get_object_or_404(_clients(request), slug=slug)
 
     if request.method == "POST":
         form = ClientForm(request.POST, instance=client)
@@ -271,7 +320,7 @@ def client_register(request):
                 client_name=cleaned["client_name"],
                 email=cleaned["email"],
                 whatsapp_number=cleaned["whatsapp_number"],
-            )
+            ).filter(portal_user__branch=_branch(request))
 
             if duplicates.exists() and not confirmed:
                 messages.warning(
@@ -285,6 +334,7 @@ def client_register(request):
                     email=cleaned["email"],
                     password=temp_password,
                     created_by=request.user,
+                    branch=_branch(request),
                     whatsapp_number=cleaned["whatsapp_number"],
                 )
 
@@ -315,11 +365,12 @@ def client_register(request):
     )
 
 
-def build_stats():
+def build_stats(request):
     today = timezone.localdate()
     days = [today - timedelta(days=offset) for offset in range(6, -1, -1)]
+    submissions = _submissions(request)
     per_day = dict(
-        Submission.objects.filter(created_at__date__gte=days[0])
+        submissions.filter(created_at__date__gte=days[0])
         .annotate(day=TruncDate("created_at"))
         .values("day")
         .annotate(total=Count("id"))
@@ -327,11 +378,11 @@ def build_stats():
     )
     week_counts = [per_day.get(day, 0) for day in days]
     return {
-        "total": Submission.objects.count(),
-        "today": Submission.objects.filter(created_at__date=today).count(),
-        "pending": Submission.objects.filter(is_submitted=False).count(),
-        "submitted": Submission.objects.filter(is_submitted=True).count(),
-        "total_samples": Sample.objects.count(),
+        "total": submissions.count(),
+        "today": submissions.filter(created_at__date=today).count(),
+        "pending": submissions.filter(is_submitted=False).count(),
+        "submitted": submissions.filter(is_submitted=True).count(),
+        "total_samples": _samples(request).count(),
         "week_labels": [day.strftime("%a") for day in days],
         "week_counts": week_counts,
         "week_total": sum(week_counts),
@@ -360,9 +411,13 @@ def submission_list(request):
     date_from = parse_date_param(request.GET.get("date_from"))
     date_to = parse_date_param(request.GET.get("date_to"))
 
-    submissions = Submission.objects.select_related("client", "registered_by").annotate(
-        sample_count=Count("samples", distinct=True),
-        test_count=Count("samples__sample_services", distinct=True),
+    submissions = (
+        _submissions(request)
+        .select_related("client", "registered_by")
+        .annotate(
+            sample_count=Count("samples", distinct=True),
+            test_count=Count("samples__sample_services", distinct=True),
+        )
     )
 
     if query:
@@ -371,9 +426,9 @@ def submission_list(request):
             | Q(client__client_name__icontains=query)
             | Q(client__contact_person__icontains=query)
             | Q(
-                pk__in=Sample.objects.filter(client_sample_id__icontains=query).values(
-                    "submission_id"
-                )
+                pk__in=_samples(request)
+                .filter(client_sample_id__icontains=query)
+                .values("submission_id")
             )
         )
     if status == "pending":
@@ -396,9 +451,8 @@ def submission_list(request):
     type_labels = dict(Sample.SAMPLE_TYPE_CHOICES)
     breakdown = {}
     type_rows = (
-        Sample.objects.filter(
-            submission_id__in=[item.pk for item in page_obj.object_list]
-        )
+        _samples(request)
+        .filter(submission_id__in=[item.pk for item in page_obj.object_list])
         .values("submission_id", "sample_type")
         .annotate(total=Count("id"))
         .order_by("sample_type")
@@ -430,7 +484,7 @@ def submission_list(request):
             number=page_obj.number, on_each_side=1, on_ends=1
         ),
         "ellipsis": paginator.ELLIPSIS,
-        "stats": build_stats(),
+        "stats": build_stats(request),
         "query": query,
         "status": status,
         "stage": stage,
@@ -449,7 +503,7 @@ def submission_list(request):
 @reception_required
 def sample_registration_detail(request, slug):
     submission = get_object_or_404(
-        Submission.objects.select_related("client"), slug=slug
+        _submissions(request).select_related("client"), slug=slug
     )
     request.session["active_client_id"] = submission.client_id
     request.session["active_submission_id"] = submission.pk
@@ -483,7 +537,7 @@ def sample_registration_detail(request, slug):
 @reception_required
 def sample_edit(request, submission_slug, sample_slug):
     submission = get_object_or_404(
-        Submission.objects.select_related("client"), slug=submission_slug
+        _submissions(request).select_related("client"), slug=submission_slug
     )
     sample = get_object_or_404(
         Sample.objects.select_related("submission"),
@@ -519,7 +573,7 @@ def sample_edit(request, submission_slug, sample_slug):
 @reception_required
 def submission_submit_review(request, submission_id):
     submission = get_object_or_404(
-        Submission.objects.select_related("client"), pk=submission_id
+        _submissions(request).select_related("client"), pk=submission_id
     )
     if submission.is_submitted:
         return redirect("reception:sample_registration_detail", slug=submission.slug)
@@ -557,7 +611,7 @@ def submission_submit_review(request, submission_id):
 @reception_required
 def submission_confirm_submit(request, submission_id):
     submission = get_object_or_404(
-        Submission.objects.select_related("client"), pk=submission_id
+        _submissions(request).select_related("client"), pk=submission_id
     )
     if request.method != "POST":
         return redirect("reception:sample_registration_detail", slug=submission.slug)
@@ -582,7 +636,7 @@ def submission_confirm_submit(request, submission_id):
 
 @reception_required
 def sample_remove(request, submission_slug, sample_slug):
-    submission = get_object_or_404(Submission, slug=submission_slug)
+    submission = get_object_or_404(_submissions(request), slug=submission_slug)
     if submission.is_submitted:
         messages.warning(request, "Submitted samples cannot be removed.")
         return redirect("reception:sample_registration_detail", slug=submission.slug)
@@ -594,9 +648,9 @@ def sample_remove(request, submission_slug, sample_slug):
     return redirect("reception:sample_registration_detail", slug=submission.slug)
 
 
-def _coa_submission(reference):
+def _coa_submission(request, reference):
     return get_object_or_404(
-        Submission.objects.prefetch_related("samples"), reference=reference
+        _submissions(request).prefetch_related("samples"), reference=reference
     )
 
 
@@ -645,7 +699,7 @@ def _generate_worksheets(submission, user):
 
 @reception_required
 def coa_reporting_preference(request, reference):
-    submission = _coa_submission(reference)
+    submission = _coa_submission(request, reference)
     total_samples = submission.total_samples
     preference = COAReportingPreference.objects.filter(submission=submission).first()
     changing = request.GET.get("change") == "1"
@@ -792,7 +846,7 @@ def coa_reporting_preference(request, reference):
 
 @reception_required
 def coa_custom_group_wizard(request, reference):
-    submission = _coa_submission(reference)
+    submission = _coa_submission(request, reference)
     total_samples = submission.total_samples
     preference = get_object_or_404(
         COAReportingPreference,
@@ -881,7 +935,7 @@ def coa_custom_group_wizard(request, reference):
 
 @reception_required
 def coa_final_review(request, reference):
-    submission = _coa_submission(reference)
+    submission = _coa_submission(request, reference)
     preference = get_object_or_404(
         COAReportingPreference,
         submission=submission,
@@ -905,7 +959,7 @@ def coa_final_review(request, reference):
 
 @reception_required
 def coa_group_delete(request, reference, group_number):
-    submission = _coa_submission(reference)
+    submission = _coa_submission(request, reference)
     preference = get_object_or_404(
         COAReportingPreference,
         submission=submission,
@@ -936,7 +990,7 @@ def coa_group_delete(request, reference, group_number):
 
 @reception_required
 def coa_confirmation(request, reference):
-    submission = _coa_submission(reference)
+    submission = _coa_submission(request, reference)
     preference = get_object_or_404(COAReportingPreference, submission=submission)
     if request.method == "POST":
         if preference.is_finalized and _coa_generation_started(submission):
@@ -980,9 +1034,11 @@ def clients_coa_search(request):
     reference = request.GET.get("reference", "").strip()
     error = ""
     if reference:
-        submission = Submission.objects.filter(
-            is_submitted=True, reference__iexact=reference
-        ).first()
+        submission = (
+            _submissions(request)
+            .filter(is_submitted=True, reference__iexact=reference)
+            .first()
+        )
         if submission is None:
             error = f"No submission was found for reference {reference}."
         elif not submission.coas.exists():
@@ -1002,7 +1058,7 @@ def clients_coa_search(request):
 @reception_required
 def clients_coa_detail(request, reference):
     submission = get_object_or_404(
-        Submission.objects.select_related("client"),
+        _submissions(request).select_related("client"),
         is_submitted=True,
         reference__iexact=reference,
     )
@@ -1032,7 +1088,7 @@ def clients_coa_file(request, coa_id, file_format):
     if file_format not in ("pdf", "png"):
         raise Http404
 
-    coa = get_object_or_404(COA, pk=coa_id, submission__is_submitted=True)
+    coa = get_object_or_404(_coas(request), pk=coa_id, submission__is_submitted=True)
     file_field = coa.pdf_file if file_format == "pdf" else coa.png_file
     if not file_field:
         raise Http404
@@ -1146,14 +1202,15 @@ def client_submission_form(request):
     extra = {}
     if reference:
         submission = (
-            Submission.objects.filter(is_submitted=True, reference__iexact=reference)
+            _submissions(request)
+            .filter(is_submitted=True, reference__iexact=reference)
             .select_related("client")
             .first()
         )
     if submission and not list_only:
         extra = _form_context(request, submission)
 
-    scoped = Submission.objects.filter(is_submitted=True)
+    scoped = _submissions(request).filter(is_submitted=True)
     if query:
         scoped = scoped.filter(
             Q(reference__icontains=query) | Q(client__client_name__icontains=query)
@@ -1194,7 +1251,7 @@ def client_submission_form_detail(request, reference):
 @reception_required
 def client_submission_form_pdf(request, reference):
     submission = get_object_or_404(
-        Submission.objects.select_related("client"),
+        _submissions(request).select_related("client"),
         reference=reference,
         is_submitted=True,
     )
@@ -1214,7 +1271,8 @@ def client_submission_form_pdf(request, reference):
 @reception_required
 def worksheet_generation(request):
     submissions = (
-        Submission.objects.filter(is_submitted=True)
+        _submissions(request)
+        .filter(is_submitted=True)
         .select_related("client")
         .annotate(sample_count=Count("samples", distinct=True))
         .order_by("-submitted_at", "-created_at")
@@ -1238,7 +1296,8 @@ def worksheet_generation(request):
 
     if reference:
         submission = (
-            Submission.objects.filter(reference=reference, is_submitted=True)
+            _submissions(request)
+            .filter(reference=reference, is_submitted=True)
             .select_related("client")
             .first()
         )
@@ -1247,7 +1306,9 @@ def worksheet_generation(request):
 
     if request.method == "POST":
         submission = get_object_or_404(
-            Submission, reference=request.POST.get("reference"), is_submitted=True
+            _submissions(request),
+            reference=request.POST.get("reference"),
+            is_submitted=True,
         )
         preference = COAReportingPreference.objects.filter(
             submission=submission
@@ -1307,7 +1368,7 @@ def worksheet_generation(request):
 @reception_required
 def worksheet_pdf(request, reference):
     submission = get_object_or_404(
-        Submission.objects.select_related("client"),
+        _submissions(request).select_related("client"),
         reference=reference,
         is_submitted=True,
     )
@@ -1346,6 +1407,7 @@ def add_expense(request):
             expense = form.save(commit=False)
             expense.is_submitted = False
             expense.added_by = request.user
+            expense.branch = _branch(request)
             expense.save()
             return redirect("reception:expense_edit", slug=expense.slug)
     else:
@@ -1356,7 +1418,9 @@ def add_expense(request):
 
 @reception_required
 def expense_edit(request, slug):
-    expense = get_object_or_404(Expense.reception_visible, slug=slug)
+    expense = get_object_or_404(
+        Expense.reception_visible.filter(branch=_branch(request)), slug=slug
+    )
 
     if request.method == "POST":
         form = ExpenseForm(request.POST, request.FILES, instance=expense)
