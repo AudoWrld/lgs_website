@@ -81,6 +81,7 @@
       <header class="cs-header">
         <img src="{% static 'core/img/lgs-logo.png' %}" alt="LGS Mineral Assay Laboratory" class="cs-logo">
         <h1 id="cs-sheet-title" tabindex="-1">LGS Mineral Assay Laboratory</h1>
+        <span class="cs-header-sub">{{ submission.branch.name }} Branch</span>
         <span class="cs-header-sub">Client Submission Form</span>
         <span class="cs-header-ref">Client Reference: <strong>{{ submission.reference }}</strong></span>
       </header>
@@ -120,6 +121,10 @@
                 <td>{{ total_samples }}</td>
                 <th>Date Received</th>
                 <td>{{ submission.receiving_date|date:"d M Y" }}</td>
+              </tr>
+              <tr>
+                <th>Branch</th>
+                <td colspan="3">{{ submission.branch.name|default:"—" }}</td>
               </tr>
               <tr>
                 <th>Sample Type(s)</th>
@@ -213,6 +218,8 @@
                     {% if temp_password %}
                     <span class="cs-temp-password">{{ temp_password }}</span>
                     <button type="button" class="cs-copy no-print" data-copy="{{ temp_password }}" data-label="Password" aria-label="Copy password"><i class='bx bx-copy' aria-hidden="true"></i></button>
+                    {% elif portal_username %}
+                    <span class="cs-password-unavailable">Not available (password already set).</span>
                     {% else %}
                     <span class="cs-password-unavailable">No portal account yet.</span>
                     {% endif %}
@@ -229,7 +236,7 @@
       </div>
 
       <footer class="cs-footer">
-        <span>LGS MINERAL ASSAY LABORATORY</span>
+        <span>LGS MINERAL ASSAY LABORATORY — {{ submission.branch.name }}</span>
         <span>Generated {% now "d M Y, H:i" %}</span>
       </footer>
 
