@@ -49,12 +49,12 @@
 
                 <tbody>
                     {% for log in logs %}
-                    <tr class="branch-row" data-row data-search="{{ log.created_at|date:"M d, Y H:i" }} {{ log.action_label }} {{ log.actor.get_full_name|default:log.actor.email }} {{ log.detail }}">
+                    <tr class="branch-row" data-row data-search="{{ log.created_at|date:"M d, Y H:i" }} {{ log.action_label }} {% if log.actor %}{{ log.actor.get_full_name|default:log.actor.email }}{% endif %} {{ log.detail }}">
                         <td class="br-muted">{{ log.created_at|date:"M d, Y H:i" }}</td>
                         <td><span class="role-pill">{{ log.action_label }}</span></td>
                         <td>
                             {% if log.actor %}
-                                <div class="branch-name" title="{{ log.actor.get_full_name|default:log.actor.email }}">{{ log.actor.get_full_name|default:log.actor.email }}</div>
+                                <div class="branch-name" title="{% if log.actor %}{{ log.actor.get_full_name|default:log.actor.email }}{% endif %}">{% if log.actor %}{{ log.actor.get_full_name|default:log.actor.email }}{% endif %}</div>
                             {% else %}
                                 <span class="br-muted">—</span>
                             {% endif %}
