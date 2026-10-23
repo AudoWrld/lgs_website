@@ -283,3 +283,7 @@ def employee_list(request):
             "employees": employees,
         },
     )
+
+
+def profile_view(request):
+    return render(request, "administrator/profile_view.html")
