@@ -1,7 +1,8 @@
 {% extends "administrator/base_administrator.html" %}
 {% load static %}
 
-{% block title %}Employee Activity — LGS Mineral Assay Laboratory{% endblock %}
+{% block title %}Employee Activity — LGS Mineral Assay Laboratory<script src="{% static 'administrator/js/table_pager.js' %}" defer></script>
+{% endblock %}
 {% block page_title %}Employee Activity{% endblock %}
 
 {% block extra_css %}
@@ -27,7 +28,7 @@
         <a href="{% url 'administrator:employee_list' %}" class="br-btn br-btn-light">Back to Employees</a>
     </div>
 
-    <div class="panel">
+    <div class="panel" data-table-pager data-per-page="10" data-label="events">
         <div class="panel-header">
             <div>
                 <h6 class="panel-title">All Activity</h6>
@@ -48,7 +49,7 @@
 
                 <tbody>
                     {% for log in logs %}
-                    <tr class="branch-row">
+                    <tr class="branch-row" data-row data-search="{{ log.created_at|date:"M d, Y H:i" }} {{ log.action_label }} {{ log.actor.get_full_name|default:log.actor.email }} {{ log.detail }}">
                         <td class="br-muted">{{ log.created_at|date:"M d, Y H:i" }}</td>
                         <td><span class="role-pill">{{ log.action_label }}</span></td>
                         <td>
@@ -69,16 +70,18 @@
                         </td>
                     </tr>
                     {% endfor %}
+                    <tr data-no-match hidden>
+                        <td colspan="4" class="br-empty">
+                            <h6>No matching entries</h6>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
 
         <div class="panel-footer">
-            <div>
-                Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}
-                of {{ page_obj.paginator.count }} entries
-            </div>
-            {% include "administrator/_pagination.html" %}
+            <div data-info></div>
+            <div data-pager></div>
         </div>
     </div>
 </div>
