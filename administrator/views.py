@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
-
+from django.contrib import messages
 from accounts.decorators import administrator_required
 from accounts.models import EmployeeActivity, User
 from coa.models import COA
@@ -307,7 +307,8 @@ def profile_view(request):
                     action=EmployeeActivity.UPDATED,
                     detail="Profile updated by self.",
                 )
-                return redirect(f"{request.path}?updated=profile")
+                messages.success(request, "Your profile has been updated.")
+                return redirect("administrator:profile")
 
         elif action == "password":
             password_form = SetPasswordForm(user, request.POST)
@@ -326,7 +327,8 @@ def profile_view(request):
                     action=EmployeeActivity.PASSWORD_CHANGED,
                     detail="Password changed by self.",
                 )
-                return redirect(f"{request.path}?updated=password")
+                messages.success(request, "Your password has been changed.")
+                return redirect("administrator:profile")
 
     return render(
         request,
@@ -334,7 +336,6 @@ def profile_view(request):
         {
             "profile_form": profile_form,
             "password_form": password_form,
-            "updated": request.GET.get("updated", ""),
             "profile_user": user,
         },
     )
