@@ -24,3 +24,25 @@ class Branch(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class BranchScopedQuerySet(models.QuerySet):
+    def for_branch(self, branch):
+        return self.filter(branch=branch)
+
+    def for_branches(self, branches):
+        return self.filter(branch__in=branches)
+
+
+class BranchScopedModel(models.Model):
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.PROTECT,
+        related_name="%(app_label)s_%(class)s_set",
+        db_index=True,
+    )
+
+    objects = BranchScopedQuerySet.as_manager()
+
+    class Meta:
+        abstract = True
