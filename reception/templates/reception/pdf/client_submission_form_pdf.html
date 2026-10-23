@@ -23,6 +23,7 @@
   .header-logo { text-align: center; margin-bottom: 3px; }
   .org-name { font-size: 13pt; font-weight: bold; }
   .doc-name { font-size: 10pt; font-weight: bold; margin-top: 1px; }
+  .branch-line { text-align: center; margin-top: 2px; font-size: 10pt; font-weight: bold; }
   .ref-line { text-align: center; margin-top: 4px; font-size: 9.5pt; }
   .ref-line b { font-size: 10.5pt; }
 
@@ -86,6 +87,7 @@
   <div class="header-block">
     {% if logo_path %}<p class="header-logo"><img src="{{ logo_path }}" width="50" /></p>{% endif %}
     <p class="org-name">LGS MINERAL ASSAY LABORATORY</p>
+    <p class="branch-line">{{ submission.branch.name|upper }} BRANCH</p>
     <p class="doc-name">CLIENT SUBMISSION FORM</p>
     <p class="ref-line">Client Reference: <b>{{ submission.reference }}</b></p>
   </div>
@@ -125,6 +127,10 @@
       <td>{% for item in sample_types %}{{ item }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
       <th>Form Issued</th>
       <td>{% now "d M Y" %}</td>
+    </tr>
+    <tr>
+      <th>Branch</th>
+      <td colspan="3">{{ submission.branch.name|default:"—" }}</td>
     </tr>
   </table>
 
@@ -201,7 +207,7 @@
       <th>Username</th>
       <td>{{ portal_username|default:"—" }}</td>
       <th>Temporary Password</th>
-      <td>{% if temp_password %}<span class="password">{{ temp_password }}</span>{% else %}<span class="pw-missing">No portal account yet.</span>{% endif %}</td>
+      <td>{% if temp_password %}<span class="password">{{ temp_password }}</span>{% elif portal_username %}<span class="pw-missing">Not available (password already set).</span>{% else %}<span class="pw-missing">No portal account yet.</span>{% endif %}</td>
     </tr>
   </table>
   <p class="portal-note">Use these login details to access the LGS Client Portal and download your completed and officially released Certificates of Analysis.</p>
