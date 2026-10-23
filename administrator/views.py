@@ -61,7 +61,6 @@ def _dashboard_stats(branch):
         "paid": zero,
         "unpaid_balance": zero,
         "unpaid_count": 0,
-        "net_balance": zero,
     }
 
     if branch is None:
@@ -104,8 +103,6 @@ def _dashboard_stats(branch):
     )
     stats["unpaid_balance"] = unpaid["total"] or zero
     stats["unpaid_count"] = unpaid["count"] or 0
-
-    stats["net_balance"] = stats["unpaid_balance"] - stats["expenses_total"]
 
     return stats
 
