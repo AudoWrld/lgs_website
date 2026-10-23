@@ -173,6 +173,10 @@ def employee_list(request):
 
     page_obj, page_items = _paginate(request, employees)
 
+    employee_rows = list(page_obj.object_list)
+    for employee in employee_rows:
+        employee.is_self = employee.pk == request.user.pk
+
     return render(
         request,
         "administrator/employee_list.html",
@@ -180,7 +184,7 @@ def employee_list(request):
             "selected_branch": branch,
             "page_obj": page_obj,
             "page_items": page_items,
-            "employees": page_obj.object_list,
+            "employees": employee_rows,
             "search_query": search_query,
             "status": status,
         },
