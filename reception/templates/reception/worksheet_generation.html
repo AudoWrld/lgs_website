@@ -104,18 +104,19 @@
         <strong>{{ submission.reference }}</strong>
       </div>
       <div class="gw-toolbar-actions">
+        {% if worksheets %}
+        <a href="{% url 'reception:worksheet_pdf' submission.reference %}" target="_blank" rel="noopener" class="btn btn-outline">
+          <i class='bx bx-printer' aria-hidden="true"></i> Print / PDF
+        </a>
+        {% else %}
         <form method="post" class="no-print">
           {% csrf_token %}
           <input type="hidden" name="reference" value="{{ submission.reference }}">
           <button type="submit" class="btn btn-primary">
             <i class='bx bx-file-blank' aria-hidden="true"></i>
-            {% if worksheets %}Regenerate Worksheets{% else %}Generate Laboratory Worksheet{% endif %}
+            Generate Laboratory Worksheet
           </button>
         </form>
-        {% if worksheets %}
-        <a href="{% url 'reception:worksheet_pdf' submission.reference %}" target="_blank" rel="noopener" class="btn btn-outline">
-          <i class='bx bx-printer' aria-hidden="true"></i> Print / PDF
-        </a>
         {% endif %}
       </div>
     </div>
@@ -125,6 +126,7 @@
       <header class="gw-header">
         <img class="gw-logo" src="{% static 'core/img/lgs-logo.png' %}" alt="LGS logo">
         <h1>LGS Mineral Assay Laboratory</h1>
+        <span class="gw-header-sub">{{ submission.branch.name }} Branch</span>
         <span class="gw-header-sub">Laboratory Worksheet</span>
         <span class="gw-header-note">Internal Laboratory Use Only</span>
       </header>
@@ -138,6 +140,10 @@
               <td>{{ submission.reference }}</td>
               <th>Total Samples</th>
               <td>{{ submission.sample_count|default:submission.total_samples }}</td>
+            </tr>
+            <tr>
+              <th>Branch</th>
+              <td colspan="3">{{ submission.branch.name|default:"—" }}</td>
             </tr>
             <tr>
               <th>Receiving Date</th>
@@ -325,7 +331,7 @@
       </div>
 
       <footer class="gw-footer">
-        <span>LGS MINERAL ASSAY LABORATORY — Internal Laboratory Use Only</span>
+        <span>LGS MINERAL ASSAY LABORATORY — {{ submission.branch.name }} — Internal Laboratory Use Only</span>
         <span>Generated {{ worksheets.0.generated_at|date:"d M Y, H:i"|default:"—" }}</span>
       </footer>
 
