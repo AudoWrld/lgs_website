@@ -22,16 +22,20 @@ class DailySubmissionSequence(models.Model):
         db_index=True,
     )
     date = models.DateField()
+    last_sequence = models.PositiveIntegerField(default=0)
 
     class Meta:
         verbose_name = "Daily Submission Sequence"
         verbose_name_plural = "Daily Submission Sequences"
         constraints = [
-            models.UniqueConstraint(fields=["branch", "date"], name="unique_daily_submission_sequence_branch_date")
+            models.UniqueConstraint(
+                fields=["branch", "date"],
+                name="unique_daily_submission_sequence_branch_date",
+            )
         ]
 
     def __str__(self):
-        return f"{self.date} — last {self.last_sequence:02d}"
+        return f"{self.branch_id} {self.date} — last {self.last_sequence:02d}"
 
 
 class Submission(BranchScopedModel):
@@ -67,7 +71,7 @@ class Submission(BranchScopedModel):
     ]
 
     reference = models.CharField(
-        max_length=20, unique=True, db_index=True, editable=False
+        max_length=30, unique=True, db_index=True, editable=False
     )
     slug = models.SlugField(max_length=80, unique=True, db_index=True, editable=False)
 
@@ -122,13 +126,14 @@ class Submission(BranchScopedModel):
     @classmethod
     def generate_reference(cls, branch, for_date=None):
         for_date = for_date or timezone.localdate()
+        branch_code = getattr(branch, "code", None) or branch.pk
         with transaction.atomic():
             seq, _ = DailySubmissionSequence.objects.select_for_update().get_or_create(
                 branch=branch, date=for_date
             )
             seq.last_sequence += 1
             seq.save(update_fields=["last_sequence"])
-            return f"LGS/{for_date:%y%m%d}/{seq.last_sequence:02d}"
+            return f"LGS/{branch_code}/{for_date:%y%m%d}/{seq.last_sequence:02d}"
 
     @classmethod
     def generate_slug(cls, reference):
@@ -207,7 +212,13 @@ class Submission(BranchScopedModel):
     def refresh_payment_gross(self):
         from payments.models import Payment
 
-        payment, _ = Payment.objects.get_or_create(submission=self)
+        payment, _ = Payment.objects.get_or_create(
+            submission=self,
+            defaults={"branch": self.branch},
+        )
+        if payment.branch_id != self.branch_id:
+            payment.branch = self.branch
+            payment.save(update_fields=["branch"])
         payment.refresh_from_charges()
         return payment
 
