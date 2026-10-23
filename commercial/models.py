@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.conf import settings
+from branches.models import BranchScopedModel
 from django.db import models, transaction
 from django.db.models import Sum
 from django.utils import timezone
@@ -9,14 +10,25 @@ from payments.models import Payment
 
 
 class DailyInvoiceSequence(models.Model):
-    date = models.DateField(unique=True)
+    branch = models.ForeignKey(
+        "branches.Branch",
+        on_delete=models.PROTECT,
+        related_name="daily_invoice_sequences",
+        db_index=True,
+    )
+    date = models.DateField()
     last_sequence = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["branch", "date"], name="unique_daily_invoice_sequence_branch_date")
+        ]
 
     def __str__(self):
         return f"{self.date} - last {self.last_sequence:02d}"
 
 
-class CommercialInvoice(models.Model):
+class CommercialInvoice(BranchScopedModel):
     invoice_number = models.CharField(
         max_length=30, unique=True, db_index=True, editable=False
     )
@@ -47,11 +59,11 @@ class CommercialInvoice(models.Model):
         return self.invoice_number
 
     @classmethod
-    def generate_number(cls, for_date=None):
+    def generate_number(cls, branch, for_date=None):
         for_date = for_date or timezone.localdate()
         with transaction.atomic():
             seq, _ = DailyInvoiceSequence.objects.select_for_update().get_or_create(
-                date=for_date
+                branch=branch, date=for_date
             )
             seq.last_sequence += 1
             seq.save(update_fields=["last_sequence"])
@@ -59,7 +71,7 @@ class CommercialInvoice(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.invoice_number:
-            self.invoice_number = self.generate_number(self.invoice_date)
+            self.invoice_number = self.generate_number(self.branch, self.invoice_date)
         super().save(*args, **kwargs)
 
     @property
