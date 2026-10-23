@@ -30,32 +30,28 @@
         </a>
     </div>
 
-    <div class="panel">
+    <div class="panel" data-table-pager data-per-page="10" data-label="employees">
         <div class="panel-header">
             <div>
                 <h6 class="panel-title">All Employees</h6>
                 <div class="panel-sub">View and manage staff accounts and roles.</div>
             </div>
 
-            <form method="GET" class="br-search-form" role="search">
+            <form class="br-search-form" role="search">
                 <div class="br-search">
                     <svg class="br-icon"><use href="#i-search"/></svg>
                     <input type="search"
-                           name="q"
                            class="br-input"
-                           value="{{ search_query }}"
+                           data-search-input
                            placeholder="Search employees..."
                            aria-label="Search employees">
                 </div>
-                <select name="status" class="br-input br-filter" aria-label="Filter by status">
+                <select class="br-input br-filter" data-filter="status" aria-label="Filter by status">
                     <option value="">All statuses</option>
-                    <option value="active" {% if status == "active" %}selected{% endif %}>Active</option>
-                    <option value="inactive" {% if status == "inactive" %}selected{% endif %}>Inactive</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
                 </select>
-                <button type="submit" class="br-btn br-btn-light">Search</button>
-                {% if search_query or status %}
-                    <a href="{% url 'administrator:employee_list' %}" class="br-btn br-btn-light">Clear</a>
-                {% endif %}
+                <button type="button" class="br-btn br-btn-light" data-clear hidden>Clear</button>
             </form>
         </div>
 
@@ -73,7 +69,7 @@
 
                 <tbody>
                     {% for employee in employees %}
-                    <tr class="branch-row">
+                    <tr class="branch-row" data-row data-status="{% if employee.is_active %}active{% else %}inactive{% endif %}" data-search="{{ employee.get_full_name|default:employee.email }} {{ employee.email }} {{ employee.employee_id }} {{ employee.whatsapp_number }} {{ employee.get_role_display }}">
                         <td>
                             <div class="br-cell-branch">
                                 <div class="branch-avatar">
@@ -138,34 +134,32 @@
                     <tr>
                         <td colspan="5" class="br-empty">
                             <svg class="br-icon br-icon-xl"><use href="#i-shield"/></svg>
-                            {% if search_query or status %}
-                                <h6>No matching employees</h6>
-                                <p>No employees match your search or filter.</p>
-                                <a href="{% url 'administrator:employee_list' %}" class="br-btn br-btn-light br-btn-sm">Clear filters</a>
-                            {% else %}
-                                <h6>No employees yet</h6>
-                                <p>There are no staff accounts in this branch.</p>
-                                <a href="{% url 'administrator:add_employee' %}" class="br-btn br-btn-primary br-btn-sm">
-                                    <svg class="br-icon"><use href="#i-plus"/></svg>
-                                    Add Employee
-                                </a>
-                            {% endif %}
+                            <h6>No employees yet</h6>
+                            <p>There are no staff accounts in this branch.</p>
+                            <a href="{% url 'administrator:add_employee' %}" class="br-btn br-btn-primary br-btn-sm">
+                                <svg class="br-icon"><use href="#i-plus"/></svg>
+                                Add Employee
+                            </a>
                         </td>
                     </tr>
                     {% endfor %}
+                    <tr data-no-match hidden>
+                        <td colspan="5" class="br-empty">
+                            <h6>No matching employees</h6>
+                            <p>No employees match your search or filter.</p>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
 
         <div class="panel-footer">
-            <div>
-                Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}
-                of {{ page_obj.paginator.count }} employees
-            </div>
-            {% include "administrator/_pagination.html" %}
+            <div data-info></div>
+            <div data-pager></div>
         </div>
     </div>
 </div>
 
 {% include "administrator/_confirm_dialog.html" %}
+<script src="{% static 'administrator/js/table_pager.js' %}" defer></script>
 {% endblock %}
