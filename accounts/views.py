@@ -48,7 +48,7 @@ def login_view(request):
                     employee=user,
                     actor=user,
                     action=EmployeeActivity.LOGIN,
-                    detail=f"Signed in from {request.get_meta('HTTP_USER_AGENT', 'unknown')[:200]}.",
+                    detail=f"Signed in from {request.META.get('HTTP_USER_AGENT', 'unknown')[:200]}.",
                 )
             if safe:
                 request.session[NEXT_SESSION_KEY] = safe
