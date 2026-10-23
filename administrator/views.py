@@ -1,15 +1,18 @@
 from datetime import timedelta
 from decimal import Decimal
-
+from .forms import AdminProfileForm
+from django import forms
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import SetPasswordForm
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
 from django.db.models.functions import TruncDate
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from accounts.decorators import administrator_required
-from accounts.models import User
+from accounts.models import EmployeeActivity, User
 from coa.models import COA
 from expenses.models import Expense
 from payments.models import Payment, PaymentTransaction
@@ -285,5 +288,53 @@ def employee_list(request):
     )
 
 
+@administrator_required
 def profile_view(request):
-    return render(request, "administrator/profile_view.html")
+    user = request.user
+    profile_form = AdminProfileForm(instance=user)
+    password_form = SetPasswordForm(user)
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "profile":
+            profile_form = AdminProfileForm(request.POST, instance=user)
+            if profile_form.is_valid():
+                profile_form.save()
+                EmployeeActivity.objects.create(
+                    employee=user,
+                    actor=user,
+                    action=EmployeeActivity.UPDATED,
+                    detail="Profile updated by self.",
+                )
+                return redirect(f"{request.path}?updated=profile")
+
+        elif action == "password":
+            password_form = SetPasswordForm(user, request.POST)
+            if password_form.is_valid():
+                password_form.save()
+                if user.must_change_password or user.initial_temp_password:
+                    user.must_change_password = False
+                    user.initial_temp_password = None
+                    user.save(
+                        update_fields=["must_change_password", "initial_temp_password"]
+                    )
+                update_session_auth_hash(request, user)
+                EmployeeActivity.objects.create(
+                    employee=user,
+                    actor=user,
+                    action=EmployeeActivity.PASSWORD_CHANGED,
+                    detail="Password changed by self.",
+                )
+                return redirect(f"{request.path}?updated=password")
+
+    return render(
+        request,
+        "administrator/profile_view.html",
+        {
+            "profile_form": profile_form,
+            "password_form": password_form,
+            "updated": request.GET.get("updated", ""),
+            "profile_user": user,
+        },
+    )

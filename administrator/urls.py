@@ -44,4 +44,5 @@ urlpatterns = [
         user_management.client_activity,
         name="client_activity",
     ),
+    path("profile/", views.profile_view, name="profile"),
 ]

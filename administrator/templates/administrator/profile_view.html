@@ -1,0 +1,228 @@
+{% extends "administrator/base_administrator.html" %}
+{% load static %}
+
+{% block title %}My Profile — LGS Administrator{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'administrator/css/admin_dashboard.css' %}">
+<style>
+  .pf-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .pf-form {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .pf-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .pf-field label {
+    color: #5a6a72;
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+
+  .pf-field input {
+    height: 42px;
+    padding: 0 0.75rem;
+    border: 1px solid var(--line, #e3e0d8);
+    background: var(--white, #fff);
+    color: var(--charcoal, #2b3238);
+    font-size: 0.9375rem;
+  }
+
+  .pf-field input:focus {
+    outline: 2px solid var(--orange, #f39a2b);
+    outline-offset: 1px;
+  }
+
+  .pf-field input[readonly] {
+    background: var(--off-white, #f7f5ef);
+    color: #6b7680;
+    cursor: not-allowed;
+  }
+
+  .pf-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .pf-hint {
+    color: #7b858c;
+    font-size: 0.75rem;
+  }
+
+  .pf-error {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: #b03a2e;
+    font-size: 0.8125rem;
+  }
+
+  .pf-alert {
+    margin-bottom: 1rem;
+    padding: 0.8rem 1.1rem;
+    border: 1px solid rgba(30, 122, 77, 0.35);
+    background: rgba(30, 122, 77, 0.09);
+    color: #1e7a4d;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .pf-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .pf-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    height: 42px;
+    padding: 0 1.25rem;
+    border: 1px solid transparent;
+    background: var(--navy, #123e5b);
+    color: var(--white, #fff);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .pf-btn:hover {
+    background: #1a5078;
+  }
+
+  .pf-btn--accent {
+    background: var(--orange, #f39a2b);
+    color: var(--navy, #123e5b);
+  }
+
+  .pf-btn--accent:hover {
+    background: #f7ac4f;
+  }
+
+  .pf-btn i {
+    font-size: 1.2rem;
+  }
+
+  @media (max-width: 960px) {
+    .pf-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .pf-row {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<section class="dash-hero">
+  <div class="dash-hero-main">
+    <div class="dash-hero-meta">
+      <i class='bx bx-user-circle' aria-hidden="true"></i>
+      <span>{{ profile_user.get_role_display }}</span>
+      <span class="dash-hero-divider" aria-hidden="true"></span>
+      <span>{{ profile_user.branch.name }}</span>
+    </div>
+    <h1 class="dash-hero-title"><span>My</span> Profile</h1>
+    <p class="dash-hero-sub">Update your name and phone, or set a new password.</p>
+  </div>
+  <div class="dash-hero-actions">
+    <a href="{% url 'administrator:admin_dashboard' %}" class="dash-hero-btn dash-hero-btn--ghost"><i class='bx bx-arrow-back' aria-hidden="true"></i> Dashboard</a>
+  </div>
+</section>
+
+{% if updated == "profile" %}
+  <div class="pf-alert" role="status">Your profile has been updated.</div>
+{% elif updated == "password" %}
+  <div class="pf-alert" role="status">Your password has been changed.</div>
+{% endif %}
+
+<div class="pf-grid">
+
+  <section class="dash-panel">
+    <div class="dash-panel-head">
+      <h3>Profile details</h3>
+    </div>
+    <form method="post" class="pf-form" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="action" value="profile">
+
+      <div class="pf-field">
+        <label for="email">Email</label>
+        <input id="email" type="email" value="{{ profile_user.email }}" readonly>
+        <span class="pf-hint">Email cannot be changed here.</span>
+      </div>
+
+      <div class="pf-row">
+        <div class="pf-field">
+          <label for="{{ profile_form.first_name.id_for_label }}">First name</label>
+          {{ profile_form.first_name }}
+          {{ profile_form.first_name.errors }}
+        </div>
+        <div class="pf-field">
+          <label for="{{ profile_form.last_name.id_for_label }}">Last name</label>
+          {{ profile_form.last_name }}
+          {{ profile_form.last_name.errors }}
+        </div>
+      </div>
+
+      <div class="pf-field">
+        <label for="{{ profile_form.whatsapp_number.id_for_label }}">Phone</label>
+        {{ profile_form.whatsapp_number }}
+        {{ profile_form.whatsapp_number.errors }}
+      </div>
+
+      <div class="pf-actions">
+        <button type="submit" class="pf-btn"><i class='bx bx-save' aria-hidden="true"></i> Save changes</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="dash-panel">
+    <div class="dash-panel-head">
+      <h3>Change password</h3>
+    </div>
+    <form method="post" class="pf-form" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="action" value="password">
+
+      <div class="pf-field">
+        <label for="{{ password_form.new_password1.id_for_label }}">New password</label>
+        {{ password_form.new_password1 }}
+        {{ password_form.new_password1.errors }}
+      </div>
+
+      <div class="pf-field">
+        <label for="{{ password_form.new_password2.id_for_label }}">Confirm new password</label>
+        {{ password_form.new_password2 }}
+        {{ password_form.new_password2.errors }}
+      </div>
+
+      <div class="pf-actions">
+        <button type="submit" class="pf-btn pf-btn--accent"><i class='bx bx-lock-alt' aria-hidden="true"></i> Update password</button>
+      </div>
+    </form>
+  </section>
+
+</div>
+{% endblock %}
