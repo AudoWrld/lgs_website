@@ -1,6 +1,213 @@
-{% extends 'administrator/base_administrator.html' %}
+{% extends "administrator/base_administrator.html" %}
+{% load static %}
+
+{% block title %}Dashboard — LGS Administrator{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<link rel="stylesheet" href="{% static 'administrator/css/admin_dashboard.css' %}">
+{% endblock %}
 
 {% block content %}
-  <h1>Administrator Dashboard</h1>
-  <p>Welcome to the administrator dashboard!</p>
+{% firstof request.user.first_name request.user.get_full_name "there" as display_name %}
+
+<section class="dash-hero">
+  <div class="dash-hero-main">
+    <div class="dash-hero-meta">
+      <i class='bx bx-time-five' aria-hidden="true"></i>
+      <span>{% now "l, j F Y" %}</span>
+      <span class="dash-hero-divider" aria-hidden="true"></span>
+      <span>{% now "H:i" %} EAT</span>
+    </div>
+    <h1 class="dash-hero-title"><span>Welcome back</span>, {{ display_name }}</h1>
+    <p class="dash-hero-sub">
+      {% if selected_branch %}
+        Today's figures for {{ selected_branch.name }}.
+        {% if stats.unpaid_count %}
+          {{ stats.unpaid_count }} submission{{ stats.unpaid_count|pluralize }} from today still owe a balance.
+        {% else %}
+          No outstanding balances from today's submissions.
+        {% endif %}
+      {% else %}
+        No branch selected.
+      {% endif %}
+    </p>
+  </div>
+  <div class="dash-hero-actions">
+    <a href="{% url 'administrator:add_employee' %}" class="dash-hero-btn dash-hero-btn--primary"><i class='bx bx-user-plus' aria-hidden="true"></i> Add Employee</a>
+    <a href="{% url 'administrator:employee_list' %}" class="dash-hero-btn dash-hero-btn--ghost"><i class='bx bx-id-card' aria-hidden="true"></i> Employees</a>
+  </div>
+</section>
+
+<section class="dash-stats" aria-label="Today at a glance">
+  <div class="dash-stat-card">
+    <span class="dash-stat-icon"><i class='bx bx-money' aria-hidden="true"></i></span>
+    <div class="dash-stat-body">
+      <span class="dash-stat-label">Today's expenses</span>
+      <span class="dash-stat-value">{{ stats.expenses_total|floatformat:"2g" }}</span>
+      <span class="dash-stat-hint">TZS</span>
+    </div>
+  </div>
+  <div class="dash-stat-card">
+    <span class="dash-stat-icon"><i class='bx bx-file' aria-hidden="true"></i></span>
+    <div class="dash-stat-body">
+      <span class="dash-stat-label">COAs generated</span>
+      <span class="dash-stat-value">{{ stats.coas_generated }}</span>
+      <span class="dash-stat-hint">Created today</span>
+    </div>
+  </div>
+  <div class="dash-stat-card">
+    <span class="dash-stat-icon"><i class='bx bx-trending-up' aria-hidden="true"></i></span>
+    <div class="dash-stat-body">
+      <span class="dash-stat-label">Revenue generated</span>
+      <span class="dash-stat-value">{{ stats.revenue|floatformat:"2g" }}</span>
+      <span class="dash-stat-hint">TZS billed today</span>
+    </div>
+  </div>
+  <div class="dash-stat-card{% if stats.unpaid_count %} dash-stat-warning{% endif %}">
+    <span class="dash-stat-icon"><i class='bx bx-credit-card' aria-hidden="true"></i></span>
+    <div class="dash-stat-body">
+      <span class="dash-stat-label">Unpaid balances</span>
+      <span class="dash-stat-value">{{ stats.unpaid_balance|floatformat:"2g" }}</span>
+      <span class="dash-stat-hint">{% if stats.unpaid_count %}{{ stats.unpaid_count }} submission{{ stats.unpaid_count|pluralize }} owing{% else %}All clear{% endif %}</span>
+    </div>
+  </div>
+</section>
+
+<section class="dash-charts">
+  <div class="dash-panel">
+    <div class="dash-panel-head">
+      <h3>Revenue over time</h3>
+      <span>Last {{ chart_days }} days</span>
+    </div>
+    <div class="dash-graph">
+      <canvas id="dash-revenue-canvas" aria-label="Revenue billed and collected per day" role="img"></canvas>
+    </div>
+  </div>
+
+  <div class="dash-panel">
+    <div class="dash-panel-head">
+      <h3>Payment methods</h3>
+      <span>Last {{ chart_days }} days</span>
+    </div>
+    <div class="dash-graph">
+      {% if has_method_data %}
+        <canvas id="dash-methods-canvas" aria-label="Collected amount by payment method" role="img"></canvas>
+      {% else %}
+        <div class="dash-chart-empty">
+          <span class="dash-empty-icon"><i class='bx bx-pie-chart-alt' aria-hidden="true"></i></span>
+          <p>No payments recorded in this period.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<div class="dash-grid dash-block">
+  <section class="dash-panel">
+    <div class="dash-panel-head">
+      <h3>Today's billing summary</h3>
+      <span>{{ stats.date|date:"d M Y" }}</span>
+    </div>
+    <dl class="dash-summary">
+      <div class="dash-summary-row">
+        <dt>Submissions finalized</dt>
+        <dd>{{ stats.submissions_count }}</dd>
+      </div>
+      <div class="dash-summary-row">
+        <dt>COAs generated</dt>
+        <dd>{{ stats.coas_generated }}</dd>
+      </div>
+      <div class="dash-summary-row">
+        <dt>Revenue billed</dt>
+        <dd>TZS {{ stats.revenue|floatformat:"2g" }}</dd>
+      </div>
+      <div class="dash-summary-row">
+        <dt>Amount collected</dt>
+        <dd>TZS {{ stats.paid|floatformat:"2g" }}</dd>
+      </div>
+      <div class="dash-summary-row">
+        <dt>Expenses recorded</dt>
+        <dd>TZS {{ stats.expenses_total|floatformat:"2g" }}</dd>
+      </div>
+      <div class="dash-summary-row dash-summary-row--due">
+        <dt>Outstanding balance</dt>
+        <dd>TZS {{ stats.net_balance|floatformat:"2g" }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  <aside class="dash-panel dash-quick">
+    <div class="dash-panel-head">
+      <h3>Quick actions</h3>
+    </div>
+    <nav class="dash-actions" aria-label="Quick actions">
+      <a href="{% url 'administrator:add_employee' %}" class="dash-action">
+        <span class="dash-action-icon"><i class='bx bx-user-plus' aria-hidden="true"></i></span>
+        <span class="dash-action-text"><span class="dash-action-title">Add employee</span><span class="dash-action-desc">Create a staff account for this branch</span></span>
+        <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
+      </a>
+      <a href="{% url 'administrator:employee_list' %}" class="dash-action">
+        <span class="dash-action-icon"><i class='bx bx-id-card' aria-hidden="true"></i></span>
+        <span class="dash-action-text"><span class="dash-action-title">Employees &amp; roles</span><span class="dash-action-desc">Manage staff accounts and roles</span></span>
+        <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
+      </a>
+      <a href="{% url 'administrator:client_list' %}" class="dash-action">
+        <span class="dash-action-icon"><i class='bx bx-group' aria-hidden="true"></i></span>
+        <span class="dash-action-text"><span class="dash-action-title">Clients</span><span class="dash-action-desc">View and manage client accounts</span></span>
+        <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
+      </a>
+      <a href="#" class="dash-action">
+        <span class="dash-action-icon"><i class='bx bx-user-circle' aria-hidden="true"></i></span>
+        <span class="dash-action-text"><span class="dash-action-title">My Profile</span><span class="dash-action-desc">View and manage your profile</span></span>
+        <i class='bx bx-chevron-right dash-action-arrow' aria-hidden="true"></i>
+      </a>
+    </nav>
+  </aside>
+</div>
+
+<section class="dash-panel dash-block">
+  <div class="dash-panel-head">
+    <h3>Recent submissions</h3>
+    <span>Latest 10 finalized</span>
+  </div>
+  <div class="dash-recent-table">
+    <div class="dash-recent-row dash-recent-head">
+      <span>Reference</span>
+      <span>Client</span>
+      <span>Samples</span>
+      <span>Payment</span>
+      <span>Amount (TZS)</span>
+      <span>Date</span>
+    </div>
+    {% for payment in top_submissions %}
+    <div class="dash-recent-row">
+      <span class="dash-recent-ref">{{ payment.submission.reference }}</span>
+      <span class="dash-client">
+        <span class="dash-avatar" aria-hidden="true">{{ payment.submission.client.client_name|slice:":1"|upper }}</span>
+        <span class="dash-client-name">{{ payment.submission.client.client_name }}</span>
+      </span>
+      <span class="dash-recent-count">{{ payment.sample_count }}</span>
+      <span>
+        <span class="dash-badge {% if payment.payment_status == 'PAID' %}dash-badge--done{% elif payment.payment_status == 'UNPAID' %}dash-badge--unpaid{% else %}dash-badge--pending{% endif %}">{{ payment.get_payment_status_display }}</span>
+      </span>
+      <span class="dash-recent-amount">{{ payment.net_amount_payable|floatformat:"2g" }}</span>
+      <span class="dash-recent-date">{{ payment.submission.created_at|date:"d M Y, H:i" }}</span>
+    </div>
+    {% empty %}
+    <div class="dash-recent-empty">
+      <span class="dash-empty-icon"><i class='bx bx-file' aria-hidden="true"></i></span>
+      <p>No submissions yet for this branch.</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+{{ chart_data|json_script:"dash-chart-data" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{% static 'administrator/js/admin_dashboard.js' %}" defer></script>
 {% endblock %}
