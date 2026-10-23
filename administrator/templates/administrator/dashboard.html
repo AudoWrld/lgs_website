@@ -60,7 +60,7 @@
   <div class="dash-stat-card">
     <span class="dash-stat-icon"><i class='bx bx-trending-up' aria-hidden="true"></i></span>
     <div class="dash-stat-body">
-      <span class="dash-stat-label">Revenue generated</span>
+      <span class="dash-stat-label">Revenue billed</span>
       <span class="dash-stat-value">{{ stats.revenue|floatformat:"2g" }}</span>
       <span class="dash-stat-hint">TZS billed today</span>
     </div>
@@ -133,7 +133,7 @@
       </div>
       <div class="dash-summary-row dash-summary-row--due">
         <dt>Outstanding balance</dt>
-        <dd>TZS {{ stats.net_balance|floatformat:"2g" }}</dd>
+        <dd>TZS {{ stats.unpaid_balance|floatformat:"2g" }}</dd>
       </div>
     </dl>
   </section>
