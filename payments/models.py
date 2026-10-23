@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from branches.models import BranchScopedModel
 from django.db import models
 from django.db.models import Sum
 from django.utils import timezone
@@ -10,7 +11,7 @@ from django.utils import timezone
 from samples.models import SampleService, Service
 
 
-class Payment(models.Model):
+class Payment(BranchScopedModel):
     CASH = "CASH"
     MPESA = "MPESA"
     BANK = "BANK"
