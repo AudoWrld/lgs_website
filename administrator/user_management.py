@@ -14,7 +14,13 @@ from django.utils.crypto import get_random_string
 from django.views.decorators.http import require_http_methods, require_POST
 
 from accounts.decorators import administrator_required
-from accounts.models import Client, ClientActivity, ClientEditLog, EmployeeActivity, User
+from accounts.models import (
+    Client,
+    ClientActivity,
+    ClientEditLog,
+    EmployeeActivity,
+    User,
+)
 
 from .views import _paginate, _resolve_branches, get_selected_branch
 
@@ -188,8 +194,6 @@ def _get_target(request, user_id, roles):
 
 
 def _guard_admin_target(request, target):
-    # Self-managed destructive actions (reset/deactivate) are blocked by the
-    # view itself; other administrators may manage one another freely.
     return
 
 
@@ -495,9 +499,12 @@ def edit_employee(request, user_id):
     branches, _, _ = _resolve_branches(request)
     branch_ids = {branch["id"] for branch in branches}
     target = _get_target(request, user_id, User.STAFF_ROLES)
-    _guard_admin_target(request, target)
 
-    role_locked = target.pk == request.user.pk or target.is_superuser
+    if target.pk == request.user.pk:
+        messages.error(request, "You cannot edit your own account.")
+        return redirect("administrator:employee_list")
+
+    role_locked = target.is_superuser
     roles = _role_choices(request, target)
     allowed_roles = {value for value, _ in roles}
 
@@ -530,8 +537,7 @@ def edit_employee(request, user_id):
                     target.is_staff = data["role"] == User.ADMINISTRATOR
                 if data["password"]:
                     target.set_password(data["password"])
-                    if target.pk != request.user.pk:
-                        target.must_change_password = True
+                    target.must_change_password = True
                 target.save()
 
                 _log_activity(
@@ -562,10 +568,7 @@ def edit_employee(request, user_id):
                         "Password was changed from the edit page.",
                     )
 
-            if target.pk == request.user.pk:
-                if data["password"]:
-                    update_session_auth_hash(request, target)
-            elif data["password"] or role_changed:
+            if data["password"] or role_changed:
                 _revoke_sessions(target)
 
             name = _display_name(target)
@@ -702,7 +705,7 @@ def reset_employee_password(request, user_id):
         return _json_error(str(exc), 403)
 
     if target.pk == request.user.pk:
-        return _json_error("Use the edit page to change your own password.", 400)
+        return _json_error("You cannot reset your own password from here.", 400)
 
     temp_password = get_random_string(12, TEMP_PASSWORD_ALPHABET)
 
