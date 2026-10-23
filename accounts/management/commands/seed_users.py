@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.db.models import ProtectedError
 from django.utils.text import slugify
 
 from accounts.models import Client
@@ -31,6 +32,7 @@ SEED_BRANCHES = [
 ]
 
 SEED_PASSWORD = "passwd"
+SUPER_ADMIN_EMAIL = "super_admin@gmail.com"
 
 SEED_ROLES = [
     ("administrator", "create_administrator", "Samuel", "Mwangi"),
@@ -41,10 +43,14 @@ SEED_ROLES = [
     ("accountant", "create_accountant", "David", "Ochieng"),
 ]
 
+SINGLE_INSTANCE_ROLES = {"administrator"}
+
 PHONE_BASE = 712000000
 
 
 def build_email(role_key, branch):
+    if role_key == "administrator":
+        return SUPER_ADMIN_EMAIL
     branch_slug = slugify(branch.name).replace("-", "_")
     return f"{role_key}.{branch_slug}@gmail.com"
 
@@ -57,6 +63,7 @@ def build_phone(branch_index, role_index):
 class Command(BaseCommand):
     help = (
         "Seeds default branches and creates test users for every branch. "
+        "A single super admin is created for the first branch only. "
         "Customer users receive individual client profiles. "
         "Development and testing use only."
     )
@@ -65,6 +72,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         created_count = 0
         skipped_count = 0
+        deleted_count = 0
         client_profiles_created = 0
 
         for entry in SEED_BRANCHES:
@@ -102,6 +110,27 @@ class Command(BaseCommand):
 
         branches = list(Branch.objects.order_by("pk"))
 
+        extra_administrators = User.objects.filter(
+            role=User.ADMINISTRATOR,
+            email__startswith="administrator.",
+        ).exclude(email=SUPER_ADMIN_EMAIL)
+
+        for administrator in extra_administrators:
+            email = administrator.email
+            try:
+                administrator.delete()
+            except ProtectedError:
+                self.stdout.write(
+                    self.style.ERROR(
+                        f"Could not delete (protected records exist): {email}"
+                    )
+                )
+                continue
+            self.stdout.write(
+                self.style.WARNING(f"Deleted extra administrator: {email}")
+            )
+            deleted_count += 1
+
         for branch_index, branch in enumerate(branches):
             self.stdout.write(self.style.MIGRATE_HEADING(f"\nBranch: {branch.name}"))
 
@@ -111,6 +140,9 @@ class Command(BaseCommand):
                 first_name,
                 last_name,
             ) in enumerate(SEED_ROLES):
+                if role_key in SINGLE_INSTANCE_ROLES and branch_index != 0:
+                    continue
+
                 email = build_email(role_key, branch)
 
                 existing_user = User.objects.filter(email=email).first()
@@ -189,14 +221,11 @@ class Command(BaseCommand):
                 )
                 created_count += 1
 
-        for administrator in User.objects.filter(
-            role=User.ADMINISTRATOR,
-            email__startswith="administrator.",
-        ):
+        for administrator in User.objects.filter(email=SUPER_ADMIN_EMAIL):
             has_admin_access = administrator.is_administrator and administrator.is_staff
             style = self.style.SUCCESS if has_admin_access else self.style.ERROR
             self.stdout.write(
-                style(f"{administrator.email} has admin access: " f"{has_admin_access}")
+                style(f"{administrator.email} has admin access: {has_admin_access}")
             )
 
         for accountant in User.objects.filter(
@@ -206,7 +235,7 @@ class Command(BaseCommand):
             can_release = accountant.has_perm("coa.authorize_release")
             style = self.style.SUCCESS if can_release else self.style.ERROR
             self.stdout.write(
-                style(f"{accountant.email} can authorize release: " f"{can_release}")
+                style(f"{accountant.email} can authorize release: {can_release}")
             )
 
         self.stdout.write(
@@ -214,6 +243,7 @@ class Command(BaseCommand):
                 f"\n{len(branches)} branches, "
                 f"{created_count} users created, "
                 f"{client_profiles_created} client profiles created, "
-                f"{skipped_count} users skipped."
+                f"{skipped_count} users skipped, "
+                f"{deleted_count} extra administrators deleted."
             )
         )
