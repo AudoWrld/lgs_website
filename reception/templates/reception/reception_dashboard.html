@@ -19,13 +19,16 @@
       <span data-date>{% now "l, j F Y" %}</span>
       <span class="dash-hero-divider" aria-hidden="true"></span>
       <span><span data-time>{% now "H:i" %}</span> EAT</span>
+      <span class="dash-hero-divider" aria-hidden="true"></span>
+      <i class='bx bx-buildings' aria-hidden="true"></i>
+      <span>{{ branch.name }}</span>
     </div>
     <h1 class="dash-hero-title"><span data-greeting>Welcome back</span>, {{ display_name }}</h1>
     <p class="dash-hero-sub">
       {% if pending_payments_count or awaiting_worksheet_count %}
-        You have {{ pending_payments_count }} pending payment{{ pending_payments_count|pluralize }} and {{ awaiting_worksheet_count }} awaiting a worksheet.
+        {{ branch.name }} has {{ pending_payments_count }} pending payment{{ pending_payments_count|pluralize }} and {{ awaiting_worksheet_count }} awaiting a worksheet.
       {% else %}
-        You're all caught up. Nothing needs your attention right now.
+        You're all caught up at {{ branch.name }}. Nothing needs your attention right now.
       {% endif %}
     </p>
   </div>
@@ -41,6 +44,7 @@
     <div class="dash-stat-body">
       <span class="dash-stat-label">Today's submissions</span>
       <span class="dash-stat-value">{{ today_submissions_count }}</span>
+      <span class="dash-stat-hint">{{ branch.name }}</span>
     </div>
   </div>
   <div class="dash-stat-card{% if pending_payments_count %} dash-stat-warning{% endif %}">
@@ -64,6 +68,7 @@
     <div class="dash-stat-body">
       <span class="dash-stat-label">Today's expenses</span>
       <span class="dash-stat-value">{{ todays_expenses_count }}</span>
+      <span class="dash-stat-hint">{{ branch.name }}</span>
     </div>
   </div>
 </section>
@@ -73,7 +78,7 @@
     <section class="dash-panel">
       <div class="dash-panel-head">
         <h3>Submissions this week</h3>
-        <span>Last 7 days</span>
+        <span>{{ branch.name }} · Last 7 days</span>
       </div>
       <div class="dash-graph">
         <canvas id="dash-graph-canvas" aria-hidden="true"></canvas>
@@ -112,7 +117,7 @@
         {% empty %}
         <div class="dash-recent-empty">
           <span class="dash-empty-icon"><i class='bx bx-file' aria-hidden="true"></i></span>
-          <p>No submissions yet.</p>
+          <p>No submissions yet for {{ branch.name }}.</p>
           <a href="{% url 'reception:client_search' %}" class="dash-recent-link">Start a new submission</a>
         </div>
         {% endfor %}
@@ -123,6 +128,7 @@
   <aside class="dash-panel dash-quick">
     <div class="dash-panel-head">
       <h3>Quick actions</h3>
+      <span>{{ branch.name }}</span>
     </div>
     <nav class="dash-actions" aria-label="Quick actions">
       <a href="{% url 'reception:client_search' %}" class="dash-action">
