@@ -4,6 +4,7 @@ from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
+from branches.models import BranchScopedModel
 
 MAX_EVIDENCE_MB = 5
 ALLOWED_EVIDENCE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "pdf"]
@@ -20,7 +21,7 @@ def expense_evidence_path(instance, filename):
     return f"expenses/evidence/{timezone.now():%Y/%m}/{filename}"
 
 
-class Expense(models.Model):
+class Expense(BranchScopedModel):
     LABORATORY_CONSUMABLES = "LABORATORY_CONSUMABLES"
     CHEMICALS = "CHEMICALS"
     GLASSWARE = "GLASSWARE"

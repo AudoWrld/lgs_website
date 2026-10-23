@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
+from branches.models import BranchScopedModel
 from django.db import IntegrityError, models, transaction
 from django.db.models import DecimalField, ExpressionWrapper, F, Sum
 from django.utils import timezone
@@ -29,7 +30,7 @@ def default_valid_until():
     return timezone.localdate() + timedelta(days=DEFAULT_VALIDITY_DAYS)
 
 
-class Quotation(models.Model):
+class Quotation(BranchScopedModel):
     quotation_number = models.CharField(
         max_length=30, unique=True, editable=False, db_index=True
     )
