@@ -102,13 +102,15 @@
 
                         <td>
                             <div class="br-actions">
-                                <a href="{% url 'administrator:edit_employee' employee.pk %}" class="action-btn" title="Edit employee" aria-label="Edit employee">
-                                    <svg class="br-icon"><use href="#i-edit"/></svg>
-                                </a>
+                                {% if not employee.is_self %}
+                                    <a href="{% url 'administrator:edit_employee' employee.pk %}" class="action-btn" title="Edit employee" aria-label="Edit employee">
+                                        <svg class="br-icon"><use href="#i-edit"/></svg>
+                                    </a>
+                                {% endif %}
                                 <a href="{% url 'administrator:employee_activity' employee.pk %}" class="action-btn" title="Activity history" aria-label="Activity history">
                                     <svg class="br-icon"><use href="#i-clock"/></svg>
                                 </a>
-                                {% if employee.pk != request.user.pk %}
+                                {% if not employee.is_self %}
                                     <button type="button"
                                             class="action-btn"
                                             data-action="reset"
