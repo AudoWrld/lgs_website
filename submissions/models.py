@@ -126,14 +126,19 @@ class Submission(BranchScopedModel):
     @classmethod
     def generate_reference(cls, branch, for_date=None):
         for_date = for_date or timezone.localdate()
-        branch_code = getattr(branch, "code", None) or branch.pk
         with transaction.atomic():
-            seq, _ = DailySubmissionSequence.objects.select_for_update().get_or_create(
+            rows = list(
+                DailySubmissionSequence.objects.select_for_update().filter(
+                    date=for_date
+                )
+            )
+            last = max((row.last_sequence for row in rows), default=0)
+            seq, _ = DailySubmissionSequence.objects.get_or_create(
                 branch=branch, date=for_date
             )
-            seq.last_sequence += 1
+            seq.last_sequence = last + 1
             seq.save(update_fields=["last_sequence"])
-            return f"LGS/{branch_code}/{for_date:%y%m%d}/{seq.last_sequence:02d}"
+            return f"LGS/{for_date:%y%m%d}/{seq.last_sequence:02d}"
 
     @classmethod
     def generate_slug(cls, reference):
