@@ -19,13 +19,16 @@
       <span data-date>{% now "l, j F Y" %}</span>
       <span class="dash-hero-divider" aria-hidden="true"></span>
       <span><span data-time>{% now "H:i" %}</span> EAT</span>
+      <span class="dash-hero-divider" aria-hidden="true"></span>
+      <i class='bx bx-buildings' aria-hidden="true"></i>
+      <span>{{ branch.name }}</span>
     </div>
     <h1 class="dash-hero-title"><span data-greeting>Welcome back</span>, {{ display_name }}</h1>
     <p class="dash-hero-sub">
       {% if awaiting_mineral_count or awaiting_metallurgical_count or reassay_count %}
-        You have {{ awaiting_mineral_count }} mineral analysis{{ awaiting_mineral_count|pluralize:"es" }}, {{ awaiting_metallurgical_count }} metallurgical test{{ awaiting_metallurgical_count|pluralize }} and {{ reassay_count }} reassay{{ reassay_count|pluralize:",s" }} awaiting entry.
+        {{ branch.name }} has {{ awaiting_mineral_count }} mineral analysis{{ awaiting_mineral_count|pluralize:"es" }}, {{ awaiting_metallurgical_count }} metallurgical test{{ awaiting_metallurgical_count|pluralize }} and {{ reassay_count }} reassay{{ reassay_count|pluralize:",s" }} awaiting entry.
       {% else %}
-        You're all caught up. Nothing needs your attention right now.
+        You're all caught up at {{ branch.name }}. Nothing needs your attention right now.
       {% endif %}
     </p>
   </div>
@@ -96,7 +99,7 @@
     <div class="dash-stat-body">
       <span class="dash-stat-label">QC approved</span>
       <span class="dash-stat-value">{{ qc_approved_count }}</span>
-      <span class="dash-stat-hint">Total approved</span>
+      <span class="dash-stat-hint">{{ branch.name }}</span>
     </div>
   </div>
 </section>
@@ -106,7 +109,7 @@
     <section class="dash-panel">
       <div class="dash-panel-head">
         <h3>Submissions to QC this week</h3>
-        <span>Last 7 days</span>
+        <span>{{ branch.name }} · Last 7 days</span>
       </div>
       <div class="dash-graph">
         <canvas id="dash-graph-canvas" aria-hidden="true"></canvas>
@@ -153,7 +156,7 @@
     <section class="dash-panel">
       <div class="dash-panel-head">
         <h3>Waiting on QC</h3>
-        <span>Submitted by you</span>
+        <span>{{ branch.name }}</span>
       </div>
       <ul class="dash-qc-list">
         <li>
@@ -170,6 +173,7 @@
     <aside class="dash-panel dash-quick">
       <div class="dash-panel-head">
         <h3>Quick actions</h3>
+        <span>{{ branch.name }}</span>
       </div>
       <nav class="dash-actions" aria-label="Quick actions">
         <a href="{% url 'chemist:mineral_analysis_search' %}" class="dash-action">

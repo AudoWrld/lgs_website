@@ -154,17 +154,26 @@ def _paginate(request, queryset):
     return page, params.urlencode()
 
 
-def _visible_samples():
-    return Sample.objects.filter(submission__is_submitted=True)
+def _branch(request):
+    return request.user.branch
 
 
-def _get_sample(slug):
-    return get_object_or_404(_visible_samples(), slug=slug)
+def _visible_samples(request):
+    return Sample.objects.filter(
+        submission__is_submitted=True,
+        submission__branch=_branch(request),
+    )
 
 
-def _find_submission(reference):
+def _get_sample(request, slug):
+    return get_object_or_404(_visible_samples(request), slug=slug)
+
+
+def _find_submission(request, reference):
     return Submission.objects.filter(
-        reference__iexact=reference, is_submitted=True
+        branch=_branch(request),
+        reference__iexact=reference,
+        is_submitted=True,
     ).first()
 
 
@@ -301,14 +310,11 @@ def _pending_crm(submission):
 
 
 def _pending_sections(submission, skip_sample=None, skip_route=None):
-    candidates = (
-        _visible_samples()
-        .filter(
-            submission=submission,
-            analysis_status__in=MineralAnalysisEntry.EDITABLE_SAMPLE_STATUSES,
-        )
-        .order_by("id")
-    )
+    candidates = Sample.objects.filter(
+        submission=submission,
+        submission__is_submitted=True,
+        analysis_status__in=MineralAnalysisEntry.EDITABLE_SAMPLE_STATUSES,
+    ).order_by("id")
     sections = []
     for candidate in candidates:
         for route in _routes(candidate):
@@ -366,7 +372,7 @@ def _format_result(value):
 
 @chemist_required
 def chemist_dashboard(request):
-    visible = _visible_samples()
+    visible = _visible_samples(request)
 
     awaiting_mineral_count = (
         visible.filter(
@@ -417,6 +423,7 @@ def chemist_dashboard(request):
     ]
 
     context = {
+        "branch": _branch(request),
         "awaiting_mineral_count": awaiting_mineral_count,
         "awaiting_metallurgical_count": awaiting_metallurgical_count,
         "reassay_count": reassay_count,
@@ -528,14 +535,14 @@ def _mineral_worksheet_items(submission):
 
 @chemist_required
 def mineral_analysis_samples(request, reference):
-    submission = _find_submission(reference)
+    submission = _find_submission(request, reference)
 
     items = []
     sample_count = 0
     worksheet_missing = False
     if submission:
         mineral_samples_exist = (
-            _visible_samples()
+            _visible_samples(request)
             .filter(
                 submission=submission,
                 sample_services__service__metallurgical_type=Service.NONE,
@@ -561,7 +568,7 @@ def mineral_analysis_samples(request, reference):
 
 @chemist_required
 def mineral_analysis_entry(request, slug):
-    sample = _get_sample(slug)
+    sample = _get_sample(request, slug)
     misrouted = _misrouted(sample, MINERAL_ROUTE)
     if misrouted:
         return misrouted
@@ -632,7 +639,7 @@ def mineral_analysis_entry(request, slug):
 @chemist_required
 @require_POST
 def mineral_analysis_preview(request, slug):
-    sample = _get_sample(slug)
+    sample = _get_sample(request, slug)
     if not _can_open(sample, MINERAL_ROUTE):
         return JsonResponse(
             {"error": "The worksheet for this sample has not been generated."},
@@ -676,6 +683,7 @@ def mineral_crm_entry(request, row_id):
         row_type=WorksheetRow.CRM_ROW,
         worksheet__worksheet_type=Worksheet.MINERAL_ANALYSIS,
         worksheet__submission__is_submitted=True,
+        worksheet__submission__branch=_branch(request),
     )
     submission = row.worksheet.submission
     elements = worksheet_elements(row.worksheet)
@@ -755,13 +763,13 @@ def metallurgical_tests_search(request):
 
 @chemist_required
 def metallurgical_tests_samples(request, reference):
-    submission = _find_submission(reference)
+    submission = _find_submission(request, reference)
 
     items = []
     worksheet_missing_count = 0
     if submission:
         candidates = list(
-            _visible_samples()
+            _visible_samples(request)
             .filter(submission=submission)
             .filter(
                 Q(sample_services__service__metallurgical_type__in=METALLURGICAL_TYPES)
@@ -802,7 +810,7 @@ def metallurgical_tests_samples(request, reference):
 
 @chemist_required
 def metallurgical_test_entry(request, slug):
-    sample = _get_sample(slug)
+    sample = _get_sample(request, slug)
     misrouted = _misrouted(sample, CYANIDE_ROUTE)
     if misrouted:
         return misrouted
@@ -873,7 +881,7 @@ def metallurgical_test_entry(request, slug):
 
 @chemist_required
 def carbon_activity_entry(request, slug):
-    sample = _get_sample(slug)
+    sample = _get_sample(request, slug)
     misrouted = _misrouted(sample, CARBON_ROUTE)
     if misrouted:
         return misrouted
@@ -943,7 +951,7 @@ def carbon_activity_entry(request, slug):
 @chemist_required
 @require_POST
 def carbon_activity_preview(request, slug):
-    sample = _get_sample(slug)
+    sample = _get_sample(request, slug)
     entry = (
         CarbonActivityEntry.objects.filter(sample=sample).order_by("-revision").first()
     )
@@ -983,7 +991,7 @@ def reassay_samples(request):
     reference = request.GET.get("reference", "").strip()
     status = request.GET.get("status", "all")
 
-    visible = _visible_samples()
+    visible = _visible_samples(request)
 
     samples = (
         visible.filter(
@@ -1026,14 +1034,14 @@ def reassay_samples(request):
 
 @chemist_required
 def reassay_entry(request, slug):
-    sample = _get_sample(slug)
+    sample = _get_sample(request, slug)
     return redirect(_routes(sample)[0], slug=sample.slug)
 
 
 @chemist_required
 def qc_approved(request):
     reference = request.GET.get("reference", "").strip()
-    visible = _visible_samples()
+    visible = _visible_samples(request)
 
     samples = (
         visible.filter(analysis_status=Sample.QC_APPROVED)
