@@ -357,7 +357,9 @@
             </div>
 
             <div class="br-field">
-                <label for="{{ form.location.id_for_label }}" class="br-label">Location</label>
+                <label for="{{ form.location.id_for_label }}" class="br-label">
+                    Location <span class="br-required">*</span>
+                </label>
                 {{ form.location }}
                 {% for error in form.location.errors %}
                     <div class="field-error-msg">{{ error }}</div>
@@ -366,7 +368,9 @@
 
             <div class="br-grid-2">
                 <div class="br-field">
-                    <label for="{{ form.phone.id_for_label }}" class="br-label">Phone</label>
+                    <label for="{{ form.phone.id_for_label }}" class="br-label">
+                        Phone <span class="br-required">*</span>
+                    </label>
                     {{ form.phone }}
                     {% for error in form.phone.errors %}
                         <div class="field-error-msg">{{ error }}</div>
@@ -374,7 +378,9 @@
                 </div>
 
                 <div class="br-field">
-                    <label for="{{ form.email.id_for_label }}" class="br-label">Email</label>
+                    <label for="{{ form.email.id_for_label }}" class="br-label">
+                        Email <span class="br-required">*</span>
+                    </label>
                     {{ form.email }}
                     {% for error in form.email.errors %}
                         <div class="field-error-msg">{{ error }}</div>
