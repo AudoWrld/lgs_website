@@ -1,4 +1,5 @@
-from datetime import timedelta
+import calendar
+from datetime import date, timedelta
 from decimal import Decimal
 from urllib.parse import quote
 
@@ -7,11 +8,13 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import DecimalField, ExpressionWrapper, F, Q, Sum
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
+from django.views.decorators.http import require_POST
 
 from accounts.decorators import accountant_required
 from coa.models import COA
@@ -19,21 +22,16 @@ from coa.services import authorize_release, release_if_paid
 from expenses.forms import ExpenseForm
 from expenses.models import Expense
 from payments.models import Payment, PaymentAccount, PaymentTransaction
-from submissions.models import Submission
-
-from .forms import PaymentForm, ReleaseForm, ReportFilterForm
-from django.views.decorators.http import require_POST
 from quotations.forms import (
     QuotationFilterForm,
     QuotationForm,
     QuotationItemFormSet,
 )
 from quotations.models import Quotation
-import calendar
-from datetime import date, timedelta
-from django.db.models import Count, DecimalField, ExpressionWrapper, F, Max, Q, Sum
-from django.http import HttpResponse
 from quotations.pdf import render_quotation_pdf
+from submissions.models import Submission
+
+from .forms import PaymentForm, ReleaseForm, ReportFilterForm
 
 ZERO = Decimal("0.00")
 DASH = "\u2014"
@@ -43,6 +41,10 @@ OVERDUE_LIMIT = 5
 PAGE_SIZE = 20
 REPORT_PAGE_SIZE = 4
 RELEASE_PERMISSION = "coa.authorize_release"
+
+
+def _branch(request):
+    return request.user.branch
 
 
 def _total(queryset, field):
@@ -56,24 +58,36 @@ def _paginate(request, queryset, size=PAGE_SIZE, param="page"):
     return page, params.urlencode()
 
 
-def _submitted_expenses():
-    return Expense.objects.filter(is_submitted=True)
+def _submissions(branch):
+    return Submission.objects.filter(branch=branch, is_submitted=True)
 
 
-def _open_balances():
+def _transactions(branch):
+    return PaymentTransaction.objects.filter(payment__branch=branch)
+
+
+def _expenses(branch):
+    return Expense.objects.filter(branch=branch)
+
+
+def _submitted_expenses(branch):
+    return _expenses(branch).filter(is_submitted=True)
+
+
+def _open_balances(branch):
     balance = ExpressionWrapper(
         F("gross_amount") - F("discount") - F("total_amount_paid"),
         output_field=DecimalField(max_digits=14, decimal_places=2),
     )
     return (
-        Payment.objects.filter(submission__is_submitted=True)
+        Payment.objects.filter(branch=branch, submission__is_submitted=True)
         .annotate(balance=balance)
         .filter(balance__gt=0)
     )
 
 
-def _credit_balances():
-    return _open_balances().filter(credit_start_date__isnull=False)
+def _credit_balances(branch):
+    return _open_balances(branch).filter(credit_start_date__isnull=False)
 
 
 def _overdue_cutoff():
@@ -81,9 +95,9 @@ def _overdue_cutoff():
     return timezone.localdate() - timedelta(days=grace)
 
 
-def _overdue_credit_rows(limit=None):
+def _overdue_credit_rows(branch, limit=None):
     overdue = (
-        _credit_balances()
+        _credit_balances(branch)
         .filter(credit_due_date__lt=_overdue_cutoff())
         .select_related("submission")
         .order_by("credit_due_date")
@@ -136,18 +150,16 @@ def _release_row(coa):
     }
 
 
-def _pending_coas():
+def _pending_coas(branch):
     return (
-        COA.objects.filter(status=COA.PAYMENT_PENDING)
+        COA.objects.filter(submission__branch=branch, status=COA.PAYMENT_PENDING)
         .select_related("submission", "submission__payment")
         .order_by("created_at")
     )
 
 
-def _recent_payments():
-    recent = PaymentTransaction.objects.select_related("payment__submission")[
-        :RECENT_LIMIT
-    ]
+def _recent_payments(branch):
+    recent = _transactions(branch).select_related("payment__submission")[:RECENT_LIMIT]
     return [
         {
             "payment_date": tx.created_at,
@@ -160,15 +172,15 @@ def _recent_payments():
     ]
 
 
-def _dashboard_context():
+def _dashboard_context(branch):
     today = timezone.localdate()
-    transactions = PaymentTransaction.objects.all()
+    transactions = _transactions(branch)
     today_tx = transactions.filter(created_at__date=today)
     month_tx = transactions.filter(
         created_at__year=today.year, created_at__month=today.month
     )
 
-    submitted_expenses = _submitted_expenses()
+    submitted_expenses = _submitted_expenses(branch)
     today_expenses = submitted_expenses.filter(expense_date=today)
     month_expenses = submitted_expenses.filter(
         expense_date__year=today.year, expense_date__month=today.month
@@ -179,9 +191,10 @@ def _dashboard_context():
     expenses_today = _total(today_expenses, "amount")
     expenses_month = _total(month_expenses, "amount")
 
-    open_balances = _open_balances()
+    open_balances = _open_balances(branch)
 
     return {
+        "branch": branch,
         "payments_today": payments_today,
         "expenses_today": expenses_today,
         "net_today": payments_today - expenses_today,
@@ -189,11 +202,13 @@ def _dashboard_context():
         "expenses_month": expenses_month,
         "net_month": payments_month - expenses_month,
         "outstanding_debt": _total(open_balances, "balance"),
-        "credit_outstanding": _total(_credit_balances(), "balance"),
+        "credit_outstanding": _total(_credit_balances(branch), "balance"),
         "channels": _channel_rows(today_tx, month_tx),
-        "awaiting_release": [_release_row(c) for c in _pending_coas()[:RELEASE_LIMIT]],
-        "overdue_credit": _overdue_credit_rows(limit=OVERDUE_LIMIT),
-        "recent_payments": _recent_payments(),
+        "awaiting_release": [
+            _release_row(c) for c in _pending_coas(branch)[:RELEASE_LIMIT]
+        ],
+        "overdue_credit": _overdue_credit_rows(branch, limit=OVERDUE_LIMIT),
+        "recent_payments": _recent_payments(branch),
     }
 
 
@@ -229,14 +244,17 @@ def _record_payment(submission, data, user):
 
 @accountant_required
 def dashboard(request):
-    return render(request, "accountant/dashboard.html", _dashboard_context())
+    return render(
+        request, "accountant/dashboard.html", _dashboard_context(_branch(request))
+    )
 
 
 @accountant_required
 def reference_list(request):
+    branch = _branch(request)
     query = request.GET.get("q", "").strip()
     payments = (
-        Payment.objects.filter(submission__is_submitted=True)
+        Payment.objects.filter(branch=branch, submission__is_submitted=True)
         .select_related("submission")
         .prefetch_related("submission__coas")
         .order_by("-submission__submitted_at", "-id")
@@ -246,6 +264,7 @@ def reference_list(request):
 
     page_obj, querystring = _paginate(request, payments)
     context = {
+        "branch": branch,
         "query": query,
         "page_obj": page_obj,
         "querystring": querystring,
@@ -256,10 +275,11 @@ def reference_list(request):
 
 @accountant_required
 def reference_detail(request, pk):
+    branch = _branch(request)
     payment = get_object_or_404(
-        Payment.objects.filter(submission__is_submitted=True).select_related(
-            "submission"
-        ),
+        Payment.objects.filter(
+            branch=branch, submission__is_submitted=True
+        ).select_related("submission"),
         pk=pk,
     )
     transactions = (
@@ -268,6 +288,7 @@ def reference_detail(request, pk):
         .order_by("created_at", "id")
     )
     context = {
+        "branch": branch,
         "payment": payment,
         "submission": payment.submission,
         "transactions": transactions,
@@ -283,35 +304,42 @@ def reference_detail(request, pk):
 
 @accountant_required
 def payment_add(request):
+    branch = _branch(request)
     form = PaymentForm(
         request.POST or None,
         initial={"reference": request.GET.get("reference", "")},
     )
 
     if request.method == "POST" and form.is_valid():
-        try:
-            record = _record_payment(form.submission, form.cleaned_data, request.user)
-        except ValidationError as exc:
-            for message in exc.messages:
-                form.add_error(None, message)
+        if form.submission.branch_id != branch.pk:
+            form.add_error(None, "This reference does not belong to your branch.")
         else:
-            messages.success(
-                request,
-                f"Payment of TZS {record.amount:,.2f} recorded for "
-                f"{form.submission.reference}.",
-            )
-            url = reverse("accountant:payment_add")
-            return redirect(f"{url}?reference={quote(form.submission.reference)}")
+            try:
+                record = _record_payment(
+                    form.submission, form.cleaned_data, request.user
+                )
+            except ValidationError as exc:
+                for message in exc.messages:
+                    form.add_error(None, message)
+            else:
+                messages.success(
+                    request,
+                    f"Payment of TZS {record.amount:,.2f} recorded for "
+                    f"{form.submission.reference}.",
+                )
+                url = reverse("accountant:payment_add")
+                return redirect(f"{url}?reference={quote(form.submission.reference)}")
 
     submission = form.submission
+    if submission is not None and submission.branch_id != branch.pk:
+        submission = None
     if submission is None:
         reference = (request.GET.get("reference") or "").strip()
         if reference:
-            submission = Submission.objects.filter(
-                is_submitted=True, reference__iexact=reference
-            ).first()
+            submission = _submissions(branch).filter(reference__iexact=reference).first()
 
     context = {
+        "branch": branch,
         "form": form,
         "summary": Payment.ensure_for(submission) if submission else None,
         "lookup": request.GET.get("reference", ""),
@@ -322,12 +350,13 @@ def payment_add(request):
 
 @accountant_required
 def payment_list(request):
+    branch = _branch(request)
     query = request.GET.get("q", "").strip()
     method = request.GET.get("method", "").strip()
     date_from = parse_date(request.GET.get("from", "") or "")
     date_to = parse_date(request.GET.get("to", "") or "")
 
-    transactions = PaymentTransaction.objects.select_related(
+    transactions = _transactions(branch).select_related(
         "payment__submission", "recorded_by"
     )
     if query:
@@ -343,6 +372,7 @@ def payment_list(request):
 
     page_obj, querystring = _paginate(request, transactions)
     context = {
+        "branch": branch,
         "query": query,
         "method": method,
         "date_from": request.GET.get("from", ""),
@@ -358,11 +388,12 @@ def payment_list(request):
 
 @accountant_required
 def debt_credit(request):
+    branch = _branch(request)
     query = request.GET.get("q", "").strip()
     kind = request.GET.get("status", "all")
 
     balances = (
-        _open_balances()
+        _open_balances(branch)
         .select_related("submission")
         .order_by("submission__submitted_at", "id")
     )
@@ -375,6 +406,7 @@ def debt_credit(request):
 
     page_obj, querystring = _paginate(request, balances)
     context = {
+        "branch": branch,
         "query": query,
         "kind": kind,
         "page_obj": page_obj,
@@ -390,9 +422,11 @@ def release_queue(request):
     if not request.user.has_perm(RELEASE_PERMISSION):
         raise PermissionDenied
 
-    coas = _pending_coas()
+    branch = _branch(request)
+    coas = _pending_coas(branch)
     page_obj, querystring = _paginate(request, coas)
     context = {
+        "branch": branch,
         "rows": [_release_row(c) for c in page_obj.object_list],
         "page_obj": page_obj,
         "querystring": querystring,
@@ -406,7 +440,8 @@ def release_authorize(request, pk):
     if not request.user.has_perm(RELEASE_PERMISSION):
         raise PermissionDenied
 
-    coa = get_object_or_404(_pending_coas(), pk=pk)
+    branch = _branch(request)
+    coa = get_object_or_404(_pending_coas(branch), pk=pk)
     row = _release_row(coa)
     form = ReleaseForm(request.POST or None)
 
@@ -426,12 +461,13 @@ def release_authorize(request, pk):
     return render(
         request,
         "accountant/release_authorize.html",
-        {"row": row, "form": form},
+        {"branch": branch, "row": row, "form": form},
     )
 
 
 @accountant_required
 def reports(request):
+    branch = _branch(request)
     data = request.GET.copy()
     if not data.get("period"):
         data["period"] = "daily"
@@ -448,20 +484,21 @@ def reports(request):
         label = today.isoformat()
 
     transactions = (
-        PaymentTransaction.objects.select_related("payment__submission")
+        _transactions(branch)
+        .select_related("payment__submission")
         .filter(created_at__date__gte=start, created_at__date__lte=end)
         .order_by("-created_at", "-id")
     )
 
     period_expenses = (
-        _submitted_expenses()
+        _submitted_expenses(branch)
         .filter(expense_date__gte=start, expense_date__lte=end)
         .select_related("added_by")
         .order_by("-expense_date", "-created_at", "-id")
     )
 
-    open_balances = _open_balances()
-    credit_balances = _credit_balances()
+    open_balances = _open_balances(branch)
+    credit_balances = _credit_balances(branch)
 
     debt_qs = open_balances.select_related("submission").order_by(
         "submission__submitted_at", "id"
@@ -487,6 +524,7 @@ def reports(request):
     )
 
     context = {
+        "branch": branch,
         "form": form,
         "label": label,
         "start": start,
@@ -559,7 +597,11 @@ def _breakdown(queryset, field, names, total):
 
 def _range_context(request):
     start, end = _report_range(request)
-    return {"date_from": start.isoformat(), "date_to": end.isoformat()}
+    return {
+        "branch": _branch(request),
+        "date_from": start.isoformat(),
+        "date_to": end.isoformat(),
+    }
 
 
 @accountant_required
@@ -579,12 +621,13 @@ def debt_report(request):
 
 @accountant_required
 def expense_list(request):
+    branch = _branch(request)
     query = request.GET.get("q", "").strip()
     category = request.GET.get("category", "").strip()
     date_from = parse_date(request.GET.get("from", "") or "")
     date_to = parse_date(request.GET.get("to", "") or "")
 
-    expenses = Expense.objects.filter(is_submitted=True).select_related("added_by")
+    expenses = _submitted_expenses(branch).select_related("added_by")
     if query:
         expenses = expenses.filter(
             Q(description__icontains=query)
@@ -600,6 +643,7 @@ def expense_list(request):
 
     page_obj, querystring = _paginate(request, expenses)
     context = {
+        "branch": branch,
         "query": query,
         "category": category,
         "date_from": request.GET.get("from", ""),
@@ -609,9 +653,9 @@ def expense_list(request):
         "querystring": querystring,
         "total_count": expenses.count(),
         "total_amount": _total(expenses, "amount"),
-        "my_drafts": Expense.objects.filter(
-            is_submitted=False, added_by=request.user
-        ).order_by("-created_at"),
+        "my_drafts": _expenses(branch)
+        .filter(is_submitted=False, added_by=request.user)
+        .order_by("-created_at"),
     }
     return render(request, "accountant/expense_list.html", context)
 
@@ -624,18 +668,27 @@ def expense_add(request):
             expense = form.save(commit=False)
             expense.is_submitted = False
             expense.added_by = request.user
+            expense.branch = _branch(request)
             expense.save()
             return redirect("accountant:expense_edit", slug=expense.slug)
     else:
         form = ExpenseForm()
 
-    return render(request, "accountant/expense_add.html", {"form": form})
+    return render(
+        request,
+        "accountant/expense_add.html",
+        {"branch": _branch(request), "form": form},
+    )
 
 
 @accountant_required
 def expense_edit(request, slug):
     expense = get_object_or_404(
-        Expense, slug=slug, is_submitted=False, added_by=request.user
+        Expense,
+        slug=slug,
+        branch=_branch(request),
+        is_submitted=False,
+        added_by=request.user,
     )
 
     if request.method == "POST":
@@ -659,13 +712,17 @@ def expense_edit(request, slug):
     return render(
         request,
         "accountant/expense_edit.html",
-        {"form": form, "expense": expense},
+        {"branch": _branch(request), "form": form, "expense": expense},
     )
 
 
 @accountant_required
 def placeholder(request, heading):
-    return render(request, "accountant/placeholder.html", {"heading": heading})
+    return render(
+        request,
+        "accountant/placeholder.html",
+        {"branch": _branch(request), "heading": heading},
+    )
 
 
 def _quotation_queryset():
@@ -706,6 +763,7 @@ def quotation_list(request):
     ]
 
     context = {
+        "branch": _branch(request),
         "form": form,
         "query": query,
         "rows": rows,
@@ -734,7 +792,13 @@ def quotation_add(request):
             )
             return redirect("accountant:quotation_detail", pk=quotation.pk)
 
-    context = {"form": form, "formset": formset, "quotation": None, "is_edit": False}
+    context = {
+        "branch": _branch(request),
+        "form": form,
+        "formset": formset,
+        "quotation": None,
+        "is_edit": False,
+    }
     return render(request, "accountant/quotation_form.html", context)
 
 
@@ -750,6 +814,7 @@ def quotation_detail(request, pk):
     subtotal = sum((item.line_total for item in items), ZERO)
 
     context = {
+        "branch": _branch(request),
         "quotation": quotation,
         "items": items,
         "subtotal": subtotal,
@@ -778,6 +843,7 @@ def quotation_edit(request, pk):
             return redirect("accountant:quotation_detail", pk=quotation.pk)
 
     context = {
+        "branch": _branch(request),
         "form": form,
         "formset": formset,
         "quotation": quotation,
