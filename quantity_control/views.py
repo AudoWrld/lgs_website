@@ -693,15 +693,13 @@ def qc_dashboard(request):
     today = timezone.localdate()
     days = [today - timedelta(days=offset) for offset in range(6, -1, -1)]
     per_day = dict(
-        visible.filter(
-            analysis_status__in=[
-                Sample.SUBMITTED_TO_QC,
-                Sample.REASSAY_SUBMITTED,
-                Sample.QC_APPROVED,
-            ],
-            updated_at__date__gte=days[0],
+        QCDecision.objects.filter(
+            sample__submission__is_submitted=True,
+            sample__submission__branch=_branch(request),
+            action__in=[QCDecision.APPROVED, QCDecision.RETURNED],
+            decided_at__date__gte=days[0],
         )
-        .annotate(day=TruncDate("updated_at"))
+        .annotate(day=TruncDate("decided_at"))
         .order_by()
         .values("day")
         .annotate(total=Count("id"))
