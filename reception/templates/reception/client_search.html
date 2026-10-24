@@ -14,7 +14,7 @@
   <section class="sc-hero">
     <div class="sc-hero-main">
       <h2 class="sc-hero-title">Find a Client</h2>
-      <p class="sc-hero-sub">Search by client name, contact person, email or WhatsApp number.</p>
+      <p class="sc-hero-sub">Search by client name, contact person, email or WhatsApp number. Clients registered at any branch are shown, and submissions you add are recorded under {{ branch.name }}.</p>
     </div>
 
     <form method="get" class="sc-search-form" autocomplete="off">
@@ -66,7 +66,7 @@
                     <span class="sc-avatar">{{ client.client_name|slice:":1"|upper }}</span>
                     <div class="sc-client-info">
                       <span class="sc-cell-name">{{ client.client_name }}</span>
-                      <span class="sc-type">{{ client.get_client_type_display }}</span>
+                      <span class="sc-type">{{ client.get_client_type_display }}{% if client.portal_user %} · Registered at {{ client.portal_user.branch.name }}{% endif %}</span>
                     </div>
                   </div>
                 </td>

@@ -58,7 +58,7 @@ def _branch(request):
 
 
 def _clients(request):
-    return Client.objects.filter(portal_user__branch=_branch(request))
+    return Client.objects.select_related("portal_user__branch")
 
 
 def _submissions(request):
@@ -201,7 +201,12 @@ def client_search(request):
     return render(
         request,
         "reception/client_search.html",
-        {"form": form, "results": results, "searched": searched},
+        {
+            "form": form,
+            "results": results,
+            "searched": searched,
+            "branch": _branch(request),
+        },
     )
 
 
@@ -309,6 +314,7 @@ def client_edit(request, slug):
 @reception_required
 def client_register(request):
     duplicates = []
+    email_taken = False
     form = ClientForm(request.POST or None)
 
     if request.method == "POST":
@@ -320,9 +326,16 @@ def client_register(request):
                 client_name=cleaned["client_name"],
                 email=cleaned["email"],
                 whatsapp_number=cleaned["whatsapp_number"],
-            ).filter(portal_user__branch=_branch(request))
+            ).select_related("portal_user__branch")
+            email_taken = User.objects.filter(email__iexact=cleaned["email"]).exists()
 
-            if duplicates.exists() and not confirmed:
+            if email_taken:
+                messages.error(
+                    request,
+                    "This email is already registered. Use the existing client "
+                    "to start a submission in your branch.",
+                )
+            elif duplicates.exists() and not confirmed:
                 messages.warning(
                     request,
                     "POSSIBLE EXISTING CLIENT FOUND — please review before creating a new record.",
@@ -361,7 +374,12 @@ def client_register(request):
     return render(
         request,
         "reception/client_register.html",
-        {"form": form, "duplicates": duplicates},
+        {
+            "form": form,
+            "duplicates": duplicates,
+            "email_taken": email_taken,
+            "branch": _branch(request),
+        },
     )
 
 
@@ -1204,7 +1222,7 @@ def client_submission_form(request):
         submission = (
             _submissions(request)
             .filter(is_submitted=True, reference__iexact=reference)
-            .select_related("client")
+            .select_related("client", "branch")
             .first()
         )
     if submission and not list_only:
@@ -1251,7 +1269,7 @@ def client_submission_form_detail(request, reference):
 @reception_required
 def client_submission_form_pdf(request, reference):
     submission = get_object_or_404(
-        _submissions(request).select_related("client"),
+        _submissions(request).select_related("client", "branch"),
         reference=reference,
         is_submitted=True,
     )
@@ -1298,7 +1316,7 @@ def worksheet_generation(request):
         submission = (
             _submissions(request)
             .filter(reference=reference, is_submitted=True)
-            .select_related("client")
+            .select_related("client", "branch")
             .first()
         )
         if submission is None:
@@ -1368,7 +1386,7 @@ def worksheet_generation(request):
 @reception_required
 def worksheet_pdf(request, reference):
     submission = get_object_or_404(
-        _submissions(request).select_related("client"),
+        _submissions(request).select_related("client", "branch"),
         reference=reference,
         is_submitted=True,
     )

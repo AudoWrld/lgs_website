@@ -17,8 +17,14 @@
     <div class="cr-alert-head">
       <i class='bx bx-error'></i>
       <div>
-        <h3>Possible existing client found</h3>
-        <p>The details you entered match a client that is already registered. Review before creating a new record.</p>
+        <h3>{% if email_taken %}This client is already registered{% else %}Possible existing client found{% endif %}</h3>
+        <p>
+          {% if email_taken %}
+            The email you entered already belongs to a client. You do not need to register them again. Use the existing client to add a submission at {{ branch.name }}.
+          {% else %}
+            The details you entered match a client that is already registered. Use the existing client, or create a new record if this is a different client.
+          {% endif %}
+        </p>
       </div>
     </div>
 
@@ -38,13 +44,16 @@
           <tr>
             <td>
               <span class="cr-cell-name">{{ dup.client_name }}</span>
-              <span class="cr-type">{{ dup.get_client_type_display }}</span>
+              <span class="cr-type">{{ dup.get_client_type_display }}{% if dup.portal_user %} · Registered at {{ dup.portal_user.branch.name }}{% endif %}</span>
             </td>
             <td>{{ dup.contact_person|default:"—" }}</td>
             <td class="cr-cell-wrap">{{ dup.email|default:"—" }}</td>
             <td class="cr-cell-nowrap">{{ dup.whatsapp_number|default:"—" }}</td>
             <td class="cr-cell-actions">
-              <a href="{% url 'reception:client_submissions' dup.slug %}" class="btn btn-primary cr-action">
+              <a href="{% url 'reception:client_new_submission' dup.slug %}" class="btn btn-primary cr-action">
+                <i class='bx bx-plus'></i> Add Submission
+              </a>
+              <a href="{% url 'reception:client_submissions' dup.slug %}" class="btn btn-outline cr-action">
                 <i class='bx bx-list-ul'></i> View Submissions
               </a>
             </td>
@@ -54,6 +63,7 @@
       </table>
     </div>
 
+    {% if not email_taken %}
     <form method="post" class="cr-alert-foot">
       {% csrf_token %}
       {% for field in form %}
@@ -65,13 +75,20 @@
         <i class='bx bx-user-plus'></i> Register as New Client Anyway
       </button>
     </form>
+    {% else %}
+    <div class="cr-alert-foot">
+      <a href="{% url 'reception:client_register' %}" class="btn btn-outline cr-btn">
+        <i class='bx bx-left-arrow-alt'></i> Back to Registration
+      </a>
+    </div>
+    {% endif %}
   </div>
 
   {% else %}
   <div class="cr-card">
     <div class="cr-card-head">
       <h3>Client Details</h3>
-      <p>Enter the client's details to register them and continue to a new submission.</p>
+      <p>Enter the client's details to register them and continue to a new submission at {{ branch.name }}.</p>
     </div>
 
     <form method="post" class="cr-form" novalidate autocomplete="off">
