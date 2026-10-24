@@ -13,7 +13,12 @@ class Command(BaseCommand):
         parser.add_argument("--all", action="store_true", dest="all_coas")
         parser.add_argument("--ref", action="append", default=[], dest="refs")
         parser.add_argument("--status", action="append", default=[], dest="statuses")
-        parser.add_argument("--base-url", default=None, dest="base_url")
+        parser.add_argument(
+            "--base-url",
+            default="http://127.0.0.1:8000",
+            dest="base_url",
+            help="Site URL printed on the COA, e.g. http://localhost:8000",
+        )
 
     def handle(self, *args, **options):
         refs = options["refs"]
@@ -22,7 +27,7 @@ class Command(BaseCommand):
             raise CommandError("Use --all, --ref COA_NUMBER or --status STATUS.")
 
         queryset = COA.objects.select_related(
-            "submission", "submission__client", "group"
+            "submission", "submission__client", "submission__branch", "group"
         ).order_by("id")
         if refs:
             queryset = queryset.filter(coa_number__in=refs)

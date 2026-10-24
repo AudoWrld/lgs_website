@@ -1,7 +1,7 @@
 import logging
 import threading
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 from django.conf import settings
 from django.contrib.staticfiles import finders
@@ -391,6 +391,9 @@ def build_coa_doc(coa, base_url=None):
         _unique(s.other_sample_type or s.get_sample_type_display() for s in samples)
     )
 
+    branch = getattr(submission, "branch", None)
+    verify_base = _verify_base(base_url)
+
     return CoaDoc(
         coa_number=coa.coa_number,
         client_name=submission.client.client_name,
@@ -400,12 +403,18 @@ def build_coa_doc(coa, base_url=None):
         sample_count=len(samples),
         blocks=blocks,
         verify_url=(
-            f"{_verify_base(base_url)}/verify/"
-            f"{quote(coa.verification_token, safe='')}/"
+            f"{verify_base}/verify/" f"{quote(coa.verification_token, safe='')}/"
         ),
         logo_path=_static_path("core/img/lgs-logo.png"),
         signature_path=_static_path("core/img/lgs-signature.png"),
         stamp_path=_static_path("core/img/lgs-stamp.png"),
+        website=urlparse(verify_base).netloc,
+        branch_name=getattr(branch, "name", "") or "",
+        branch_address=(
+            getattr(branch, "address", "") or getattr(branch, "location", "") or ""
+        ),
+        branch_phone=getattr(branch, "phone", "") or "",
+        branch_email=getattr(branch, "email", "") or "",
     )
 
 
@@ -494,7 +503,7 @@ def _ensure_groups(pref, samples, has_coas):
 
 def _build_files_now(coa_ids, base_url):
     coas = COA.objects.filter(pk__in=coa_ids).select_related(
-        "submission", "submission__client", "group"
+        "submission", "submission__client", "submission__branch", "group"
     )
     for coa in coas:
         try:

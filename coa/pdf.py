@@ -100,6 +100,10 @@ class CoaDoc:
     signature_path: str = ""
     stamp_path: str = ""
     website: str = ""
+    branch_name: str = ""
+    branch_address: str = ""
+    branch_phone: str = ""
+    branch_email: str = ""
 
 
 def _style(name, **kw):
@@ -205,13 +209,38 @@ def _draw_watermark(c, d):
     c.doForm("watermark")
 
 
-def _address_width():
-    return max(stringWidth(line, ADDRESS_FONT, ADDRESS_SIZE) for line in ADDRESS_LINES)
+def _address_lines(d):
+    if not d.branch_name:
+        if not d.website:
+            return ADDRESS_LINES
+        head = ADDRESS_LINES[-1].rsplit("Website:", 1)[0]
+        return [*ADDRESS_LINES[:-1], f"{head}Website: {d.website}"]
+
+    lines = [f"{d.branch_name} Branch"]
+    if d.branch_address:
+        lines.append(d.branch_address)
+    contact = " | ".join(
+        part
+        for part in (
+            f"Tel: {d.branch_phone}" if d.branch_phone else "",
+            f"Email: {d.branch_email}" if d.branch_email else "",
+        )
+        if part
+    )
+    if contact:
+        lines.append(contact)
+    if d.website:
+        lines.append(f"Website: {d.website}")
+    return lines
 
 
-def _company_name_fit():
+def _address_width(lines):
+    return max(stringWidth(line, ADDRESS_FONT, ADDRESS_SIZE) for line in lines)
+
+
+def _company_name_fit(lines):
     font = "Helvetica-Bold"
-    target = _address_width() * COMPANY_NAME_WIDTH_RATIO
+    target = _address_width(lines) * COMPANY_NAME_WIDTH_RATIO
     size = COMPANY_NAME_SIZE
     spacing = COMPANY_NAME_SPACING
     while size > COMPANY_NAME_MIN_SIZE:
@@ -225,8 +254,8 @@ def _company_name_fit():
     return font, size, spacing, width
 
 
-def _draw_company_name(c, right, y):
-    font, size, spacing, width = _company_name_fit()
+def _draw_company_name(c, right, y, lines):
+    font, size, spacing, width = _company_name_fit(lines)
     c.saveState()
     t = c.beginText()
     t.setFont(font, size)
@@ -236,13 +265,6 @@ def _draw_company_name(c, right, y):
     t.textOut(COMPANY_NAME)
     c.drawText(t)
     c.restoreState()
-
-
-def _address_lines(website=""):
-    if not website:
-        return ADDRESS_LINES
-    head = ADDRESS_LINES[-1].rsplit("Website:", 1)[0]
-    return [*ADDRESS_LINES[:-1], f"{head}Website: {website}"]
 
 
 def _draw_letterhead(c, d):
@@ -258,11 +280,12 @@ def _draw_letterhead(c, d):
             mask="auto",
             anchor="sw",
         )
-    _draw_company_name(c, right, PAGE_H - 17 * mm)
+    lines = _address_lines(d)
+    _draw_company_name(c, right, PAGE_H - 17 * mm, lines)
     c.setFillColor(PURPLE)
     c.setFont(ADDRESS_FONT, ADDRESS_SIZE)
     y = PAGE_H - 23.5 * mm
-    for line in _address_lines(d.website):
+    for line in lines:
         c.drawRightString(right, y, line)
         y -= 4.3 * mm
     c.setStrokeColor(COMPANY_BLUE)
