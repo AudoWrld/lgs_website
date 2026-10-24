@@ -25,6 +25,8 @@ class BranchForm(forms.ModelForm):
                 attrs={
                     "class": "br-input",
                     "placeholder": "e.g. Mikocheni, Dar es Salaam",
+                    "required": True,
+                    "maxlength": 255,
                 }
             ),
             "phone": forms.TextInput(
@@ -33,6 +35,7 @@ class BranchForm(forms.ModelForm):
                     "placeholder": "+255 7XX XXX XXX",
                     "inputmode": "tel",
                     "autocomplete": "tel",
+                    "required": True,
                     "maxlength": 20,
                 }
             ),
@@ -40,6 +43,7 @@ class BranchForm(forms.ModelForm):
                 attrs={
                     "class": "br-input",
                     "placeholder": "branch@example.com",
+                    "required": True,
                 }
             ),
         }
@@ -60,7 +64,9 @@ class BranchForm(forms.ModelForm):
         raw = (self.cleaned_data.get("phone") or "").strip()
 
         if not raw:
-            return ""
+            raise forms.ValidationError(
+                "Phone number is required. Enter a valid Tanzanian number, e.g. +255 712 345 678 or 0712 345 678."
+            )
 
         message = (
             "Enter a valid Tanzanian number, e.g. +255 712 345 678 or 0712 345 678."
@@ -89,4 +95,6 @@ class BranchForm(forms.ModelForm):
 
     def clean_email(self):
         email = (self.cleaned_data.get("email") or "").strip().lower()
+        if not email:
+            raise forms.ValidationError("Email address is required.")
         return email
