@@ -5,9 +5,9 @@ from .utils import to_title_case
 
 class Branch(models.Model):
     name = models.CharField(max_length=150, unique=True)
-    location = models.CharField(max_length=255, blank=True, null=True)
-    phone = models.CharField(max_length=20, blank=True, null=True)
-    email = models.EmailField(blank=True, null=True)
+    location = models.CharField(max_length=255)
+    phone = models.CharField(max_length=20)
+    email = models.EmailField()
     is_active = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
