@@ -19,13 +19,16 @@
       <span data-date>{% now "l, j F Y" %}</span>
       <span class="dash-hero-divider" aria-hidden="true"></span>
       <span><span data-time>{% now "H:i" %}</span> EAT</span>
+      <span class="dash-hero-divider" aria-hidden="true"></span>
+      <i class='bx bx-buildings' aria-hidden="true"></i>
+      <span>{{ branch.name }}</span>
     </div>
     <h1 class="dash-hero-title"><span data-greeting>Welcome back</span>, {{ display_name }}</h1>
     <p class="dash-hero-sub">
       {% if pending_count or reassay_count %}
-        {{ pending_count }} result{{ pending_count|pluralize }} submitted to QC and {{ reassay_count }} reassay result{{ reassay_count|pluralize }} await your review.
+        {{ branch.name }} has {{ pending_count }} result{{ pending_count|pluralize }} submitted to QC and {{ reassay_count }} reassay result{{ reassay_count|pluralize }} awaiting your review.
       {% else %}
-        You're all caught up. Nothing needs your attention right now.
+        You're all caught up at {{ branch.name }}. Nothing needs your attention right now.
       {% endif %}
     </p>
   </div>
@@ -61,7 +64,7 @@
     <div class="dash-stat-body">
       <span class="dash-stat-label">QC Approved</span>
       <span class="dash-stat-value">{{ approved_count }}</span>
-      <span class="dash-stat-hint">Released for reporting</span>
+      <span class="dash-stat-hint">{{ branch.name }}</span>
     </div>
   </div>
   <div class="dash-stat-card">
@@ -69,7 +72,7 @@
     <div class="dash-stat-body">
       <span class="dash-stat-label">Generated COAs</span>
       <span class="dash-stat-value">{{ generated_coa_count }}</span>
-      <span class="dash-stat-hint">Certificates created</span>
+      <span class="dash-stat-hint">{{ branch.name }}</span>
     </div>
   </div>
 </section>
@@ -79,7 +82,7 @@
     <section class="dash-panel">
       <div class="dash-panel-head">
         <h3><i class='bx bx-line-chart' aria-hidden="true"></i> Results reviewed this week</h3>
-        <span>Last 7 days</span>
+        <span>{{ branch.name }} · Last 7 days</span>
       </div>
       <div class="dash-graph">
         <canvas id="dash-graph-canvas" aria-hidden="true"></canvas>
@@ -132,7 +135,7 @@
         {% endfor %}
       </ul>
       {% else %}
-      <p class="dash-empty">No samples awaiting QC review.</p>
+      <p class="dash-empty">No samples awaiting QC review at {{ branch.name }}.</p>
       {% endif %}
     </section>
 
@@ -152,7 +155,7 @@
         {% endfor %}
       </ul>
       {% else %}
-      <p class="dash-empty">No reassay results awaiting review.</p>
+      <p class="dash-empty">No reassay results awaiting review at {{ branch.name }}.</p>
       {% endif %}
     </section>
 
@@ -172,7 +175,7 @@
         {% endfor %}
       </ul>
       {% else %}
-      <p class="dash-empty">No samples have been QC approved yet.</p>
+      <p class="dash-empty">No samples have been QC approved yet at {{ branch.name }}.</p>
       {% endif %}
     </section>
   </div>

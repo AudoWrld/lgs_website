@@ -68,6 +68,25 @@ SINGLE_FIELDS = (
 )
 
 
+def _branch(request):
+    return request.user.branch
+
+
+def _visible_samples(request):
+    return Sample.objects.filter(
+        submission__is_submitted=True,
+        submission__branch=_branch(request),
+    )
+
+
+def _submissions(request):
+    return Submission.objects.filter(branch=_branch(request), is_submitted=True)
+
+
+def _coas(request):
+    return COA.objects.filter(submission__branch=_branch(request))
+
+
 def _paginate(request, queryset):
     page = Paginator(queryset, PAGE_SIZE).get_page(request.GET.get("page"))
     params = request.GET.copy()
@@ -658,7 +677,7 @@ def _handle_post(request, sample, kind, entry):
 
 @qc_required
 def qc_dashboard(request):
-    visible = Sample.objects.filter(submission__is_submitted=True)
+    visible = _visible_samples(request)
     cutoff = timezone.now() - timedelta(hours=OVERDUE_HOURS)
 
     def base(**filters):
@@ -693,11 +712,12 @@ def qc_dashboard(request):
     ]
 
     context = {
+        "branch": _branch(request),
         "pending_count": pending.count(),
         "reassay_count": reassay.count(),
         "approved_count": approved.count(),
         "overdue_count": overdue.count(),
-        "generated_coa_count": COA.objects.count(),
+        "generated_coa_count": _coas(request).count(),
         "pending_samples": _with_lab_id(pending[:5]),
         "reassay_samples": _with_lab_id(reassay[:5]),
         "approved_samples": _with_lab_id(approved[:5]),
@@ -718,9 +738,11 @@ def _status_list(
     by_approval=False,
 ):
     reference = request.GET.get("reference", "").strip()
-    samples = Sample.objects.filter(
-        submission__is_submitted=True, analysis_status__in=statuses
-    ).select_related("submission", "lab_mapping")
+    samples = (
+        _visible_samples(request)
+        .filter(analysis_status__in=statuses)
+        .select_related("submission", "lab_mapping")
+    )
     if extra is not None:
         samples = samples.filter(extra)
     if reference:
@@ -738,6 +760,7 @@ def _status_list(
         items = _sample_items(page_obj.object_list)
 
     context = {
+        "branch": _branch(request),
         "reference": reference,
         "items": items,
         "page_obj": page_obj,
@@ -805,24 +828,22 @@ def quick_search(request):
         return redirect("qc:qc_dashboard")
 
     coa = (
-        COA.objects.filter(**{f"{COA_NUMBER_FIELD}__iexact": query})
+        _coas(request)
+        .filter(**{f"{COA_NUMBER_FIELD}__iexact": query})
         .select_related("submission")
         .first()
     )
     if coa is not None:
         return redirect("qc:report_detail", reference=coa.submission.reference)
 
-    submission = Submission.objects.filter(
-        is_submitted=True, reference__iexact=query
-    ).first()
+    submission = _submissions(request).filter(reference__iexact=query).first()
     if submission is not None:
         return redirect("qc:report_detail", reference=submission.reference)
 
     matches = list(
-        Sample.objects.filter(
-            submission__is_submitted=True,
-            lab_mapping__lab_sample_id__icontains=query,
-        )[:2]
+        _visible_samples(request).filter(lab_mapping__lab_sample_id__icontains=query)[
+            :2
+        ]
     )
     if len(matches) == 1:
         return redirect("qc:sample_review", slug=matches[0].slug)
@@ -860,7 +881,7 @@ def _crm_entries_for_sample(sample):
 @qc_required
 def sample_review(request, slug):
     sample = get_object_or_404(
-        Sample.objects.filter(submission__is_submitted=True).select_related(
+        _visible_samples(request).select_related(
             "submission", "submission__client", "lab_mapping"
         ),
         slug=slug,
@@ -887,6 +908,7 @@ def sample_review(request, slug):
     )
 
     context = {
+        "branch": _branch(request),
         "sample": sample,
         "lab_id": lab_sample_id_for(sample),
         "kind": kind,
@@ -928,8 +950,10 @@ def sample_review(request, slug):
 @qc_required
 def generated_reports(request):
     reference = request.GET.get("reference", "").strip()
-    coas = COA.objects.select_related("submission", "group").order_by(
-        "-created_at", "-id"
+    coas = (
+        _coas(request)
+        .select_related("submission", "group")
+        .order_by("-created_at", "-id")
     )
 
     if reference:
@@ -937,6 +961,7 @@ def generated_reports(request):
 
     page_obj, querystring = _paginate(request, coas)
     context = {
+        "branch": _branch(request),
         "reference": reference,
         "items": list(page_obj.object_list),
         "page_obj": page_obj,
@@ -949,9 +974,9 @@ def generated_reports(request):
 @qc_required
 def report_detail(request, reference):
     submission = get_object_or_404(
-        Submission.objects.filter(
-            is_submitted=True, reference__iexact=reference
-        ).select_related("client")
+        _submissions(request)
+        .filter(reference__iexact=reference)
+        .select_related("client", "branch")
     )
     coas = list(
         COA.objects.filter(submission=submission)
@@ -998,6 +1023,7 @@ def report_detail(request, reference):
     covered = {item["sample"].pk for e in entries for item in e["samples"]}
     waiting = [s for s in samples if s.pk not in covered]
     context = {
+        "branch": _branch(request),
         "submission": submission,
         "sample_items": _sample_items(samples),
         "waiting_items": _sample_items(waiting),
@@ -1011,7 +1037,7 @@ def report_detail(request, reference):
 
 @qc_required
 def report_coa_preview(request, coa_id):
-    coa = get_object_or_404(COA, pk=coa_id, submission__is_submitted=True)
+    coa = get_object_or_404(_coas(request), pk=coa_id, submission__is_submitted=True)
     if not coa.png_file:
         raise Http404
 
@@ -1035,7 +1061,7 @@ def report_coa_preview(request, coa_id):
 
 @qc_required
 def report_coa_file(request, pk, kind):
-    coa = get_object_or_404(COA, pk=pk)
+    coa = get_object_or_404(_coas(request), pk=pk)
     if kind == "pdf":
         field, content_type = coa.pdf_file, "application/pdf"
     elif kind == "png":
